@@ -29,7 +29,7 @@
     <main id="contenido" class="app-main app-main--with-action-bar">
       <!-- Confirmación de guardado al confirmar factura precargada -->
       <div id="factura-guardada" class="toast-target" role="status" aria-live="polite">
-        <span>✓ Guardado: Mercado $85.000 · CUFE registrado</span>
+        <span>✓ Guardado: Hogar · Mercado $85.000 · CUFE registrado</span>
         <a href="compra-rapida.html">Listo</a>
       </div>
 
@@ -70,7 +70,7 @@
               </svg>
               <span style="font-size: 0.8125rem; font-weight: 700;">Apunta al QR de la factura</span>
             </div>
-            <p class="camera-caption">Lectura 100% local en tu dispositivo. Funciona sin internet y sin consultar el portal de la DIAN.</p>
+            <p class="camera-caption">Lectura 100 % local en tu dispositivo. Funciona sin internet y sin consultar el portal de la DIAN.</p>
           </div>
 
           <div class="btn-row">
@@ -101,16 +101,16 @@
               <dd>Almacenes Éxito</dd>
             </div>
             <div class="kv-row">
-              <dt>Fecha factura</dt>
-              <dd>22 nov 2026 · 14:15</dd>
+              <dt>Fecha civil factura</dt>
+              <dd>22 nov 2026</dd>
             </div>
             <div class="kv-row">
               <dt>Total (COP enteros)</dt>
               <dd class="cop" style="font-size: 1.125rem;">$85.000</dd>
             </div>
             <div class="kv-row">
-              <dt>IVA incluido (informativo)</dt>
-              <dd class="cop">$9.450</dd>
+              <dt>IVA 19 % incluido (informativo)</dt>
+              <dd class="cop">$13.571</dd>
             </div>
             <div class="kv-row">
               <dt>CUFE (único por hogar)</dt>
@@ -118,15 +118,20 @@
             </div>
           </dl>
 
-          <p class="field-help">El QR no incluye el detalle de productos (en Fase 2 se leen desde el ZIP por correo). Confirma la categoría y guarda.</p>
+          <p class="field-help">El IVA ($13.571) es informativo y ya viene incluido en $85.000 (nunca se suma aparte). El QR no trae líneas de producto (en Fase 2 llegan desde el ZIP por correo).</p>
+
+          <div class="segmented" role="group" aria-label="Ámbito de la factura: Hogar o Personal">
+            <button type="button" class="segmented__btn" aria-pressed="true">✓ Hogar</button>
+            <button type="button" class="segmented__btn" aria-pressed="false">Personal (solo yo)</button>
+          </div>
 
           <div>
-            <h3 class="section-title" style="margin-bottom: 8px;">Confirma categoría (sugerida por NIT)</h3>
+            <h3 class="section-title" style="margin-bottom: 8px;">Confirma categoría (sugerida por alias del comercio)</h3>
             <div class="chip-grid" role="group" aria-label="Confirmar categoría de la factura">
               <button type="button" class="chip chip--active" aria-pressed="true">✓ Mercado</button>
               <button type="button" class="chip" aria-pressed="false">Mascotas</button>
               <button type="button" class="chip" aria-pressed="false">Hogar</button>
-              <button type="button" class="chip" aria-pressed="false">Comida</button>
+              <button type="button" class="chip" aria-pressed="false">Arriendo</button>
               <button type="button" class="chip" aria-pressed="false">Transporte</button>
               <button type="button" class="chip" aria-pressed="false">Servicios</button>
             </div>
@@ -134,12 +139,15 @@
 
           <div class="callout callout--indigo">
             <span class="callout__icon" aria-hidden="true">ℹ</span>
-            <p><strong>Medio recordado:</strong> Visa ••4521 (Santiago) · <strong>1 cuota</strong>. Si la difieres a cuotas, el consumo se cuenta una sola vez hoy.</p>
+            <p><strong>Medio recordado (local):</strong> Visa ••4521 (Santiago) · <strong>1 cuota</strong>. Si la difieres a cuotas, el consumo se cuenta una sola vez hoy.</p>
           </div>
 
-          <div class="chip-row" role="group" aria-label="Cuotas de la compra escaneada">
-            <button type="button" class="chip chip--active" aria-pressed="true">✓ 1 cuota</button>
-            <a class="chip" href="compra-cuotas.html">Diferir a cuotas</a>
+          <div class="chip-row--5" role="group" aria-label="Cuotas de la compra escaneada">
+            <button type="button" class="chip chip--active" aria-pressed="true" aria-label="1 cuota">✓ 1</button>
+            <a class="chip" href="compra-cuotas.html" aria-label="3 cuotas">3</a>
+            <a class="chip" href="compra-cuotas.html" aria-label="6 cuotas">6</a>
+            <a class="chip" href="compra-cuotas.html" aria-label="12 cuotas">12</a>
+            <a class="chip" href="compra-cuotas.html#otro-cuotas" aria-label="Otro número de cuotas">Otro</a>
           </div>
 
           <a class="btn btn--primary btn--full" href="#factura-guardada">Guardar $85.000</a>
@@ -194,7 +202,7 @@
               </div>
               <div class="field">
                 <label for="url-iva">IVA COP (opcional)</label>
-                <input id="url-iva" class="input" type="text" inputmode="numeric" placeholder="Ej. $9.450">
+                <input id="url-iva" class="input" type="text" inputmode="numeric" placeholder="Ej. $13.571">
               </div>
             </div>
 
@@ -234,7 +242,7 @@
             <span class="callout__icon" aria-hidden="true">▲</span>
             <div>
               <p><strong>Esta factura ya está registrada en tu hogar.</strong></p>
-              <p>El CUFE <span class="mono-code">a8f39d2c…710e92e1</span> ya tiene un consumo guardado. No se creó un segundo registro para evitar doble conteo.</p>
+              <p>El CUFE <span class="mono-code">a8f39d2c…710e92e1</span> ya tiene una compra guardada. No se creó un segundo registro para evitar doble conteo.</p>
             </div>
           </div>
 
@@ -247,11 +255,11 @@
               </div>
               <div class="kv-row">
                 <dt>Categoría y monto</dt>
-                <dd class="cop">Mercado · $85.000</dd>
+                <dd class="cop">Mercado · $85.000 (IVA $13.571)</dd>
               </div>
               <div class="kv-row">
                 <dt>Registrado por</dt>
-                <dd>Santiago · 22 nov, 14:15</dd>
+                <dd>Santiago · 22 nov 2026</dd>
               </div>
               <div class="kv-row">
                 <dt>Medio de pago</dt>

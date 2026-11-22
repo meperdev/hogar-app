@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ajustes y exportación — hogar-app</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido principal</a>
+
+  <div class="review-bar">
+    <a href="index.html">← Índice de mockups</a>
+    <span>Ajustes · Exportación y respaldo · 390px</span>
+  </div>
+
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-left">
+        <a class="icon-btn" href="balance-de-pareja.html" aria-label="Volver a Balance de pareja">←</a>
+        <div>
+          <h1 class="app-title">Ajustes y exportación</h1>
+          <p class="app-subtitle">Hogar Santiago y Camila</p>
+        </div>
+      </div>
+      <span class="badge badge--primary">Respaldo activo</span>
+    </header>
+
+    <main id="contenido" class="app-main">
+      <!-- Confirmación de exportación manual -->
+      <div id="exportacion-lista" class="toast-target" role="status" aria-live="polite">
+        <span>✓ Exportación generada: JSON y CSV listos para descargar</span>
+        <a href="#contenido">Cerrar</a>
+      </div>
+
+      <!-- Exportación automática semanal (Supabase Storage) -->
+      <section class="card card--accent-primary" aria-labelledby="export-auto-heading">
+        <div class="section-header">
+          <h2 id="export-auto-heading" class="section-title">Exportación automática semanal</h2>
+          <span class="badge badge--primary">✓ Activa</span>
+        </div>
+
+        <p class="field-help" style="margin-bottom: 10px;">Cada semana una función programada genera un respaldo completo de todos los hechos del hogar en <strong>JSON + CSV</strong> en Storage, listo para descargar cuando quieras.</p>
+
+        <dl class="kv-list" style="margin-bottom: 12px;">
+          <div class="kv-row">
+            <dt>Última exportación automática</dt>
+            <dd>Dom 22 nov 2026 · 03:00</dd>
+          </div>
+          <div class="kv-row">
+            <dt>Próxima exportación programada</dt>
+            <dd>Dom 29 nov 2026 · 03:00</dd>
+          </div>
+          <div class="kv-row">
+            <dt>Archivos generados</dt>
+            <dd>148 KB JSON · 42 KB CSV</dd>
+          </div>
+        </dl>
+
+        <div class="btn-row" style="margin-bottom: 8px;">
+          <a class="btn btn--secondary btn--sm" href="#exportacion-lista">Descargar JSON</a>
+          <a class="btn btn--secondary btn--sm" href="#exportacion-lista">Descargar CSV</a>
+        </div>
+
+        <a class="btn btn--primary btn--full" href="#exportacion-lista">Exportar ahora</a>
+      </section>
+
+      <!-- Copia local completa en IndexedDB -->
+      <section class="card card--accent-indigo" aria-labelledby="copia-local-heading">
+        <div class="section-header">
+          <h2 id="copia-local-heading" class="section-title">Copia local en este dispositivo</h2>
+          <span class="badge badge--indigo">IndexedDB</span>
+        </div>
+
+        <dl class="kv-list" style="margin-bottom: 12px;">
+          <div class="kv-row">
+            <dt>Estado sin conexión</dt>
+            <dd>✓ Copia completa al día</dd>
+          </div>
+          <div class="kv-row">
+            <dt>Última sincronización</dt>
+            <dd>Hoy, 22 nov · 15:58</dd>
+          </div>
+          <div class="kv-row">
+            <dt>Último medio recordado (local)</dt>
+            <dd>Visa ••4521 · Santiago</dd>
+          </div>
+        </dl>
+
+        <p class="field-help" style="margin-bottom: 10px;">Cada dispositivo conserva su copia completa en IndexedDB para operar offline y recuperar tus datos aunque no haya internet.</p>
+
+        <a class="btn btn--secondary btn--full" href="#exportacion-lista">Descargar copia local (JSON)</a>
+      </section>
+
+      <!-- Historial de respaldos semanales -->
+      <section class="card" aria-labelledby="historial-export-heading">
+        <div class="section-header">
+          <h2 id="historial-export-heading" class="section-title">Historial semanal reciente</h2>
+          <span class="section-meta">Últimos 3 domingos</span>
+        </div>
+
+        <ul class="item-list">
+          <li class="item-card card--muted">
+            <div class="item-card__top">
+              <div>
+                <h3 class="item-card__title">Respaldo 22 nov 2026</h3>
+                <p class="item-card__meta">Automático semanal · 148 KB JSON / 42 KB CSV</p>
+              </div>
+              <span class="badge badge--primary">✓ Listo</span>
+            </div>
+            <div class="btn-row">
+              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar JSON del 22 de noviembre de 2026">JSON</a>
+              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar CSV del 22 de noviembre de 2026">CSV</a>
+            </div>
+          </li>
+
+          <li class="item-card card--muted">
+            <div class="item-card__top">
+              <div>
+                <h3 class="item-card__title">Respaldo 15 nov 2026</h3>
+                <p class="item-card__meta">Automático semanal · 141 KB JSON / 39 KB CSV</p>
+              </div>
+              <span class="badge badge--neutral">Archivado</span>
+            </div>
+            <div class="btn-row">
+              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar JSON del 15 de noviembre de 2026">JSON</a>
+              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar CSV del 15 de noviembre de 2026">CSV</a>
+            </div>
+          </li>
+
+          <li class="item-card card--muted">
+            <div class="item-card__top">
+              <div>
+                <h3 class="item-card__title">Respaldo 08 nov 2026</h3>
+                <p class="item-card__meta">Automático semanal · 134 KB JSON / 37 KB CSV</p>
+              </div>
+              <span class="badge badge--neutral">Archivado</span>
+            </div>
+            <div class="btn-row">
+              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar JSON del 8 de noviembre de 2026">JSON</a>
+              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar CSV del 8 de noviembre de 2026">CSV</a>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- Preferencias del hogar -->
+      <section class="card" aria-labelledby="config-hogar-heading">
+        <h2 id="config-hogar-heading" class="section-title" style="margin-bottom: 10px;">Configuración del hogar</h2>
+        <div class="toggle-list" style="margin-bottom: 12px;">
+          <div class="toggle-item">
+            <div class="toggle-item__text">
+              <label class="toggle-item__label" for="cfg-pct-ingreso">Mostrar "% de su ingreso" en Balance</label>
+              <p class="toggle-item__help">Apagado por defecto para todo el hogar.</p>
+            </div>
+            <input id="cfg-pct-ingreso" class="toggle-switch" type="checkbox" role="switch">
+          </div>
+        </div>
+        <dl class="kv-list">
+          <div class="kv-row">
+            <dt>Moneda y formato</dt>
+            <dd>COP enteros ($300.000)</dd>
+          </div>
+          <div class="kv-row">
+            <dt>Zona horaria civil</dt>
+            <dd>America/Bogota</dd>
+          </div>
+        </dl>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Navegación principal">
+      <a class="bottom-nav__link" href="compra-rapida.html">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 8v8M8 12h8"/>
+        </svg>
+        <span>Compra</span>
+      </a>
+      <a class="bottom-nav__link" href="obligaciones-del-mes.html">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <rect x="4" y="5" width="16" height="15" rx="2"/>
+          <path d="M8 3v4M16 3v4M4 10h16"/>
+        </svg>
+        <span>Obligaciones</span>
+      </a>
+      <a class="bottom-nav__link" href="balance-de-pareja.html">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <circle cx="9" cy="9" r="3"/>
+          <circle cx="16" cy="9" r="3"/>
+          <path d="M3 19c0-3 2.5-5 6-5s6 2 6 5M14 14c3 0 6 1.8 6 5"/>
+        </svg>
+        <span>Balance</span>
+      </a>
+      <a class="bottom-nav__link" href="despensa-mascotas.html">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <circle cx="7" cy="9" r="2"/>
+          <circle cx="12" cy="7" r="2"/>
+          <circle cx="17" cy="9" r="2"/>
+          <path d="M7 16c0-2.5 2.2-4 5-4s5 1.5 5 4c0 1.8-1.4 3-3 3h-4c-1.6 0-3-1.2-3-3z"/>
+        </svg>
+        <span>Mascotas</span>
+      </a>
+    </nav>
+  </div>
+</body>
+</html>

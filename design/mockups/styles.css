@@ -1268,3 +1268,160 @@ fieldset.radio-group {
   box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
+/* Selector segmentado accesible (ej. Hogar | Personal) */
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 3px;
+  background: var(--surface-muted);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-md);
+}
+
+.segmented__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid transparent;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.segmented__btn:hover {
+  background: var(--surface);
+}
+
+.segmented__btn[aria-pressed="true"] {
+  background: var(--primary);
+  color: var(--primary-text-on);
+  border-color: var(--primary);
+}
+
+/* Fila fija de 5 chips (cuotas 1 / 3 / 6 / 12 / Otro) */
+.chip-row--5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.chip-row--5 .chip {
+  padding: 8px 4px;
+  font-size: 0.8125rem;
+}
+
+/* Interruptores accesibles (>= 44x44px, contraste AA) */
+.toggle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.toggle-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.toggle-item__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.toggle-item__label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.toggle-item__help {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.toggle-switch {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex-shrink: 0;
+  width: 52px;
+  height: 44px;
+  margin: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.toggle-switch::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 2px;
+  width: 48px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-muted);
+  border: 2px solid var(--border-strong);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.toggle-switch::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  left: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.toggle-switch:checked::before {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.toggle-switch:checked::after {
+  transform: translateX(20px);
+  background: #ffffff;
+}
+
+/* Estados condicionales CSS puro en Balance (apagados por defecto) */
+.pct-ingreso-only,
+.personales-only {
+  display: none;
+}
+
+.app-main:has(#toggle-pct-ingreso:checked) .pct-ingreso-only {
+  display: block;
+}
+
+.app-main:has(#toggle-pct-ingreso:checked) .pct-ingreso-off-note {
+  display: none;
+}
+
+.app-main:has(#toggle-personales:checked) .personales-only {
+  display: block;
+}
+
+

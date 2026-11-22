@@ -1,94 +1,114 @@
 # Flujo: Balance de pareja
 
-Mostrar de forma transparente cuánto aportó cada miembro al hogar durante el mes (en pesos y porcentaje) junto con sus ingresos fijos y variables, bajo el principio estricto de **aporte libre**: la app informa, nunca calcula ni insinúa que un miembro le debe dinero a otro.
+Mostrar de forma transparente cuánto aportó cada `Miembro` al hogar durante el **mes calendario** (`1` al último día del mes, fecha civil `America/Bogota`) junto con sus `Ingreso` fijos y variables, bajo el principio estricto de **aporte libre**: la app informa con totales **DERIVADOS**, nunca guarda resúmenes y nunca calcula ni insinúa que un miembro le debe dinero a otro.
 
 ## Objetivo
 
-- Dar visibilidad clara del aporte real de cada persona al hogar (`$`, `% del total del hogar` y `% opcional de su propio ingreso`).
-- Distinguir **ingresos fijos** (monto y día esperado) de **ingresos variables** (registrados cuando llegan).
-- Eliminar fricción emocional: **nunca** mostrar textos como *"X le debe a Y"*, *"diferencia para empatar 50/50"* ni saldos a favor/en contra entre miembros.
+- Dar visibilidad clara del aporte real de cada persona al hogar (`$` enteros COP y `%` del total del hogar con **un decimal**, ej. `58,0 %`), incluyendo las **transferencias al fondo común (`Aporte`)**.
+- Mantener la vista **`% de su ingreso` APAGADA por defecto** (`Hogar.mostrar_pct_ingreso = false`) con un interruptor para activarla cuando el hogar lo desee.
+- Excluir las compras personales (`Compra.ambito = 'personal'`) del balance del hogar por defecto, con interruptor local `incluir_personales` apagado.
+- Permitir confirmar ingresos fijos con **`Marcar recibido`** (`RecepcionIngreso`), aceptando un `monto_recibido` distinto al monto base cuando corresponda, y manteniendo visibles los ingresos de ambos miembros.
+- Eliminar fricción emocional: **nunca** mostrar textos como *"X le debe a Y"*, *"diferencia para empatar 50/50"* ni saldos entre miembros.
 
 ## Pantallas
 
 | Pantalla | Propósito | Mockup |
 | --- | --- | --- |
-| **Balance de pareja** | Resumen mensual de aporte libre por miembro (pesos, % del hogar, % de su ingreso), bloque de ingresos fijos vs variables y movimientos recientes por miembro. | [balance-de-pareja.html](../../design/mockups/balance-de-pareja.html) |
-| **Registrar ingreso** | Alta de ingreso fijo (con día esperado del mes) o variable (registrado al recibirlo) para un miembro del hogar. | [registrar-ingreso.html](../../design/mockups/registrar-ingreso.html) |
+| **Balance de pareja** | Resumen por **mes calendario** de aporte libre (pesos y `%` con 1 decimal), interruptores `Mostrar % de su ingreso` (apagado por defecto) e `Incluir personales` (apagado por defecto), acción `Transferir al fondo común`, desglose de ingresos fijos (con `Marcar recibido`) vs variables y acceso a Ajustes/exportación. | [balance-de-pareja.html](../../design/mockups/balance-de-pareja.html) |
+| **Transferir al fondo común** | Registrar una entidad `Aporte` desde un `MedioDePago` de un `Miembro` hacia un `MedioDePago` del `Hogar` (cuenta común o caja común), sin contarla como consumo. | [transferir-fondo-comun.html](../../design/mockups/transferir-fondo-comun.html) |
+| **Registrar ingreso** | Alta de `Ingreso` fijo (`dia_esperado`, `vigente_desde`) o variable (`fecha`) para un miembro del hogar. | [registrar-ingreso.html](../../design/mockups/registrar-ingreso.html) |
+| **Ajustes y exportación** | Estado de la exportación automática semanal (JSON + CSV en Storage), descarga manual, botón `Exportar ahora` y estado de la copia local en IndexedDB. | [ajustes-exportar.html](../../design/mockups/ajustes-exportar.html) |
 
 ## Flujo paso a paso
 
-### 1. Consultar el balance mensual de pareja
+### 1. Consultar el balance del mes calendario
 
 1. El usuario toca **Balance** en la barra de navegación inferior.
-2. En la cabecera selecciona o confirma el mes activo (ej. `Noviembre 2026`, con navegación `< Mes anterior` / `Mes siguiente >`).
-3. El bloque principal **Aportes al hogar** muestra:
-   - **Total aportado en el mes:** `$3.600.000` (suma de gastos directos pagados + pagos de deudas/costos financieros hechos al hogar).
-   - Tarjeta y barra proporcional para cada miembro (diferenciada con color, patrón/borde y etiqueta textual):
-     - **Santiago:** `$2.088.000` · **58%** del hogar · *41% de su ingreso del mes*.
-     - **Camila:** `$1.512.000` · **42%** del hogar · *36% de su ingreso del mes*.
-   - Nota permanente y sobria de **Aporte libre**: *"Cada quien aporta lo que quiere o puede. No se generan saldos ni deudas entre ustedes."*
-4. El segundo bloque **Ingresos del mes (Fijos vs Variables)** desglosa para cada miembro:
-   - **Fijos:** monto y día esperado (ej. `Salario Santiago · $4.500.000 · día 30 · ✓ Recibido`).
-   - **Variables:** lista de entradas registradas al llegar (ej. `Consultoría diseño · $600.000 · 12 nov`).
-   - Totales separados de ingresos fijos (`$8.300.000`) y variables (`$1.050.000`) del hogar.
-5. Un control permite activar u ocultar la vista de `% sobre ingreso propio` (es opcional según el dominio, para respetar hogares que prefieren solo ver pesos y `%` del total).
+2. En la cabecera selecciona o confirma el **mes calendario** activo (`Noviembre 2026 · 1–30 nov`, navegación `< Mes anterior` / `Mes siguiente >`).
+3. El bloque **Aportes del mes al hogar** (todo **DERIVADO** en el dispositivo, nunca guardado) suma exactamente las 4 fuentes de aporte por miembro `M`:
+   - `Compra` de contado con `ambito = 'hogar'` desde `MedioDePago` de `M` (excluye compras personales y compras con `financiada_por_pasivo_id`).
+   - `PagoDeDeuda` desde `MedioDePago` de `M`.
+   - `CostoFinanciero` pagado directo desde `MedioDePago` de `M`.
+   - **`Aporte`** (transferencias desde `MedioDePago` de `M` hacia `MedioDePago` del `Hogar`, ej. cuenta común).
+   - *(Nota: lo que sale luego desde un `MedioDePago` del hogar son "salidas del fondo común", informativas, y no vuelven a sumarse como aporte de nadie).*
+4. Muestra el resumen con **porcentajes a un decimal**:
+   - **Total aportado en el mes:** `$3.600.000`.
+   - **Santiago:** `$2.088.000` · **`58,0 %`** del total (incluye arriendo `$1.800.000`, cuota Mastercard Camila `$234.500` y transferencia al fondo común `$53.500`).
+   - **Camila:** `$1.512.000` · **`42,0 %`** del total (incluye transferencia al fondo común `$500.000`, servicios EPM `$285.000`, compras de mascotas `$245.000` y compras diarias del hogar `$482.000`).
+   - Nota permanente de **Aporte libre**: *"Cada quien aporta lo que quiere o puede. Nunca se generan saldos ni deudas entre ustedes."*
+5. **Controles de vista (ambos APAGADOS por defecto):**
+   - **Interruptor `Mostrar % de su ingreso` (`Hogar.mostrar_pct_ingreso`, default `false`):** apagado por defecto para evitar comparaciones innecesarias. Al encenderlo muestra `40,9 %` de sus ingresos para Santiago (`$2.088.000 / $5.100.000`) y `35,6 %` para Camila (`$1.512.000 / $4.250.000`).
+   - **Interruptor `Incluir mis gastos personales` (`incluir_personales`, preferencia local, default `false`):** apagado por defecto; los gastos con `Compra.ambito = 'personal'` quedan excluidos del balance del hogar y nunca cuentan como aporte.
+6. **Bloque `Ingresos del mes` (visible para ambos miembros):**
+   - Muestra todos los `Ingreso` fijos y variables de ambos miembros del hogar (`$9.350.000`: fijos `$8.300.000 · 88,8 %`, variables `$1.050.000 · 11,2 %`).
+   - Para cada `Ingreso` fijo del periodo `'AAAA-MM'`, consulta `RecepcionIngreso`:
+     - Si `recibido = true`: muestra `✓ Recibido` y usa **`monto_recibido`** (si difiere del monto base pactado, muestra ambos con claridad: ej. *pactado `$3.750.000`, recibido `$3.800.000`*).
+     - Si aún no se recibe (ej. `Salario Santiago · día 30` estando a 22 nov): muestra `◷ Esperado día 30` y la acción inline **`Marcar recibido`**, donde el usuario confirma `fecha_recepcion` y puede editar `monto_recibido` si llegó un valor distinto ese mes.
 
-### 2. Registrar un ingreso (fijo o variable)
+### 2. Transferir al fondo común (`Aporte`)
 
-1. Desde **Balance de pareja**, el usuario toca **`+ Registrar ingreso`**.
-2. Selecciona a qué **miembro** corresponde (`Santiago` o `Camila`).
-3. Elige el tipo de ingreso:
-   - **Fijo (recurrente):** habilita el campo `Día esperado del mes` (1–31) y marca si ya se recibió este mes.
-   - **Variable (cuando llega):** muestra el campo `Fecha recibido` (`Hoy` por defecto) y no exige recurrencia.
-4. Ingresa la descripción (ej. `Comisión ventas`, `Arriendo recibido`, `Freelance`) y el monto entero en COP (ej. `$600.000`).
-5. Toca **`Guardar ingreso`**.
-6. La app actualiza el total de ingresos del miembro y recalcula automáticamente el indicador opcional `% de su ingreso` en *Balance de pareja*.
+1. Desde **Balance de pareja**, el usuario toca **`Transferir al fondo común`**.
+2. Se abre [transferir-fondo-comun.html](../../design/mockups/transferir-fondo-comun.html):
+   - Selecciona **`MedioDePago` de origen** (solo medios con `owner_tipo = 'miembro'`, ej. `Nequi · Camila`).
+   - Selecciona **`MedioDePago` de destino** (solo medios con `owner_tipo = 'hogar'`, ej. `Cuenta común del hogar`).
+   - Ingresa `monto` en COP enteros (ej. `$500.000`), `fecha` civil (`2026-11-22`) y `nota` opcional.
+3. Toca **`Registrar transferencia ($500.000)`**.
+4. La app crea un registro **`Aporte`** (el aportante se deriva del dueño de `medio_origen_id`, nunca de quién digitó): suma al aporte de ese miembro en *Balance de pareja* y **no** suma al consumo ni a pagos de deuda.
+
+### 3. Registrar un ingreso (`Ingreso`)
+
+1. Desde **Balance de pareja**, el usuario toca **`+ Ingreso`** / **`+ Registrar ingreso`**.
+2. Selecciona `miembro_id` (`Santiago` o `Camila`) y `tipo`:
+   - **`fijo`:** habilita `dia_esperado` (`1..31`), `vigente_desde` y opción de crear inmediatamente `RecepcionIngreso` del mes actual si ya llegó (incluso con `monto_recibido` distinto).
+   - **`variable`:** habilita `fecha` (`Hoy` por defecto) y no exige recurrencia.
+3. Ingresa `descripcion` y `monto` entero en COP y toca **`Guardar ingreso`**.
+
+### 4. Exportación automática y respaldo (Ajustes)
+
+1. Desde **Ajustes y exportación** ([ajustes-exportar.html](../../design/mockups/ajustes-exportar.html)), el usuario ve la **última exportación automática semanal** (función programada que genera JSON + CSV del hogar en Storage de Supabase), los botones **`Descargar JSON`** y **`Descargar CSV`**, el botón **`Exportar ahora`** y el estado de la **copia local completa en IndexedDB** del dispositivo.
 
 ## Casos borde y manejo de errores
 
 | Caso borde / error | Comportamiento esperado |
 | --- | --- |
-| **Un miembro aún no ha registrado ingresos este mes** | Se muestran sus aportes en `$` y `% del total del hogar` normalmente. En lugar de dividir por cero en `% de su ingreso`, muestra `"Sin ingresos registrados este mes"` con enlace `+ Registrar ingreso`. |
-| **Un miembro aportó `$0` en el mes (por desempleo, licencia o acuerdo)** | Muestra `$0 (0% del hogar)` de forma neutra, sin alertas rojas, sin signos negativos y sin sugerir transferencia al otro miembro. |
-| **Un miembro pagó una deuda que pertenecía al otro miembro** | Ese pago aparece explícitamente en el desglose de aportes de **quien pagó** (ej. `"Santiago · Cuota Mastercard Camila · $234.500"`), manteniendo la regla de cero deuda entre miembros. |
-| **Ingreso fijo esperado aún no llega (ej. hoy es 22 y salario entra el 30)** | Aparece en la lista con etiqueta `◷ Esperado día 30` y botón rápido `Marcar recibido` (editable si llegó un valor distinto ese mes). El cálculo de `% de ingreso` puede distinguir entre *recibido* y *esperado*. |
-| **Hogar de un solo miembro o de 3+ miembros** | El diseño escala dinámicamente: con 1 miembro muestra solo su resumen de aportes vs ingresos sin sección comparativa; con 3+ miembros apila una fila por persona sumando 100%. |
-| **Mes sin aportes registrados todavía (inicio de mes)** | Estado vacío claro: `"Todavía no hay aportes en diciembre 2026"` con CTA directo a *Compra rápida* y *Obligaciones del mes*. |
-| **Monto de ingreso vacío o `<= $0`** | Validación inline accesible: `"Ingresa un monto en pesos mayor a $0"`. |
-| **Día esperado 31 en meses de 28/30 días** | La app ajusta automáticamente la fecha esperada al último día hábil/calendario del mes (ej. 30 en noviembre, 28/29 en febrero) y lo aclara al usuario. |
+| **Ingreso fijo recibido por un monto distinto al esperado** | `RecepcionIngreso` guarda el `monto_recibido` real del periodo `'AAAA-MM'` sin alterar el `Ingreso.monto` base de los demás meses. El balance usa `monto_recibido`. |
+| **Ingreso fijo aún no recibido en el mes** | Si no existe `RecepcionIngreso` con `recibido = true`, se muestra como `◷ Esperado día N` con botón `Marcar recibido`. |
+| **Un miembro aún no tiene ingresos registrados en el mes** | Sus aportes en `$` y `%` del hogar se muestran normal (`58,0 %`). Si `Hogar.mostrar_pct_ingreso` está activo, muestra `"Sin ingresos registrados este mes"` en lugar de dividir por cero. |
+| **Un miembro aportó `$0` en el mes** | Muestra `$0 (0,0 % del total)` en tono neutro, sin alertas rojas ni sugerencia de compensación. |
+| **Intento de crear `Aporte` entre dos medios de miembros** | Rechazado por la invariante I17: `medio_origen_id` debe tener `owner_tipo = 'miembro'` y `medio_destino_id` debe tener `owner_tipo = 'hogar'` (las transferencias entre miembros no crean deuda ni aporte). |
+| **Compra financiada con préstamo en efectivo (`financiada_por_pasivo_id`)** | No aparece como aporte al comprarse; el aporte del miembro aparece en el mes en que registre el `PagoDeDeuda` del préstamo. |
+| **Compra personal (`ambito = 'personal'`)** | Nunca suma al aporte del hogar; excluida de la vista por defecto salvo el interruptor local `incluir_personales` (solo muestra las del propio miembro). |
+| **Cambio de salario a mitad de vigencia** | Se cierra `Ingreso.vigente_hasta` del anterior y se crea un nuevo `Ingreso` con `vigente_desde`, conservando la historia de meses pasados. |
+| **Día esperado 31 en mes de 28/30 días** | Se ajusta automáticamente al último día del mes calendario (`30` en noviembre, `28/29` en febrero). |
 
 ## Diagrama de flujo
 
 ```mermaid
 flowchart TD
-    A["Abrir Balance de pareja"] --> B["Cargar aportes e ingresos del mes activo"]
-    B --> C{"Hay aportes registrados?"}
-    C -- No --> D["Mostrar estado vacio con acceso a Compra rapida"]
-    C -- Si --> E["Mostrar total hogar + aporte por miembro ($ y %) sin deudas entre miembros"]
-    E --> F{"Miembro tiene ingresos registrados?"}
-    F -- Si --> G["Mostrar indicador opcional: % de su ingreso"]
-    F -- No --> H["Mostrar texto neutro: Sin ingresos registrados"]
-    G --> I["Mostrar desglose de ingresos fijos (con dia esperado) vs variables"]
-    H --> I
-    I --> J{"Accion del usuario"}
-    J -- "Cambiar de mes" --> B
-    J -- "Marcar fijo como recibido" --> K["Confirmar monto recibido y actualizar total"]
-    J -- "Registrar ingreso" --> L["Abrir formulario Registrar ingreso"]
-    L --> M{"Tipo de ingreso"}
-    M -- Fijo --> N["Ingresar monto COP, concepto y dia esperado (1-31)"]
-    M -- Variable --> O["Ingresar monto COP, concepto y fecha recibida"]
-    N --> P{"Datos validos (monto > 0)?"}
-    O --> P
-    P -- No --> Q["Mostrar error inline accesible"]
-    Q --> L
-    P -- Si --> R["Guardar ingreso y volver a Balance actualizado"]
+    A["Abrir Balance de pareja (mes calendario)"] --> B["Derivar aportes (4 fuentes incl. Aporte) e Ingresos + RecepcionIngreso"]
+    B --> C["Mostrar aportes en $ y % (1 decimal), sin deudas entre miembros; % ingreso e incluir_personales apagados"]
+    C --> D{"Accion del usuario"}
+    D -- "Activar % de su ingreso" --> E["Actualizar Hogar.mostrar_pct_ingreso y mostrar 40,9 % / 35,6 %"]
+    D -- "Activar incluir personales" --> F["Cambiar preferencia local de vista (solo muestra personales propias, sin sumar aporte)"]
+    D -- "Transferir al fondo comun" --> G["Abrir formulario Aporte: MedioDePago miembro -> MedioDePago hogar"]
+    G --> H{"monto > 0 y origen miembro / destino hogar?"}
+    H -- No --> G
+    H -- Si --> I["Guardar Aporte y recalcular aportes derivados"]
+    D -- "Marcar recibido en ingreso fijo" --> J["Confirmar fecha_recepcion y monto_recibido (puede diferir del esperado)"]
+    J --> K["Guardar RecepcionIngreso(periodo='AAAA-MM') y recalcular"]
+    D -- "Registrar ingreso" --> L["Guardar Ingreso fijo o variable"]
 ```
 
 ## Datos del dominio que toca
 
-| Entidad / Concepto (`docs/domain.md`) | Operación | Campos principales | Regla aplicada |
-| --- | --- | --- | --- |
-| **Miembro (`member`)** | Lectura | `id`, `household_id`, `name` | Un hogar tiene uno o más miembros. |
-| **Ingreso (`income`)** | Lectura / Escritura | `id`, `member_id`, `kind` (`fixed` \| `variable`), `label`, `amount_cop`, `expected_day` (solo `fixed`), `received_at`, `status` (`expected` \| `received`) | Fijos tienen monto y día esperado; variables se registran cuando llegan. Todo en enteros COP. |
-| **Aporte mensual (`contribution_summary`)** | Lectura agregada | `member_id`, `month`, `total_contributed_cop`, `share_of_household_pct`, `share_of_income_pct` (opcional) | Suma lo efectivamente pagado por cada miembro (consumo directo + pagos de deuda + costo financiero). **Prohibido** derivar saldos o deudas entre miembros. |
-| **Pago de deuda / Consumo (`debt_payment`, `expense`)** | Lectura agregada | `paid_by_member_id`, `amount_cop`, `date` | Fuente auditable de cada aporte mostrado en el balance; evita doble conteo al distinguir pago de deuda de compra a cuotas aún no desembolsada. |
+Nombres canónicos alineados con `docs/data-model.md` y [docs/decisiones-2026-11-22.md](../decisiones-2026-11-22.md).
+
+| Entidad / Concepto | Tipo | Operación | Campos principales | Regla aplicada |
+| --- | --- | --- | --- | --- |
+| **`Hogar`** | Hecho (tabla replicada) | Lectura / Escritura | `id`, `nombre`, `moneda` (`'COP'`), `zona_horaria` (`'America/Bogota'`), `mostrar_pct_ingreso` (`boolean`, default `false`) | Controla si el hogar muestra la vista `% de su ingreso` (apagada por defecto). |
+| **`Miembro`** | Hecho (tabla replicada) | Lectura | `id`, `hogar_id`, `nombre`, `rol`, `activo` | Cada miembro ve los ingresos del otro. Nunca se modela deuda entre miembros. |
+| **`Ingreso`** | Hecho (tabla replicada) | Lectura / Escritura | `id`, `miembro_id`, `tipo` (`'fijo' \| 'variable'`), `descripcion`, `monto`, `dia_esperado`, `vigente_desde`, `vigente_hasta`, `fecha` | Fijos guardan día esperado y vigencia; variables se registran con `fecha` al llegar. Todo en COP enteros. |
+| **`RecepcionIngreso`** | Hecho (tabla replicada) | Lectura / Escritura | `id`, `ingreso_id`, `periodo` (`'AAAA-MM'`), `recibido` (`boolean`), `monto_recibido` (`bigint` nullable), `fecha_recepcion` (`date` nullable) | Registra si un ingreso fijo del periodo llegó y por qué monto real. El balance usa `monto_recibido` si existe; si no, lo muestra como `esperado`. |
+| **`Aporte`** | Hecho (tabla replicada) | Lectura / Escritura | `id`, `medio_origen_id` (`owner_tipo = 'miembro'`), `medio_destino_id` (`owner_tipo = 'hogar'`), `monto`, `fecha`, `nota`, `registrado_por` | Transferencia de un miembro al fondo común del hogar. Una de las 4 fuentes del aporte derivado; no es consumo. |
+| **`Compra` / `PagoDeDeuda` / `CostoFinanciero` / `MedioDePago`** | Hecho (tablas replicadas) | Lectura | `Compra` (`ambito`, `monto_total`, `pago_tipo`, `medio_de_pago_id`, `financiada_por_pasivo_id`, `fecha`); `PagoDeDeuda` (`monto`, `medio_de_pago_id`, `fecha`); `CostoFinanciero` (`monto`, `medio_de_pago_id`, `fecha_causacion`) | Fuentes auditables del cálculo derivado de aportes por mes calendario. Lo personal (`ambito = 'personal'`) nunca suma como aporte. |
+| **Resumen de aportes, porcentajes (`58,0 %`, `40,9 %`), totales de ingresos** | **DERIVADO (nunca guardado)** | Solo lectura calculada | `aportes(M, mes)`, `pct_hogar(M)`, `pct_ingreso(M)`, `ingreso(M, mes)` | Siempre calculados en el dispositivo. **Prohibido** persistir resúmenes o calcular saldos/deudas entre miembros. `incluir_personales` es preferencia LOCAL de vista (apagada por defecto). |

@@ -22,24 +22,61 @@
           <p class="app-subtitle">Hogar Santiago y Camila</p>
         </div>
       </div>
-      <a class="btn btn--secondary btn--sm" href="registrar-ingreso.html">+ Ingreso</a>
+      <a class="btn btn--secondary btn--sm" href="ajustes-exportar.html">Ajustes</a>
     </header>
 
     <main id="contenido" class="app-main">
-      <!-- Navegador de mes -->
-      <div class="month-nav" role="group" aria-label="Cambiar mes del balance">
+      <!-- Toast al marcar recibido un ingreso fijo -->
+      <div id="ingreso-recibido" class="toast-target" role="status" aria-live="polite">
+        <span>✓ Salario Santiago marcado como recibido en noviembre</span>
+        <a href="#contenido">Cerrar</a>
+      </div>
+
+      <!-- Navegador de mes calendario -->
+      <div class="month-nav" role="group" aria-label="Cambiar mes calendario del balance">
         <button type="button" class="icon-btn" aria-label="Mes anterior: octubre 2026">‹</button>
-        <span class="month-nav__label">Noviembre 2026</span>
+        <div style="text-align: center;">
+          <span class="month-nav__label">Noviembre 2026</span>
+          <div class="section-meta" style="font-size: 0.75rem;">Mes calendario · 1–30 nov</div>
+        </div>
         <button type="button" class="icon-btn" aria-label="Mes siguiente: diciembre 2026">›</button>
       </div>
 
       <!-- Regla de aporte libre visible siempre -->
       <div class="callout callout--primary">
         <span class="callout__icon" aria-hidden="true">✓</span>
-        <p><strong>Aporte libre:</strong> cada quien aporta lo que quiere o puede al hogar. Aquí ves el resumen informativo; nunca se crean saldos ni deudas entre ustedes.</p>
+        <p><strong>Aporte libre:</strong> cada quien aporta lo que quiere o puede al hogar (incluye transferencias al fondo común). Nunca se generan saldos ni deudas entre ustedes.</p>
       </div>
 
-      <!-- Resumen de aportes en pesos y porcentaje -->
+      <!-- Controles de vista (ambos APAGADOS por defecto) -->
+      <section aria-labelledby="preferencias-vista-heading">
+        <h2 id="preferencias-vista-heading" class="visually-hidden">Preferencias de vista del balance</h2>
+        <div class="toggle-list">
+          <div class="toggle-item">
+            <div class="toggle-item__text">
+              <label class="toggle-item__label" for="toggle-pct-ingreso">Mostrar % de su ingreso</label>
+              <p class="toggle-item__help">Apagado por defecto. Actívalo si quieren ver el aporte frente al ingreso de cada uno.</p>
+            </div>
+            <input id="toggle-pct-ingreso" class="toggle-switch" type="checkbox" role="switch">
+          </div>
+
+          <div class="toggle-item">
+            <div class="toggle-item__text">
+              <label class="toggle-item__label" for="toggle-personales">Incluir mis gastos personales</label>
+              <p class="toggle-item__help">Apagado por defecto. Lo personal se excluye del balance y nunca suma como aporte al hogar.</p>
+            </div>
+            <input id="toggle-personales" class="toggle-switch" type="checkbox" role="switch">
+          </div>
+        </div>
+      </section>
+
+      <!-- Aviso visible solo cuando el usuario activa incluir personales -->
+      <div class="callout callout--amber personales-only">
+        <span class="callout__icon" aria-hidden="true">ℹ</span>
+        <p><strong>Vista con gastos personales propios:</strong> solo ves tus compras personales de noviembre ($140.000). Siguen sin contarse como aporte al hogar.</p>
+      </div>
+
+      <!-- Resumen de aportes en pesos y porcentaje con 1 decimal (DERIVADO) -->
       <section class="card" aria-labelledby="aportes-heading">
         <div class="section-header">
           <h2 id="aportes-heading" class="section-title">Aportes del mes al hogar</h2>
@@ -47,13 +84,13 @@
         </div>
 
         <!-- Barra proporcional con color + patrón diagonal (no solo color) -->
-        <div class="progress-track" role="img" aria-label="Distribución de aportes: Santiago 58 por ciento, Camila 42 por ciento">
+        <div class="progress-track" role="img" aria-label="Distribución de aportes: Santiago 58,0 por ciento, Camila 42,0 por ciento">
           <div class="progress-fill--primary" style="width: 58%;"></div>
           <div class="progress-fill--indigo" style="width: 42%;"></div>
         </div>
         <div class="legend-row">
-          <span><span class="swatch swatch--primary" aria-hidden="true"></span><strong>Santiago</strong> · 58%</span>
-          <span><span class="swatch swatch--indigo" aria-hidden="true"></span><strong>Camila</strong> · 42%</span>
+          <span><span class="swatch swatch--primary" aria-hidden="true"></span><strong>Santiago</strong> · 58,0 %</span>
+          <span><span class="swatch swatch--indigo" aria-hidden="true"></span><strong>Camila</strong> · 42,0 %</span>
         </div>
 
         <ul class="item-list" style="margin-top: 14px;">
@@ -61,33 +98,40 @@
             <div class="item-card__top">
               <div>
                 <h3 class="item-card__title">Santiago</h3>
-                <p class="item-card__meta">41% de sus ingresos de noviembre ($5.100.000)</p>
+                <p class="item-card__meta pct-ingreso-off-note">Solo aportes al hogar (compras, deudas y fondo común)</p>
+                <p class="item-card__meta pct-ingreso-only"><strong>40,9 %</strong> de sus ingresos de noviembre ($5.100.000)</p>
               </div>
               <div class="item-card__amount">
                 <span class="item-card__amount-main">$2.088.000</span>
-                <span class="item-card__amount-sub">58% del total</span>
+                <span class="item-card__amount-sub">58,0 % del total</span>
               </div>
             </div>
-            <p class="field-help">Incluye arriendo ($1.800.000) y pago cuota Mastercard de Camila ($234.500), entre otros.</p>
+            <p class="field-help">Arriendo ($1.800.000), cuota Mastercard de Camila ($234.500) y transferencia al fondo común ($53.500).</p>
           </li>
 
           <li class="item-card card--accent-indigo">
             <div class="item-card__top">
               <div>
                 <h3 class="item-card__title">Camila</h3>
-                <p class="item-card__meta">36% de sus ingresos de noviembre ($4.250.000)</p>
+                <p class="item-card__meta pct-ingreso-off-note">Solo aportes al hogar (compras, deudas y fondo común)</p>
+                <p class="item-card__meta pct-ingreso-only"><strong>35,6 %</strong> de sus ingresos de noviembre ($4.250.000)</p>
               </div>
               <div class="item-card__amount">
                 <span class="item-card__amount-main">$1.512.000</span>
-                <span class="item-card__amount-sub">42% del total</span>
+                <span class="item-card__amount-sub">42,0 % del total</span>
               </div>
             </div>
-            <p class="field-help">Incluye servicios EPM ($285.000), despensa mascotas y gastos diarios del hogar.</p>
+            <p class="field-help">Transferencia al fondo común ($500.000), servicios EPM ($285.000), mascotas ($245.000) y compras del hogar ($482.000).</p>
           </li>
         </ul>
+
+        <div class="btn-row" style="margin-top: 12px;">
+          <a class="btn btn--primary btn--sm" href="transferir-fondo-comun.html">Transferir al fondo común</a>
+          <a class="btn btn--secondary btn--sm" href="registrar-ingreso.html">+ Registrar ingreso</a>
+        </div>
       </section>
 
-      <!-- Ingresos fijos vs variables -->
+      <!-- Ingresos fijos vs variables (visibles para ambos miembros) -->
       <section class="card" aria-labelledby="ingresos-heading">
         <div class="section-header">
           <h2 id="ingresos-heading" class="section-title">Ingresos: fijos vs variables</h2>
@@ -97,26 +141,47 @@
         <dl class="kv-list" style="margin-bottom: 12px;">
           <div class="kv-row">
             <dt>Total ingresos fijos del hogar</dt>
-            <dd class="cop">$8.300.000 (89%)</dd>
+            <dd class="cop">$8.300.000 (88,8 %)</dd>
           </div>
           <div class="kv-row">
             <dt>Total ingresos variables recibidos</dt>
-            <dd class="cop">$1.050.000 (11%)</dd>
+            <dd class="cop">$1.050.000 (11,2 %)</dd>
           </div>
         </dl>
 
         <ul class="item-list">
-          <li class="item-card card--muted">
+          <!-- Ingreso fijo ESPERADO con acción "Marcar recibido" y monto recibido editable -->
+          <li class="item-card card--accent-amber">
             <div class="item-card__top">
               <div>
                 <h3 class="item-card__title">Salario Santiago</h3>
-                <p class="item-card__meta">Fijo · Día esperado: 30 de cada mes</p>
+                <p class="item-card__meta">Fijo · Día esperado: 30 nov</p>
               </div>
               <div class="item-card__amount">
                 <span class="item-card__amount-main">$4.500.000</span>
-                <span class="badge badge--primary">✓ Recibido</span>
+                <span class="badge badge--amber">◷ Esperado</span>
               </div>
             </div>
+            <details class="inline-picker">
+              <summary>
+                <span>Marcar recibido (puede variar el monto)</span>
+                <span aria-hidden="true">▾</span>
+              </summary>
+              <div class="inline-picker__body">
+                <div class="field-row">
+                  <div class="field">
+                    <label for="monto-recibido-santiago">Monto recibido (COP)</label>
+                    <input id="monto-recibido-santiago" class="input" type="text" inputmode="numeric" value="$4.500.000">
+                  </div>
+                  <div class="field">
+                    <label for="fecha-recibido-santiago">Fecha recepción</label>
+                    <input id="fecha-recibido-santiago" class="input" type="date" value="2026-11-30">
+                  </div>
+                </div>
+                <p class="field-help">Si llegó un valor distinto al esperado, el balance usará el monto recibido sin cambiar tu salario base de otros meses.</p>
+                <a class="btn btn--primary btn--sm btn--full" href="#ingreso-recibido">Confirmar recibido</a>
+              </div>
+            </details>
           </li>
 
           <li class="item-card card--muted">
@@ -132,17 +197,19 @@
             </div>
           </li>
 
+          <!-- Ingreso fijo RECIBIDO con monto distinto al base -->
           <li class="item-card card--muted">
             <div class="item-card__top">
               <div>
                 <h3 class="item-card__title">Salario Camila</h3>
-                <p class="item-card__meta">Fijo · Día esperado: 28 de cada mes</p>
+                <p class="item-card__meta">Fijo · Día esperado: 15 nov · Base: $3.750.000</p>
               </div>
               <div class="item-card__amount">
                 <span class="item-card__amount-main">$3.800.000</span>
-                <span class="badge badge--primary">✓ Recibido</span>
+                <span class="badge badge--primary">✓ Recibido 15 nov</span>
               </div>
             </div>
+            <p class="field-help">Recibido con monto distinto al esperado (+$50.000). El balance usa el monto recibido ($3.800.000).</p>
           </li>
 
           <li class="item-card card--muted">
@@ -159,8 +226,6 @@
           </li>
         </ul>
       </section>
-
-      <a class="btn btn--primary btn--full" href="registrar-ingreso.html">+ Registrar ingreso fijo o variable</a>
     </main>
 
     <nav class="bottom-nav" aria-label="Navegación principal">

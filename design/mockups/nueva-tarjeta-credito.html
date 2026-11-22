@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Nueva tarjeta o crédito — hogar-app</title>
+  <title>Nueva tarjeta, crédito o deuda — hogar-app</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
 
   <div class="review-bar">
     <a href="index.html">← Índice de mockups</a>
-    <span>Núcleo 2 · Alta con tasa E.A./M.V. opcional</span>
+    <span>Núcleo 2 · Alta con tasa opcional y saldo inicial</span>
   </div>
 
   <div class="app-shell">
@@ -19,42 +19,46 @@
       <div class="header-left">
         <a class="icon-btn" href="obligaciones-del-mes.html" aria-label="Volver a Obligaciones del mes">←</a>
         <div>
-          <h1 class="app-title">Nueva tarjeta o crédito</h1>
-          <p class="app-subtitle">Configuración rápida en COP</p>
+          <h1 class="app-title">Nuevo pasivo</h1>
+          <p class="app-subtitle">Tarjeta, crédito o deuda en COP</p>
         </div>
       </div>
     </header>
 
     <main id="contenido" class="app-main app-main--no-nav">
       <div id="tarjeta-guardada" class="toast-target" role="status" aria-live="polite">
-        <span>✓ Guardada: Visa ••4521 (Santiago)</span>
+        <span>✓ Guardado: Visa ••4521 (Santiago · Sin tasa)</span>
         <a href="obligaciones-del-mes.html">Ver lista</a>
       </div>
 
       <form class="form-stack" action="#tarjeta-guardada">
         <fieldset class="radio-group">
-          <legend class="fieldset-legend">Tipo de instrumento</legend>
-          <div class="radio-options">
+          <legend class="fieldset-legend">Tipo de pasivo</legend>
+          <div class="radio-options radio-options--3">
             <label class="radio-card" for="tipo-tc">
               <input id="tipo-tc" type="radio" name="tipo-instrumento" value="tarjeta" checked>
-              <span>Tarjeta de crédito</span>
+              <span>Tarjeta</span>
             </label>
             <label class="radio-card" for="tipo-credito">
               <input id="tipo-credito" type="radio" name="tipo-instrumento" value="credito">
-              <span>Crédito / préstamo</span>
+              <span>Crédito</span>
+            </label>
+            <label class="radio-card" for="tipo-deuda">
+              <input id="tipo-deuda" type="radio" name="tipo-instrumento" value="deuda">
+              <span>Deuda</span>
             </label>
           </div>
+          <p class="field-help">Fase 1: Tarjeta y Crédito pertenecen a un solo miembro. Deuda (informal o no bancaria, ej. remodelación cocina) puede ser de un miembro o del hogar.</p>
         </fieldset>
 
         <div class="field">
           <label for="nombre-tarjeta">Nombre o alias</label>
-          <input id="nombre-tarjeta" class="input" type="text" value="Visa ••4521" placeholder="Ej. Visa ••4521 o Crédito vehículo">
+          <input id="nombre-tarjeta" class="input" type="text" value="Visa ••4521" placeholder="Ej. Visa ••4521, Crédito vehículo o Préstamo cocina">
         </div>
 
-        <!-- Fase 1: titular siempre un miembro (modelo extensible a hogar) -->
         <fieldset class="radio-group">
-          <legend class="fieldset-legend">Titular (un miembro)</legend>
-          <div class="radio-options">
+          <legend class="fieldset-legend">Titular / dueño</legend>
+          <div class="radio-options radio-options--3">
             <label class="radio-card" for="titular-santiago">
               <input id="titular-santiago" type="radio" name="titular" value="santiago" checked>
               <span>Santiago</span>
@@ -63,13 +67,17 @@
               <input id="titular-camila" type="radio" name="titular" value="camila">
               <span>Camila</span>
             </label>
+            <label class="radio-card" for="titular-hogar">
+              <input id="titular-hogar" type="radio" name="titular" value="hogar">
+              <span>Hogar*</span>
+            </label>
           </div>
-          <p class="field-help">Por ahora cada tarjeta o crédito pertenece a un solo miembro. Igual podrá pagarla cualquiera de los dos sin crear deuda entre ustedes.</p>
+          <p class="field-help">*Dueño Hogar disponible solo para <strong>Deuda</strong> en fase 1. Igual cualquier miembro podrá pagar cualquier pasivo sin crear deuda entre ustedes.</p>
         </fieldset>
 
         <div class="field-row">
           <div class="field">
-            <label for="dia-corte">Día de corte</label>
+            <label for="dia-corte">Día de corte (tarjeta)</label>
             <input id="dia-corte" class="input" type="number" min="1" max="31" value="15">
           </div>
           <div class="field">
@@ -78,22 +86,22 @@
           </div>
         </div>
 
-        <!-- Tasas colombianas E.A. / M.V. OPCIONALES -->
+        <!-- Tasas colombianas E.A. / M.V. OPCIONALES — "Sin tasa" preseleccionado por defecto -->
         <section class="card form-stack" aria-labelledby="tasa-heading">
           <div class="section-header" style="margin-bottom: 0;">
             <h2 id="tasa-heading" class="section-title">Tasa de interés (opcional)</h2>
-            <span class="badge badge--neutral">Opcional</span>
+            <span class="badge badge--primary">Sin tasa por defecto</span>
           </div>
 
           <fieldset class="radio-group">
             <legend class="visually-hidden">Modalidad de tasa de interés</legend>
             <div class="radio-options radio-options--3">
               <label class="radio-card" for="tasa-ninguna">
-                <input id="tasa-ninguna" type="radio" name="tipo-tasa" value="ninguna">
+                <input id="tasa-ninguna" type="radio" name="tipo-tasa" value="ninguna" checked>
                 <span>Sin tasa</span>
               </label>
               <label class="radio-card" for="tasa-ea">
-                <input id="tasa-ea" type="radio" name="tipo-tasa" value="ea" checked>
+                <input id="tasa-ea" type="radio" name="tipo-tasa" value="ea">
                 <span>% E.A.</span>
               </label>
               <label class="radio-card" for="tasa-mv">
@@ -104,26 +112,60 @@
           </fieldset>
 
           <div class="field">
-            <label for="valor-tasa">Valor de tasa E.A. (%)</label>
-            <input id="valor-tasa" class="input" type="text" inputmode="decimal" value="28,32" aria-describedby="conversion-tasa">
+            <label for="valor-tasa">Valor de tasa (solo si eliges % E.A. o % M.V.)</label>
+            <input id="valor-tasa" class="input" type="text" inputmode="decimal" placeholder="Ej. 28,32" aria-describedby="conversion-tasa">
             <p id="conversion-tasa" class="field-help">
-              Equivalencia automática: <strong>28,32% E.A. ⇄ 2,10% M.V.</strong> (fórmula: MV = (1 + EA)^(1/12) − 1).
+              Ejemplo de conversión exacta: <strong>28,32 % E.A. ⇄ 2,0997 % M.V.</strong> (MV = (1 + EA)^(1/12) − 1; se redondea solo el interés al peso).
             </p>
           </div>
 
-          <div class="callout callout--amber">
+          <div class="callout callout--primary">
             <span class="callout__icon" aria-hidden="true">ℹ</span>
-            <p>Si eliges <strong>Sin tasa</strong>, la app no calcula intereses automáticamente y podrás registrarlos a mano como <em>Costo financiero</em> al pagar tu extracto.</p>
+            <p>Con <strong>Sin tasa</strong> activo, la app no calcula intereses automáticamente y podrás registrarlos a mano como <em>Costo financiero</em> al pagar tu extracto.</p>
           </div>
         </section>
 
         <div class="field">
-          <label for="cupo-cop">Cupo total o monto inicial en COP (opcional)</label>
+          <label for="cupo-cop">Cupo total de tarjeta en COP (informativo, opcional)</label>
           <input id="cupo-cop" class="input input--cop" type="text" inputmode="numeric" value="$6.000.000">
         </div>
 
+        <!-- Alta de crédito / saldo inicial (PlanDeCuotas origen='saldo_inicial') -->
+        <section class="card card--accent-indigo form-stack" aria-labelledby="saldo-inicial-heading">
+          <div class="section-header" style="margin-bottom: 0;">
+            <h2 id="saldo-inicial-heading" class="section-title">Saldo inicial y cuotas (alta de crédito)</h2>
+            <span class="badge badge--indigo">Plan inicial</span>
+          </div>
+          <p class="field-help">Si estás registrando un crédito o deuda que ya tiene saldo pendiente, indica el saldo inicial, número de cuotas y primera cuota. Esto crea un plan inicial sin duplicar consumos pasados.</p>
+
+          <div class="field">
+            <label for="saldo-inicial-cop">Saldo inicial pendiente en COP</label>
+            <input id="saldo-inicial-cop" class="input input--cop" type="text" inputmode="numeric" placeholder="Ej. $8.400.000">
+          </div>
+
+          <div class="field">
+            <label for="sistema-amortizacion">Sistema de cuotas</label>
+            <select id="sistema-amortizacion" class="select">
+              <option value="capital_fijo" selected>Capital fijo (cuotas iguales de capital)</option>
+              <option value="cuota_fija">Cuota fija (sistema francés)</option>
+              <option value="sin_calendario">Sin calendario (abonos libres)</option>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="n-cuotas-inicial">N.º de cuotas restantes</label>
+              <input id="n-cuotas-inicial" class="input" type="number" min="1" max="360" placeholder="Ej. 24">
+            </div>
+            <div class="field">
+              <label for="fecha-primera-cuota">Fecha primera cuota</label>
+              <input id="fecha-primera-cuota" class="input" type="date" value="2026-12-28">
+            </div>
+          </div>
+        </section>
+
         <div class="btn-row">
-          <a class="btn btn--primary btn--full" href="#tarjeta-guardada">Guardar tarjeta</a>
+          <a class="btn btn--primary btn--full" href="#tarjeta-guardada">Guardar pasivo</a>
           <a class="btn btn--secondary btn--full" href="obligaciones-del-mes.html">Cancelar</a>
         </div>
       </form>

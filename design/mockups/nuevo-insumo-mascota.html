@@ -20,7 +20,7 @@
         <a class="icon-btn" href="despensa-mascotas.html" aria-label="Volver a Despensa de mascotas">←</a>
         <div>
           <h1 class="app-title">Nuevo insumo</h1>
-          <p class="app-subtitle">Comida, higiene o salud recurrente</p>
+          <p class="app-subtitle">Comida, higiene, salud u otro</p>
         </div>
       </div>
     </header>
@@ -48,16 +48,17 @@
               <input id="mascota-milo" type="radio" name="mascota" value="milo">
               <span>Milo</span>
             </label>
-            <label class="radio-card" for="mascota-ambas">
-              <input id="mascota-ambas" type="radio" name="mascota" value="compartido">
-              <span>Ambas</span>
+            <label class="radio-card" for="mascota-todas">
+              <input id="mascota-todas" type="radio" name="mascota" value="todas">
+              <span>Todas</span>
             </label>
           </div>
+          <p class="field-help">"Todas" marca el insumo como compartido para todas las mascotas del hogar.</p>
         </fieldset>
 
         <fieldset class="radio-group">
           <legend class="fieldset-legend">Tipo de insumo</legend>
-          <div class="radio-options radio-options--3">
+          <div class="radio-options">
             <label class="radio-card" for="cat-comida">
               <input id="cat-comida" type="radio" name="tipo-insumo" value="comida" checked>
               <span>Comida</span>
@@ -70,24 +71,29 @@
               <input id="cat-salud" type="radio" name="tipo-insumo" value="salud">
               <span>Salud</span>
             </label>
+            <label class="radio-card" for="cat-otro">
+              <input id="cat-otro" type="radio" name="tipo-insumo" value="otro">
+              <span>Otro</span>
+            </label>
           </div>
         </fieldset>
 
         <div class="field-row">
           <div class="field">
-            <label for="duracion-dias">Duración estimada (días)</label>
+            <label for="duracion-dias">Frecuencia estimada (días)</label>
             <input id="duracion-dias" class="input" type="number" min="1" max="365" value="35">
           </div>
           <div class="field">
-            <label for="alerta-dias">Avisar cuando falten (días)</label>
-            <input id="alerta-dias" class="input" type="number" min="1" max="60" value="5">
+            <label for="umbral-alerta">Umbral de alerta (%)</label>
+            <input id="umbral-alerta" class="input" type="number" min="0" max="100" value="20" aria-describedby="ayuda-umbral">
           </div>
         </div>
+        <p id="ayuda-umbral" class="field-help">Por defecto 20 %. El aviso se activa cuando el nivel restante derivado baje a este porcentaje o menos.</p>
 
         <div class="field">
-          <label for="precio-insumo">Último precio en COP (opcional)</label>
+          <label for="precio-insumo">Monto habitual en COP (opcional)</label>
           <input id="precio-insumo" class="input input--cop" type="text" inputmode="numeric" value="$165.000" aria-describedby="ayuda-precio-insumo">
-          <p id="ayuda-precio-insumo" class="field-help">Se usa para prellenar Compra rápida al tocar Recomprar.</p>
+          <p id="ayuda-precio-insumo" class="field-help">Referencia para prellenar Compra rápida al tocar Recomprar. No suma al gasto hasta que registres una compra.</p>
         </div>
 
         <div class="btn-row">

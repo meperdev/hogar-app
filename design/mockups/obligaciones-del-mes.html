@@ -19,62 +19,62 @@
       <div class="header-left">
         <div>
           <h1 class="app-title">Obligaciones del mes</h1>
-          <p class="app-subtitle">Noviembre 2026 · 2 pendientes</p>
+          <p class="app-subtitle">Noviembre 2026 · 2 cuotas pendientes</p>
         </div>
       </div>
-      <a class="btn btn--secondary btn--sm" href="nueva-tarjeta-credito.html">+ Tarjeta</a>
+      <a class="btn btn--secondary btn--sm" href="nueva-tarjeta-credito.html">+ Pasivo</a>
     </header>
 
     <main id="contenido" class="app-main">
-      <!-- 3 conceptos separados: NUNCA se suman entre sí -->
+      <!-- 3 conceptos separados: TODOS DERIVADOS, NUNCA se suman entre sí -->
       <section aria-labelledby="resumen-contable-heading">
-        <h2 id="resumen-contable-heading" class="visually-hidden">Resumen separado de consumo, pagos de deuda y costo financiero</h2>
+        <h2 id="resumen-contable-heading" class="visually-hidden">Resumen separado de consumo, capital de cuotas y costo financiero</h2>
         <div class="metric-grid-3">
           <article class="metric-card metric-card--consumo">
             <span class="metric-card__label">Consumo real</span>
             <span class="metric-card__value">$3.145.000</span>
-            <span class="metric-card__note">Incluye mercado $300.000 una sola vez</span>
+            <span class="metric-card__note">Compras del mes una sola vez</span>
           </article>
           <article class="metric-card metric-card--deuda">
-            <span class="metric-card__label">Pagos de deuda</span>
-            <span class="metric-card__value">$670.000</span>
-            <span class="metric-card__note">Capital cuotas · no es consumo</span>
+            <span class="metric-card__label">Capital cuotas</span>
+            <span class="metric-card__value">$220.000</span>
+            <span class="metric-card__note">Pagado (deuda) · $450.000 pend.</span>
           </article>
           <article class="metric-card metric-card--costo">
             <span class="metric-card__label">Costo financ.</span>
-            <span class="metric-card__value">$68.800</span>
-            <span class="metric-card__note">Intereses y seguros aparte</span>
+            <span class="metric-card__value">$68.799</span>
+            <span class="metric-card__note">$14.500 pag. · $54.299 pend.</span>
           </article>
         </div>
       </section>
 
       <div class="callout callout--indigo">
         <span class="callout__icon" aria-hidden="true">ℹ</span>
-        <p><strong>Sin doble conteo:</strong> los pagos de deuda ($670.000) nunca se suman al consumo del mes ($3.145.000).</p>
+        <p><strong>Sin doble conteo:</strong> el capital de cuotas del mes ($670.000) se divide en <strong>$220.000 pagados</strong> (único <em>Pago de deuda</em> real) y <strong>$450.000 pendientes</strong>. Ninguno se suma al consumo ($3.145.000), y <em>Costo financiero</em> es un balde aparte.</p>
       </div>
 
       <!-- Pendientes por pagar -->
       <section aria-labelledby="pendientes-heading">
         <div class="section-header">
           <h2 id="pendientes-heading" class="section-title">Pendientes este mes</h2>
-          <span class="section-meta cop">$504.300 por pagar</span>
+          <span class="section-meta cop">$504.299 por pagar</span>
         </div>
 
         <ul class="item-list">
           <li class="item-card card--accent-amber">
             <div class="item-card__top">
               <div>
-                <h3 class="item-card__title">Cuota 1/3 · Mercado Éxito</h3>
-                <p class="item-card__meta">Visa ••4521 · Vence 25 nov (en 3 días)</p>
+                <h3 class="item-card__title">Cuota 1/3 · Mercado Éxito (10 nov)</h3>
+                <p class="item-card__meta">Visa ••4521 · Corte 15 nov · Vence 25 nov (en 3 días)</p>
               </div>
               <div class="item-card__amount">
-                <span class="item-card__amount-main">$106.300</span>
-                <span class="item-card__amount-sub">$100.000 cap. + $6.300 int.</span>
+                <span class="item-card__amount-main">$106.299</span>
+                <span class="item-card__amount-sub">$100.000 cap. + $6.299 int.</span>
               </div>
             </div>
             <div class="badge-row">
               <span class="badge badge--amber">▲ Vence pronto</span>
-              <span class="badge badge--indigo">Pago de deuda</span>
+              <span class="badge badge--indigo">Cuota pendiente</span>
               <span class="badge badge--neutral">Deuda de Santiago</span>
             </div>
             <a class="btn btn--primary btn--full" href="registrar-pago-obligacion.html">Registrar pago</a>
@@ -83,8 +83,8 @@
           <li class="item-card card--accent-indigo">
             <div class="item-card__top">
               <div>
-                <h3 class="item-card__title">Crédito remodelación cocina</h3>
-                <p class="item-card__meta">Cuota 6/24 · Vence 28 nov (en 6 días)</p>
+                <h3 class="item-card__title">Préstamo remodelación cocina</h3>
+                <p class="item-card__meta">Deuda informal (Obras &amp; Diseño) · Cuota 6/24 · Vence 28 nov</p>
               </div>
               <div class="item-card__amount">
                 <span class="item-card__amount-main">$398.000</span>
@@ -93,7 +93,7 @@
             </div>
             <div class="badge-row">
               <span class="badge badge--neutral">◷ Pendiente</span>
-              <span class="badge badge--indigo">Pago de deuda</span>
+              <span class="badge badge--indigo">Cuota pendiente</span>
               <span class="badge badge--primary">Deuda del hogar</span>
             </div>
             <a class="btn btn--secondary btn--full" href="registrar-pago-obligacion.html">Registrar pago</a>
@@ -105,7 +105,7 @@
       <section aria-labelledby="pagadas-heading">
         <div class="section-header">
           <h2 id="pagadas-heading" class="section-title">Pagadas en noviembre</h2>
-          <span class="section-meta">4 completadas</span>
+          <span class="section-meta">3 completadas</span>
         </div>
 
         <ul class="item-list">
@@ -117,7 +117,7 @@
               </div>
               <div class="item-card__amount">
                 <span class="item-card__amount-main">$234.500</span>
-                <span class="item-card__amount-sub">$220.000 cap. + $14.500 int.</span>
+                <span class="item-card__amount-sub">$220.000 Pago de deuda + $14.500 int.</span>
               </div>
             </div>
             <div class="badge-row">
@@ -131,16 +131,16 @@
             <div class="item-card__top">
               <div>
                 <h3 class="item-card__title">Arriendo apartamento</h3>
-                <p class="item-card__meta">Servicio del hogar · Pagó Santiago el 5 nov</p>
+                <p class="item-card__meta">Obligación del hogar · Pagó Santiago el 5 nov</p>
               </div>
               <div class="item-card__amount">
                 <span class="item-card__amount-main">$1.800.000</span>
-                <span class="item-card__amount-sub">Consumo Vivienda</span>
+                <span class="item-card__amount-sub">Consumo · Arriendo</span>
               </div>
             </div>
             <div class="badge-row">
               <span class="badge badge--primary">✓ Pagado</span>
-              <span class="badge badge--neutral">Servicio del hogar</span>
+              <span class="badge badge--neutral">Obligación del hogar</span>
             </div>
           </li>
 
@@ -152,18 +152,18 @@
               </div>
               <div class="item-card__amount">
                 <span class="item-card__amount-main">$285.000</span>
-                <span class="item-card__amount-sub">Consumo Servicios</span>
+                <span class="item-card__amount-sub">Consumo · Servicios</span>
               </div>
             </div>
             <div class="badge-row">
               <span class="badge badge--primary">✓ Pagado</span>
-              <span class="badge badge--neutral">Servicio del hogar</span>
+              <span class="badge badge--neutral">Obligación del hogar</span>
             </div>
           </li>
         </ul>
       </section>
 
-      <a class="btn btn--secondary btn--full" href="nueva-tarjeta-credito.html">+ Agregar tarjeta o crédito</a>
+      <a class="btn btn--secondary btn--full" href="nueva-tarjeta-credito.html">+ Agregar tarjeta, crédito o deuda</a>
     </main>
 
     <nav class="bottom-nav" aria-label="Navegación principal">

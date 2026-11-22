@@ -1,34 +1,34 @@
 # Flujo: Compra rápida
 
-Registrar un gasto del hogar en COP en la menor cantidad de toques posible desde el instante en que se abre la app, evitando formularios largos y garantizando que una compra a cuotas nunca se cuente dos veces.
+Registrar una `Compra` del hogar (o personal) en COP enteros en la menor cantidad de toques posible desde el instante en que se abre la app, evitando formularios largos y garantizando que una compra financiada o a cuotas nunca se cuente dos veces.
 
 ## Objetivo
 
-- **Meta principal (manual):** registrar `"mercado $85.000 con mi tarjeta Visa"` en **3 acciones (<= 3 toques de control)** desde abrir la PWA.
-- **Meta con factura electrónica (QR DIAN):** abrir, escanear, confirmar categoría y guardar en **<= 3 toques**, precargando NIT del comercio, fecha, total, IVA y CUFE/CUDE **sin depender nunca de consultar la DIAN** (ver [docs/dian-qr.md](../dian-qr.md)).
-- **Regla financiera crítica:** una compra a cuotas registra el **consumo una sola vez** por el total el día de la compra; sus cuotas futuras pasan a *Obligaciones del mes* como **pagos de deuda** y los intereses como **costo financiero** aparte (ver [docs/domain.md](../domain.md)).
+- **Meta principal (manual):** registrar `"mercado $85.000 con mi tarjeta Visa"` en **3 acciones (<= 3 toques de control)** desde abrir la PWA, con `Compra.ambito = 'hogar'` preseleccionado (`0` toques extra).
+- **Meta con factura electrónica (QR DIAN):** abrir, escanear, confirmar categoría (sugerida por `AliasComercio`) y guardar en **<= 3 toques**, precargando `nit_comercio`, `fecha`, `monto_total`, `iva` informativo y `cufe` **sin depender nunca de consultar la DIAN** (ver [docs/dian-qr.md](../dian-qr.md)).
+- **Regla financiera crítica:** una `Compra` registra el **consumo una sola vez** por `monto_total` en `fecha`, sea de contado o financiada; sus cuotas futuras viven en `PlanDeCuotas` y `Cuota` (en *Obligaciones del mes* como **pagos de deuda** cuando se paguen) y los intereses en `CostoFinanciero` como **balde aparte**, nunca como categoría de consumo (ver [docs/domain.md](../domain.md)).
 
 ## Pantallas
 
 | Pantalla | Propósito | Mockup |
 | --- | --- | --- |
-| **Compra rápida (inicio)** | Pantalla por defecto al abrir la app. Teclado numérico COP visible, chips de categorías frecuentes, último medio de pago recordado, acceso directo `Escanear factura` y botón de guardado fijo. | [compra-rapida.html](../../design/mockups/compra-rapida.html) |
-| **Compra rápida a cuotas** | Variante inline cuando el usuario elige `> 1 cuota` con tarjeta de crédito. Muestra el desglose inmediato sin doble conteo (consumo hoy, cuotas de capital e intereses aparte). | [compra-cuotas.html](../../design/mockups/compra-cuotas.html) |
-| **Escanear factura (QR DIAN)** | Visor de cámara para QR DIAN en sus dos formatos (con campos o solo URL), pantalla de confirmación precargada, fallback a OCR del tiquete o entrada manual, enlace opcional `Verificar en la DIAN` y bloqueo de duplicados por CUFE/CUDE. | [escanear-factura.html](../../design/mockups/escanear-factura.html) |
+| **Compra rápida (inicio)** | Pantalla por defecto al abrir la app. Selector `Hogar \| Personal` (default `Hogar`), teclado numérico COP visible, chips de categorías frecuentes, último medio recordado (preferencia local), chips de cuotas `1 / 3 / 6 / 12 / Otro`, opción `Financiada con préstamo`, acceso directo `Escanear` y CTA `Guardar` visible sin scroll. | [compra-rapida.html](../../design/mockups/compra-rapida.html) |
+| **Compra rápida a cuotas** | Variante inline cuando el usuario elige `> 1 cuota` con una `Tarjeta`. Muestra el desglose inmediato sin doble conteo (`Compra` hoy, `PlanDeCuotas`/`Cuota` en fechas reales de corte/pago y `CostoFinanciero` con interés exacto E.A.→M.V.). | [compra-cuotas.html](../../design/mockups/compra-cuotas.html) |
+| **Escanear factura (QR DIAN)** | Visor de cámara para QR DIAN en sus dos formatos (con campos o solo URL), confirmación precargada con sugerencia por `AliasComercio`, fallback OCR/manual, enlace opcional `Verificar en la DIAN` y bloqueo de duplicados por `Compra.cufe`. | [escanear-factura.html](../../design/mockups/escanear-factura.html) |
 
 ## Conteo de toques
 
 ### Escenario objetivo: "mercado $85.000 con mi tarjeta Visa"
 
-La app abre directamente en **Compra rápida** (`0` toques para entrar), con el **teclado numérico COP ya visible** (`0` toques para enfocar), el **miembro activo** preseleccionado (`Santiago`), la fecha en **Hoy**, **1 cuota** por defecto y el **último medio de pago recordado** (`Visa ••4521 · Santiago`).
+La app abre directamente en **Compra rápida** (`0` toques para entrar), con el **ámbito `Hogar`** activo por defecto (`0` toques), el **teclado numérico COP visible** (`0` toques para enfocar), el **miembro activo** (`registrado_por`), `fecha = Hoy`, **1 cuota** por defecto y el **último medio recordado en el dispositivo** (`Visa ••4521 · Santiago`).
 
 | # | Acción del usuario | Interacción en pantalla | Toques de decisión | Pulsaciones físicas |
 | --- | --- | --- | --- | --- |
-| 0 | Abrir la PWA | Abre directo en Compra rápida con `Visa ••4521` recordada | 0 | 0 |
-| 1 | Ingresar monto `$85.000` | Teclado numérico grande con tecla rápida `000` (`8` → `5` → `000`) o chip de monto frecuente | 1 (monto) | 3 con tecla `000` (o 1 si usa chip frecuente) |
-| 2 | Elegir categoría `Mercado` | Tocar chip `Mercado` en la fila de categorías más usadas | 1 | 1 |
-| 3 | Guardar gasto | Tocar botón primario `Guardar $85.000` | 1 | 1 |
-| **Total** | **Gasto registrado** | Toast de confirmación con botón `Deshacer` (5 s) | **3 acciones (2 toques de control + monto)** | **5 pulsaciones (o 3 con chip frecuente)** |
+| 0 | Abrir la PWA | Abre directo en Compra rápida (`Hogar`, `Visa ••4521` recordada en el dispositivo) | 0 | 0 |
+| 1 | Ingresar monto `$85.000` | Teclado numérico grande con tecla rápida `000` (`8` → `5` → `000`) | 1 (monto) | 3 con tecla `000` |
+| 2 | Elegir categoría `Mercado` | Tocar chip `Mercado` en la fila de categorías frecuentes | 1 | 1 |
+| 3 | Guardar gasto | Tocar CTA fijo `Guardar $85.000` (visible sin scroll a 390×844) | 1 | 1 |
+| **Total** | **`Compra` registrada** | Toast de confirmación con botón `Deshacer` (5 s) | **3 acciones (2 toques de control + monto)** | **5 pulsaciones** |
 
 > **Por qué la tecla `000` importa en COP:** en Colombia la gran mayoría de montos cotidianos son múltiplos de mil (`$85.000`, `$12.000`, `$300.000`). Incluir `000` junto al `0` ahorra 2 toques por compra respecto a un teclado numérico genérico.
 
@@ -40,9 +40,9 @@ Solo suma **+1 toque** respecto al flujo base:
 | --- | --- | --- |
 | 1 | Ingresar `$300.000` (`3` → `0` → `0` → `000`) | 1 (monto) |
 | 2 | Tocar chip `Mercado` | 1 |
-| 3 | Tocar chip `3 cuotas` en la barra de cuotas inline | 1 |
-| 4 | Revisar el aviso inline sin doble conteo y tocar `Guardar $300.000` | 1 |
-| **Total** | **Consumo + 3 obligaciones de deuda creadas** | **4 acciones** |
+| 3 | Tocar chip `3` en la fila de cuotas (`1 / 3 / 6 / 12 / Otro`) | 1 |
+| 4 | Revisar el desglose sin doble conteo y tocar `Guardar $300.000 en 3 cuotas` | 1 |
+| **Total** | **`Compra` + `PlanDeCuotas` + 3 `Cuota` creadas** | **4 acciones** |
 
 ### Escenario con factura electrónica (QR DIAN con campos)
 
@@ -50,130 +50,142 @@ Meta: **abrir → escanear → confirmar categoría → guardar** (sin escribir 
 
 | # | Acción del usuario | Interacción en pantalla | Toques |
 | --- | --- | --- | --- |
-| 0 | Abrir la PWA | Abre directo en Compra rápida con `Visa ••4521` recordada | 0 |
-| 1 | Abrir escáner | Tocar botón `Escanear factura` en la cabecera | 1 |
-| — | Apuntar al QR DIAN | Lectura automática en cámara (0 toques): precarga NIT del comercio, fecha, total, IVA y CUFE/CUDE; verifica dedupe local por CUFE | 0 |
-| 2 | Confirmar categoría | Tocar chip `Mercado` (o 0 toques si el NIT habitual ya sugirió `Mercado`) | 1 (0 si sugerida) |
+| 0 | Abrir la PWA | Abre directo en Compra rápida (`Hogar`, `Visa ••4521` recordada localmente) | 0 |
+| 1 | Abrir escáner | Tocar botón `Escanear` en la cabecera | 1 |
+| — | Apuntar al QR DIAN | Lectura local en cámara (0 toques): precarga `nit_comercio`, `fecha`, `monto_total`, `iva` informativo y `cufe`; consulta `AliasComercio` y verifica dedupe por `(hogar_id, cufe)` | 0 |
+| 2 | Confirmar categoría | Tocar chip `Mercado` (o 0 toques si `AliasComercio.categoria_sugerida_id` ya sugirió `Mercado`) | 1 (0 si sugerida) |
 | 3 | Guardar gasto | Tocar botón primario `Guardar $85.000` | 1 |
-| **Total** | **Gasto precargado desde factura registrado** | Toast con `Deshacer` (5 s) y CUFE guardado contra duplicados | **3 toques (2 si el NIT sugiere categoría)** |
+| **Total** | **`Compra` precargada desde factura registrada** | Toast con `Deshacer` (5 s) y `cufe` único por hogar | **3 toques (2 si `AliasComercio` sugiere categoría)** |
 
-> **Si el QR solo trae URL (Formato 2):** el escáner extrae el CUFE/CUDE de la URL y ofrece **OCR del tiquete** (`+1 toque` en `Leer tiquete con OCR`) o **completar a mano** el total, comercio y fecha. Nunca intenta consultar la DIAN en segundo plano.
+> **Si el QR solo trae URL (Formato 2):** el escáner extrae `cufe` de la URL y ofrece **OCR del tiquete** (`+1 toque`) o **completar a mano** `monto_total`, `nit_comercio` y `fecha`. Nunca intenta consultar la DIAN en segundo plano.
 
 ## Flujo paso a paso
 
-### Camino principal (compra de contado o a 1 cuota)
+### Camino principal (compra del hogar de contado o a 1 cuota)
 
 1. El usuario abre `hogar-app`. La pantalla inicial es **Compra rápida**.
 2. La pantalla precarga en silencio:
-   - **Quién paga:** miembro autenticado en el dispositivo (ej. `Santiago`).
-   - **Medio de pago:** último medio usado por ese miembro (ej. `Visa ••4521 · Santiago`).
-   - **Cuotas:** `1 cuota` (oculto si el medio seleccionado es efectivo o débito).
-   - **Fecha:** `Hoy`.
-3. El usuario ingresa el monto en pesos enteros COP usando el teclado numérico grande (sin decimales ni centavos). El visor formatea en tiempo real como `$85.000`.
-4. El usuario toca un chip de **categoría** de la grilla de las 6 más usadas (ej. `Mercado`, `Mascotas`, `Transporte`, `Comida fuera`, `Servicios`, `Hogar`) o toca `Más` para ver el catálogo completo.
-5. *(Opcional, 0 toques si no cambia)* El usuario puede tocar la píldora de medio de pago para cambiar de tarjeta/cuenta, tocar `Nota` para agregar descripción (ej. `"Éxito"`), o tocar la fecha si es un gasto de ayer.
-6. El usuario toca **`Guardar $85.000`**.
-7. La app guarda el registro en modo **consumo**, actualiza el último medio de pago recordado, limpia el monto para una posible segunda compra y muestra un aviso no bloqueante (`"Guardado: Mercado $85.000 · Visa ••4521"`) con acción **`Deshacer`** durante 5 segundos.
+   - **Ámbito (`Compra.ambito`):** `Hogar` por defecto (`0` toques extra). Puede cambiarse en 1 toque a `Personal`.
+   - **Quién registra (`Compra.registrado_por`):** miembro autenticado en el dispositivo (ej. `Santiago`).
+   - **Medio / pasivo:** último medio o tarjeta usado por ese miembro (**preferencia local del dispositivo**, no sincronizada; ej. `Visa ••4521 · Santiago`).
+   - **Cuotas:** chip `1` activo en la barra `1 / 3 / 6 / 12 / Otro` (solo visible cuando el medio seleccionado es una `Tarjeta`).
+   - **Fecha (`Compra.fecha`):** fecha civil de hoy en `America/Bogota`.
+3. El usuario ingresa `monto_total` en pesos enteros COP usando el teclado numérico grande (sin decimales ni centavos). El visor formatea en tiempo real como `$85.000`.
+4. El usuario toca un chip de `Categoria` de la grilla de frecuentes (`Mercado`, `Mascotas`, `Transporte`, `Arriendo`, `Servicios`, `Hogar`) o despliega el catálogo completo (categorías sembradas: Mercado, Servicios, Arriendo, Transporte, Salud, Mascotas, Hogar y electrodomésticos, Entretenimiento, Otros).
+5. *(Opcional, 0 toques si no cambia)* El usuario puede cambiar a `Personal`, cambiar de `MedioDePago` / `Pasivo`, marcar **`Financiada con préstamo`**, agregar `descripcion` o cambiar `fecha`.
+6. El usuario toca **`Guardar $85.000`** en la barra fija inferior (siempre visible sin scroll a 390×844).
+7. La app guarda la `Compra` (y `PlanDeCuotas` + `Cuota` si aplica), actualiza la preferencia local de último medio usado en el dispositivo, limpia el monto y muestra un aviso no bloqueante (`"Guardado: Mercado $85.000 · Visa ••4521"`) con acción **`Deshacer`** durante 5 segundos.
+
+### Variante: compra personal (`Compra.ambito = 'personal'`)
+
+1. El usuario cambia el selector superior de `Hogar` a **`Personal`** (`+1 toque`).
+2. La pantalla muestra una etiqueta clara (`Solo visible para Santiago · Excluida del balance del hogar`) y guarda `Compra.ambito = 'personal'` con `Compra.miembro_id = miembro_activo`.
+3. Reglas de visibilidad y balance:
+   - Por defecto, una compra personal solo la ve su `miembro_id` dueño.
+   - Los reportes y el *Balance de pareja* del hogar la excluyen por defecto, salvo que el miembro active el interruptor local `incluir_personales` (apagado por defecto).
+   - **Nunca cuenta como aporte al hogar**, incluso si se pagó con un `MedioDePago` del miembro.
+
+### Variante: compra financiada con préstamo en efectivo (`Compra.financiada_por_pasivo_id`)
+
+1. En el selector de medio de pago, el usuario elige **`Financiada con préstamo`** y selecciona el `Pasivo` existente que fondeó el efectivo (ej. `Préstamo remodelación cocina`, tipo `deuda` del hogar, o un `Credito` de un miembro).
+2. La app muestra un aviso breve: *"Esta compra registra el consumo hoy, pero no suma aporte de nadie todavía; el aporte aparecerá cuando se registre cada `PagoDeDeuda` del préstamo."*
+3. Al guardar, persiste la `Compra` con `financiada_por_pasivo_id = pasivo.id` sin crear un segundo `PlanDeCuotas` ni sumar al aporte del mes.
 
 ### Variante: compra a cuotas con tarjeta de crédito
 
-1. Con un monto ingresado (ej. `$300.000`) y una tarjeta de crédito seleccionada (`Visa ••4521`), el usuario toca `3 cuotas` (u otra cantidad: `2`, `3`, `6`, `12` o `Otro`).
+1. Con un monto ingresado (ej. `$300.000` el **22 nov 2026**) y una `Tarjeta` seleccionada (`Visa ••4521`, corte día `15`, pago día `25`), el usuario toca `3` en los chips **`1 / 3 / 6 / 12 / Otro`** (si toca `Otro`, aparece un campo numérico entero para ingresar cualquier número de cuotas `>= 2`).
 2. La app muestra en línea, sin abrir un modal bloqueante, el resumen de separación contable:
-   - **Consumo hoy:** `$300.000` en `Mercado` (una sola vez).
-   - **Obligaciones del mes:** `3 cuotas de $100.000` (capital = pago de deuda, **no** suma al consumo).
-   - **Costo financiero estimado:** si la tarjeta tiene tasa (ej. `28,32% E.A. / 2,10% M.V.`), muestra el interés estimado de la primera cuota (`$6.300`) como referencia; si no tiene tasa, indica `"Sin tasa: registrarás intereses a mano"`.
-3. Al tocar **`Guardar $300.000`**, se crea **1 consumo** de `$300.000` hoy y **3 cuotas programadas** de `$100.000` en *Obligaciones del mes*.
+   - **Consumo hoy (`Compra`):** `$300.000` en `Mercado` (una sola vez).
+   - **Obligaciones (`PlanDeCuotas` + `Cuota`):** `3 cuotas` de `$100.000` con fechas calculadas según `dia_corte = 15` y `dia_pago = 25` (compra 22 nov → corte 15 dic → primera cuota **25 dic 2026**, segunda **25 ene 2027**, tercera **25 feb 2027**).
+   - **Costo financiero estimado (`CostoFinanciero`):** si la tarjeta tiene tasa (ej. `28,32 % E.A.`, convertida exactamente a `i = (1 + 0,2832)^(1/12) − 1 ≈ 2,0997 % M.V.`, redondeando solo el interés final al peso), muestra los intereses estimados **`$6.299`** (cuota 1), **`$4.199`** (cuota 2) y **`$2.100`** (cuota 3) en el balde aparte *Costo financiero*. Si la tarjeta está en `Sin tasa`, indica `"Sin tasa: registrarás intereses a mano"`.
+3. Al tocar **`Guardar $300.000 en 3 cuotas`**, se crean en un solo lote atómico `1 Compra` (`pago_tipo = 'financiado'`), `1 PlanDeCuotas` (`origen = 'compra'`, `capital = 300000`, `n_cuotas = 3`), `3 Cuota` (`25 dic`, `25 ene`, `25 feb`) y los `CostoFinanciero` calculados (`origen = 'calculado'`) si la tarjeta tiene tasa.
 
 ### Variante: escanear factura electrónica (QR DIAN, OCR y manual)
 
 Basado en el Anexo Técnico FEV 1.9 (num. 11.7) documentado en [docs/dian-qr.md](../dian-qr.md). **La app nunca consulta el catálogo de la DIAN** (bloqueado por captcha y validación de NIT) ni requiere conexión a internet para leer el QR.
 
-1. Desde **Compra rápida**, el usuario toca **`Escanear factura`**.
-2. Se abre el visor de cámara en estado **Leyendo QR**, con acciones visibles de fallback (`Tomar foto para OCR` e `Ingresar manual`).
-3. Al detectar un código QR DIAN, la app analiza localmente su contenido y extrae el **CUFE o CUDE**:
-   - **Deduplicación inmediata por hogar:** antes de pedir confirmación, busca ese `CUFE/CUDE` en los registros del hogar. Si ya existe, muestra el estado **"Esta factura ya está registrada"** con el detalle del gasto guardado (comercio, monto, fecha y quién lo registró) y detiene el alta duplicada, ofreciendo `Escanear otra` o `Volver a Compra rápida`.
-4. Si el CUFE/CUDE es nuevo, bifurca según el formato impreso del QR:
-   - **Formato 1 — QR con campos (`NumFac`, `FecFac`, `HorFac`, `NitFac`, `DocAdq`, `ValFac`, `ValIva`, `ValOtroIm`, `ValTolFac`, `CUFE`/`CUDE` + URL `catalogo-vpfe`):**
-     - Precarga automáticamente **NIT del comercio** (y nombre conocido si el hogar ya compró en ese NIT), **fecha**, **total en COP enteros** (`ValTolFac`), **IVA informativo** (`ValIva`) y **CUFE/CUDE**.
-     - El QR nunca trae los ítems detallados; la app lo indica brevemente (en Fase 2 los ítems llegan reenviando el ZIP XML+PDF por correo).
-     - El usuario solo confirma **categoría** (pre-sugerida si el NIT es habitual), **medio de pago** (recordado) y **cuotas** (`1 cuota` por defecto), y toca **`Guardar`**.
-   - **Formato 2 — QR solo con URL (`catalogo-vpfe` con CUFE embebido):**
-     - Extrae y conserva el **CUFE/CUDE** de la URL (para deduplicación y auditoría) y muestra el estado **Solo URL — faltan campos**.
-     - Ofrece **`Leer tiquete con OCR`** (toma foto local del papel para extraer total, comercio y fecha) o completar los campos manualmente en la misma pantalla.
-5. En todos los estados con URL válida, muestra el botón secundario y opcional **`Verificar en la DIAN`**, que abre la URL oficial de `catalogo-vpfe` en el navegador externo del dispositivo para verificación humana manual. No es necesario usarlo para guardar.
-6. Al tocar **`Guardar`**, persiste el consumo (con `cufe_cude` único por hogar, `merchant_nit`, `vat_cop` y `dian_url`), aplica la misma regla de cuotas sin doble conteo si se difirió con tarjeta, y suma al aporte del pagador.
+1. Desde **Compra rápida**, el usuario toca **`Escanear`**.
+2. Se abre el visor de cámara en estado **Leyendo QR**, con acciones visibles de fallback (`Tomar foto (OCR)` e `Ingresar manual`).
+3. Al detectar un código QR DIAN, la app extrae localmente el `cufe`:
+   - **Deduplicación inmediata por hogar:** busca `(hogar_id, cufe)` entre compras no eliminadas. Si ya existe, muestra **"Esta factura ya está registrada"** con el detalle guardado y bloquea el duplicado.
+4. Si el `cufe` es nuevo, bifurca según el formato del QR:
+   - **Formato 1 — QR con campos (`NumFac`, `FecFac`, `NitFac`, `ValIva`, `ValTolFac`, `CUFE`/`CUDE` + URL `catalogo-vpfe`):**
+     - Precarga `nit_comercio` (sin guardar nunca `DocAdq`), `fecha`, `monto_total` en COP enteros (ej. `$85.000`), `iva` informativo (ej. `$13.571` para IVA 19 % incluido en `$85.000`, nunca sumado aparte) y `cufe`.
+     - Consulta `AliasComercio` por `(hogar_id, nit_comercio)`: si existe (ej. `890900608 → Almacenes Éxito`), rellena el nombre y sugiere `categoria_sugerida_id` (`Mercado`). Si el comercio es nuevo, permite guardar el alias al confirmar.
+     - El QR nunca trae líneas de producto (en Fase 2 entran desde el ZIP XML+PDF por correo).
+     - El usuario confirma `Categoria`, `ambito` (`Hogar` por defecto), medio recordado y cuotas (`1 / 3 / 6 / 12 / Otro`), y toca **`Guardar`**.
+   - **Formato 2 — QR solo con URL (`catalogo-vpfe` con `cufe` embebido):**
+     - Conserva el `cufe` de la URL y ofrece **`Leer total y fecha con OCR del tiquete`** o edición manual en la misma pantalla.
+5. En todos los estados con URL válida, ofrece el botón opcional **`Verificar en la DIAN (opcional) ↗`**, que abre el navegador externo sin bloquear el guardado.
+6. Al tocar **`Guardar`**, persiste la `Compra` (`origen = 'qr'` u `'ocr'`, `cufe`, `nit_comercio`, `iva`) y actualiza `AliasComercio` si el usuario asoció nombre/categoría.
 
 ### Variante: entrada desde Despensa de mascotas ("Recomprar")
 
-1. Desde *Despensa de mascotas*, el usuario toca `Recomprar $165.000` en un insumo (ej. `Concentrado adulto 12 kg`).
-2. Se abre **Compra rápida** con el monto (`$165.000`), la categoría (`Mascotas`) y la nota (`Concentrado adulto 12 kg · Luna`) prellenados.
-3. El usuario confirma con **1 toque** (`Guardar $165.000`), lo que además marca el insumo como repuesto en la despensa.
+1. Desde *Despensa de mascotas*, el usuario toca `Recomprar $165.000` en un `ItemDespensa` (ej. `Concentrado adulto 12 kg`).
+2. Se abre **Compra rápida** prellenada con `monto_total = $165.000`, `categoria_id = Mascotas`, `mascota_id = Luna`, `item_despensa_id`, `ambito = 'hogar'` y `descripcion = "Concentrado adulto 12 kg · Luna"`.
+3. El usuario confirma con **1 toque** (`Guardar $165.000`). En el mismo lote atómico la app crea la `Compra` y un hecho `NivelDespensa(nivel_pct = 100, origen = 'compra', fecha = Compra.fecha)` (y actualiza `ItemDespensa.monto_habitual` si cambió el precio).
 
 ## Casos borde y manejo de errores
 
 | Caso borde / error | Comportamiento esperado |
 | --- | --- |
-| **Monto vacío o `$0`** | El botón `Guardar` permanece deshabilitado visual y semánticamente (`aria-disabled="true"`). Si el usuario intenta enviarlo, el anuncio en región viva (`aria-live="polite"`) indica: `"Ingresa un monto mayor a $0"`. |
-| **Sin categoría seleccionada** | Al tocar `Guardar`, se resalta la sección de categorías con mensaje textual e icono (`"Elige una categoría para guardar"`) y se mueve el foco al primer chip. |
-| **Intento de poner cuotas en efectivo o débito** | Los chips de cuotas solo aparecen cuando el medio de pago seleccionado es una tarjeta de crédito. Si el usuario cambia de tarjeta a débito/efectivo después de elegir `3 cuotas`, las cuotas vuelven a `1` con aviso breve: `"Débito no maneja cuotas; cambiado a 1 pago"`. |
-| **División no exacta en cuotas (ej. `$100.000` en 3 cuotas)** | Todos los montos son enteros COP sin centavos. Se distribuyen los pesos residuales en la primera cuota (`$33.334`, `$33.333`, `$33.333`) para que la suma de capital sea exactamente igual al total (`$100.000`). |
-| **Tarjeta sin tasa E.A./M.V. configurada** | La app **no** inventa ni calcula intereses. Muestra solo las cuotas de capital y aclara: `"Intereses: se registran manualmente en Obligaciones como costo financiero"`. |
-| **Error de dedo / registro duplicado** | Toast con botón `Deshacer` visible 5 segundos tras guardar. Además, si en menos de 60 segundos se intenta guardar el mismo monto, categoría y medio de pago, muestra confirmación inline: `"Ya registraste Mercado $85.000 hace un momento. ¿Guardar otro igual?"`. |
-| **Sin conexión (PWA offline)** | El gasto se guarda localmente en cola offline y se confirma al usuario con etiqueta `"Guardado en el dispositivo · se sincronizará al volver la conexión"` (icono + texto). |
-| **Miembro sin medios de pago registrados** | `Efectivo` existe siempre como medio base disponible desde el primer día; debajo aparece el enlace directo `+ Agregar tarjeta o cuenta`. |
-| **Factura ya registrada (CUFE/CUDE duplicado en el hogar)** | Bloquea el registro duplicado y muestra alerta accesible (`▲ Esta factura ya está registrada`) con quién la registró, fecha y monto, más botones `Escanear otra` y `Volver a Compra rápida`. |
-| **QR DIAN solo con URL (sin campos de monto ni fecha)** | Extrae el CUFE/CUDE de la URL, informa que la app no consulta la DIAN y ofrece `Leer tiquete con OCR` o edición manual de total, NIT/comercio y fecha. |
-| **Total de factura DIAN con centavos (`ValTolFac: 85000.00` o `85000.40`)** | Se redondea al peso entero COP más cercano (`$85.000`) según `docs/domain.md`, manteniendo editable el campo por si el usuario quiere ajustarlo al valor exacto cobrado. |
-| **QR dañado, tiquete sin QR o cámara sin permiso** | Mensaje claro con dos salidas inmediatas: `Tomar foto para OCR` (o seleccionar foto) y `Ingresar manual` en Compra rápida. Nunca bloquea el registro del gasto. |
-| **Código QR que no pertenece a la DIAN** | Aviso inline: `"Este código no parece una factura electrónica DIAN"` con opciones `Intentar de nuevo`, `Leer tiquete con OCR` o `Ingresar manual`. |
-| **Usuario toca "Verificar en la DIAN" sin internet** | El navegador informa falta de conexión, pero el gasto ya puede guardarse localmente porque el flujo **no** depende de consultar la DIAN. |
+| **Monto vacío o `$0`** | El CTA `Guardar` permanece deshabilitado (`aria-disabled="true"`). Si se intenta enviar, el anuncio (`aria-live="polite"`) indica: `"Ingresa un monto mayor a $0"`. |
+| **Sin categoría seleccionada** | Se resalta la sección de categorías con mensaje textual e icono (`"Elige una categoría para guardar"`) y el foco pasa al primer chip. |
+| **Cuotas con `MedioDePago` de contado o préstamo en efectivo** | Los chips `1 / 3 / 6 / 12 / Otro` solo aparecen con una `Tarjeta`. Al cambiar a débito, efectivo o préstamo en efectivo, se ocultan con aviso breve. |
+| **Chip `Otro` en cuotas** | Abre un campo numérico entero (`>= 2`, ej. `2`, `4`, `18`, `24`) y recalcula el desglose al instante sin doble conteo. |
+| **División no exacta en cuotas (`capital_fijo`, ej. `$100.000` en 3)** | Pesos enteros sin centavos: los pesos residuales van a las primeras `r` cuotas (`$33.334`, `$33.333`, `$33.333`) para que `Σ Cuota.capital = PlanDeCuotas.capital`. |
+| **Tarjeta sin tasa configurada (`tasa_tipo = null`)** | La app **no** inventa ni calcula `CostoFinanciero`. Muestra solo las cuotas de capital y aclara: `"Sin tasa: registrarás intereses a mano en Obligaciones"`. |
+| **Error de dedo / registro duplicado manual** | Toast con `Deshacer` durante 5 s. Si en `< 60 s` se repite monto, categoría y medio, muestra confirmación inline antes de duplicar. |
+| **Sin conexión (PWA offline)** | La `Compra` se guarda en la copia local de **IndexedDB** con UUIDv7 y cola de sincronización; se confirma con `"Guardado en el dispositivo · se sincronizará al volver la conexión"`. |
+| **Factura ya registrada (`cufe` duplicado en el hogar)** | Índice único `(hogar_id, cufe)` bloquea el duplicado y muestra alerta accesible (`▲ Esta factura ya está registrada`) con el registro existente. |
+| **Total DIAN con centavos (`ValTolFac: 85000.40`)** | Se redondea al peso entero COP más cercano (`$85.000`), editable antes de guardar. |
+| **QR dañado, sin cámara o no DIAN** | Aviso claro con salidas inmediatas a `Tomar foto (OCR)` o `Ingresar manual`. Nunca bloquea el registro. |
 
 ## Diagrama de flujo
 
 ```mermaid
 flowchart TD
-    A["Abrir hogar-app (Compra rapida)"] --> B{"Como registra el gasto?"}
-    B -- "Entrada manual" --> C["Ingresar monto entero COP (teclado con 000)"]
-    C --> D["Seleccionar chip de categoria"]
+    A["Abrir hogar-app (Compra rapida · ambito Hogar)"] --> B{"Como registra la Compra?"}
+    B -- "Entrada manual" --> C["Ingresar monto_total COP (teclado con 000)"]
+    C --> D["Elegir Categoria (y opcional: Personal o Financiada con prestamo)"]
 
     B -- "Escanear factura" --> Q1["Abrir camara: leyendo QR DIAN"]
     Q1 --> Q2{"QR DIAN legible?"}
-    Q2 -- No --> Q3["Fallback: OCR del tiquete o entrada manual"]
+    Q2 -- No --> Q3["Fallback: OCR del tiquete o ingreso manual"]
     Q3 --> C
-    Q2 -- Si --> Q4["Extraer CUFE/CUDE localmente (sin consultar la DIAN)"]
-    Q4 --> Q5{"CUFE/CUDE ya existe en el hogar?"}
-    Q5 -- Si --> Q6["Mostrar alerta: Esta factura ya esta registrada (ver gasto o escanear otra)"]
+    Q2 -- Si --> Q4["Extraer cufe localmente (sin consultar la DIAN)"]
+    Q4 --> Q5{"(hogar_id, cufe) ya existe?"}
+    Q5 -- Si --> Q6["Bloquear duplicado y mostrar Compra existente"]
     Q5 -- No --> Q7{"Formato del QR DIAN"}
-    Q7 -- "Formato 1: con campos" --> Q8["Precargar NIT, fecha, total COP, IVA y CUFE"]
-    Q7 -- "Formato 2: solo URL" --> Q9["Conservar CUFE + completar total/fecha con OCR o a mano"]
-    Q8 --> Q10["Confirmar categoria, medio recordado y cuotas (opcional: Verificar en la DIAN)"]
+    Q7 -- "Formato 1: con campos" --> Q8["Precargar nit_comercio, fecha, monto_total, iva y sugerir Categoria via AliasComercio"]
+    Q7 -- "Formato 2: solo URL" --> Q9["Conservar cufe + completar total/fecha con OCR o a mano"]
+    Q8 --> Q10["Confirmar Categoria, ambito, medio recordado y cuotas"]
     Q9 --> Q10
-    Q10 --> E{"Medio es tarjeta de credito y > 1 cuota?"}
+    Q10 --> E{"Tarjeta y > 1 cuota?"}
 
     D --> E
-    E -- No --> F["Resumen directo: 1 consumo hoy"]
-    E -- Si --> G["Mostrar desglose sin doble conteo: consumo total hoy + N cuotas capital + interes aparte"]
-    F --> H["Tocar Guardar"]
+    E -- No --> F["Resumen directo: 1 Compra hoy"]
+    E -- Si --> G["Desglose sin doble conteo: Compra hoy + PlanDeCuotas/Cuota + CostoFinanciero aparte"]
+    F --> H["Tocar Guardar (visible sin scroll)"]
     G --> H
-    H --> I{"Monto > 0 y categoria elegida?"}
-    I -- No --> J["Mostrar error accesible con texto e icono y enfocar campo"]
+    H --> I{"monto_total > 0 y Categoria elegida?"}
+    I -- No --> J["Mostrar error accesible y enfocar campo"]
     J --> C
-    I -- Si --> K{"Duplicado manual en < 60 s?"}
-    K -- Si --> L["Pedir confirmacion inline: Guardar otro igual o Cancelar"]
-    L -- Cancelar --> A
-    L -- Confirmar --> M["Persistir Consumo (+ CUFE unico si viene de factura) y Cuotas si aplica"]
-    K -- No --> M
-    M --> N["Actualizar ultimo medio recordado y sumar aporte del miembro"]
-    N --> O["Mostrar toast con Deshacer (5 s) y limpiar pantalla"]
+    I -- Si --> M["Guardar lote atomico en IndexedDB (+ NivelDespensa=100 si viene de Recomprar)"]
+    M --> N["Actualizar preferencia local de ultimo medio y mostrar toast con Deshacer"]
 ```
 
 ## Datos del dominio que toca
 
-| Entidad / Concepto (`docs/domain.md` y `docs/dian-qr.md`) | Operación | Campos principales | Regla aplicada |
-| --- | --- | --- | --- |
-| **Consumo (`expense`)** | Escritura / Lectura (dedupe) | `id`, `amount_cop` (entero > 0), `category_id`, `paid_by_member_id`, `payment_method_id`, `date`, `note`, `installments_count`, `cufe_cude` (opcional, único por hogar), `merchant_nit`, `vat_cop` (informativo), `dian_url` | Se registra **una sola vez** por el valor total en la fecha de compra. Si tiene `cufe_cude`, la restricción única por hogar impide registrar la misma factura dos veces. |
-| **Obligación / Cuota (`debt_installment`)** | Escritura (solo si `installments_count > 1`) | `expense_id`, `debt_id`, `installment_number`, `total_installments`, `principal_cop`, `due_date`, `status` | Cada cuota representa **pago de deuda** (capital), nunca consumo nuevo. Suma exacta en COP enteros. |
-| **Medio de pago (`payment_method`)** | Lectura / actualización de preferencia | `id`, `name`, `type` (`credit_card`, `debit`, `cash`), `owner` (`miembro` en fase 1, extensible a `hogar`), `rate_ea`, `rate_mv`, `is_last_used` | Recuerda el último medio usado por miembro. Tasas E.A./M.V. son opcionales. |
-| **Comercio conocido (`merchant_alias`, derivado por NIT)** | Lectura / Escritura opcional | `household_id`, `nit`, `display_name`, `default_category_id` | Permite traducir `NitFac` a un nombre legible (ej. `890900608 → Almacenes Éxito`) y sugerir la categoría habitual en futuras facturas. |
-| **Miembro (`member`)** | Lectura | `id`, `name` | Quien registra el pago suma a su aporte del mes en *Balance de pareja* sin crear deuda con otros miembros. |
-| **Insumo mascota (`pet_supply`)** | Escritura opcional (si viene de *Recomprar*) | `id`, `last_price_cop`, `last_restocked_at` | Actualiza fecha de reposición y último precio pagado. |
+Nombres canónicos alineados con `docs/data-model.md` y [docs/decisiones-2026-11-22.md](../decisiones-2026-11-22.md).
+
+| Entidad / Concepto | Tipo | Operación | Campos principales | Regla aplicada |
+| --- | --- | --- | --- | --- |
+| **`Compra`** | Hecho (tabla replicada) | Escritura / Lectura (dedupe) | `id`, `hogar_id`, `fecha`, `descripcion`, `monto_total`, `categoria_id`, `ambito` (`'hogar' \| 'personal'`, default `'hogar'`), `miembro_id`, `pago_tipo` (`'contado' \| 'financiado'`), `medio_de_pago_id`, `financiada_por_pasivo_id`, `registrado_por`, `mascota_id`, `item_despensa_id`, `cufe`, `nit_comercio`, `iva`, `origen` | Se registra **una sola vez** por `monto_total` en `fecha`. Único `(hogar_id, cufe)` por hogar. `ambito = 'personal'` solo la ve `miembro_id` y nunca suma aporte al hogar. Con `financiada_por_pasivo_id` no suma aporte hasta pagar el préstamo. |
+| **`PlanDeCuotas`** | Hecho (tabla replicada) | Escritura (si `pago_tipo = 'financiado'`) | `id`, `pasivo_id`, `origen` (`'compra'`), `compra_id`, `fecha_inicio`, `capital`, `sistema`, `n_cuotas`, `fecha_primera_cuota`, `tasa_tipo`, `tasa_ppm` | `capital = Compra.monto_total`; `fecha_primera_cuota` en tarjeta = primer `dia_pago` posterior al `dia_corte` siguiente a `fecha`. |
+| **`Cuota`** | Hecho (tabla replicada) | Escritura (si `sistema != 'sin_calendario'`) | `id`, `plan_id`, `numero`, `fecha_vencimiento`, `capital` | `Σ capital = PlanDeCuotas.capital` en COP enteros. Nunca suma al consumo. Su **estado** es siempre DERIVADO. |
+| **`CostoFinanciero`** | Hecho (tabla replicada) | Escritura opcional (si la tarjeta tiene tasa) | `id`, `tipo` (`'interes'`), `monto`, `fecha_causacion`, `pasivo_id`, `cuota_id`, `origen` (`'calculado'`), `registrado_por` | Balde aparte (no es una `Categoria`). Conversión exacta E.A.→M.V., redondeando solo el interés al peso. |
+| **`MedioDePago` / `Pasivo`** | Hecho (tabla replicada) | Lectura | `MedioDePago` (`id`, `nombre`, `tipo`, `owner_tipo`, `owner_miembro_id`); `Pasivo` (`id`, `tipo`, `nombre`, `owner_tipo`, `tasa_tipo`, `tasa_ppm`) + `Tarjeta` (`dia_corte`, `dia_pago`) | `MedioDePago` paga de contado; `Tarjeta` (subtipo de `Pasivo`) genera plan de cuotas. El **último medio usado** es una **preferencia LOCAL del dispositivo por miembro** (no se sincroniza ni es columna). |
+| **`AliasComercio`** | Hecho (tabla replicada) | Lectura / Escritura | `id`, `hogar_id`, `nit_comercio`, `nombre`, `categoria_sugerida_id` | Sincronizado por hogar; único `(hogar_id, nit_comercio)`. Traduce `nit_comercio` del QR y sugiere `categoria_sugerida_id`. |
+| **`ItemDespensa` / `NivelDespensa`** | Hecho (tabla replicada) | Escritura opcional (si viene de *Recomprar*) | `ItemDespensa.monto_habitual`; `NivelDespensa` (`item_despensa_id`, `fecha`, `nivel_pct = 100`, `origen = 'compra'`) | Recomprar registra un hecho `NivelDespensa` al `100 %`; el nivel actual y la próxima compra se **DERIVAN**, nunca se guardan. |
+| **Totales del mes / Aportes / Saldos** | **DERIVADO (nunca guardado)** | Solo lectura calculada | `gasto(mes)`, `aportes(M)`, `saldo(Pasivo)` | Calculados en el dispositivo a partir de los hechos; nunca existen columnas ni tablas de saldos o totales persistidos. |

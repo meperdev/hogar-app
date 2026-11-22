@@ -1,6 +1,6 @@
 # Mockups UX/UI — hogar-app (Fase 1)
 
-Prototipo estático clickeable en HTML y CSS puro (sin frameworks, sin CDNs y sin JavaScript) para los 4 núcleos de `hogar-app`, diseñado mobile-first a **390px** y alineado con [docs/domain.md](../../docs/domain.md).
+Prototipo estático clickeable en HTML y CSS puro (sin frameworks, sin CDNs y sin JavaScript) para los 4 núcleos y ajustes de `hogar-app`, diseñado mobile-first a **390px** y alineado con [docs/domain.md](../../docs/domain.md) y [docs/decisiones-2026-11-22.md](../../docs/decisiones-2026-11-22.md).
 
 ## Cómo revisarlos
 
@@ -10,33 +10,33 @@ Abre [index.html](index.html) directamente en cualquier navegador (no requiere s
 
 | Núcleo | Archivo | Qué demuestra | Flujo documentado |
 | --- | --- | --- | --- |
-| Índice | [index.html](index.html) | Mapa general de pantallas, resumen de reglas de dominio y accesibilidad. | — |
-| 1. Compra rápida | [compra-rapida.html](compra-rapida.html) | Pantalla inicial: `"mercado $85.000 con Visa ••4521"` en 3 acciones (teclado numérico con `000`, chips de categorías más usadas, medio recordado y acceso directo a escaneo QR DIAN). | [compra-rapida.md](../../docs/flows/compra-rapida.md) |
-| 1. Compra rápida | [compra-cuotas.html](compra-cuotas.html) | `"mercado $300.000 a 3 cuotas"` con desglose inmediato sin doble conteo: consumo hoy + 3 cuotas de deuda + intereses aparte. | [compra-rapida.md](../../docs/flows/compra-rapida.md) |
-| 1. Compra rápida | [escanear-factura.html](escanear-factura.html) | Escaneo local de factura electrónica QR DIAN (4 estados: leyendo, precargado con campos, solo URL con fallback OCR/manual y duplicada por CUFE) + enlace opcional `Verificar en la DIAN`. | [compra-rapida.md](../../docs/flows/compra-rapida.md) |
-| 2. Obligaciones | [obligaciones-del-mes.html](obligaciones-del-mes.html) | Tres métricas separadas (Consumo / Pagos de deuda / Costo financiero), deudas de miembro vs hogar y cuota de Camila pagada por Santiago. | [obligaciones-del-mes.md](../../docs/flows/obligaciones-del-mes.md) |
-| 2. Obligaciones | [registrar-pago-obligacion.html](registrar-pago-obligacion.html) | Pago de cuota 1/3 de la Visa de Santiago realizado por Camila: suma al aporte de Camila y nunca genera deuda entre pareja. | [obligaciones-del-mes.md](../../docs/flows/obligaciones-del-mes.md) |
-| 2. Obligaciones | [nueva-tarjeta-credito.html](nueva-tarjeta-credito.html) | Alta de tarjeta/crédito con titular individual (fase 1) y tasa E.A./M.V. opcional con equivalencia automática. | [obligaciones-del-mes.md](../../docs/flows/obligaciones-del-mes.md) |
-| 3. Balance | [balance-de-pareja.html](balance-de-pareja.html) | Aporte libre en `$` y `%` (Santiago 58% / Camila 42%), ingresos fijos vs variables y ausencia total de mensajes tipo "X le debe a Y". | [balance-de-pareja.md](../../docs/flows/balance-de-pareja.md) |
-| 3. Balance | [registrar-ingreso.html](registrar-ingreso.html) | Registro de ingreso fijo (con día esperado) o variable (al llegar) en COP enteros. | [balance-de-pareja.md](../../docs/flows/balance-de-pareja.md) |
-| 4. Mascotas | [despensa-mascotas.html](despensa-mascotas.html) | Despensa de Luna y Milo priorizada por urgencia con barras accesibles y botón `Recomprar` conectado a Compra rápida. | [despensa-mascotas.md](../../docs/flows/despensa-mascotas.md) |
-| 4. Mascotas | [nuevo-insumo-mascota.html](nuevo-insumo-mascota.html) | Alta de insumo o gasto recurrente individual o compartido entre mascotas. | [despensa-mascotas.md](../../docs/flows/despensa-mascotas.md) |
+| Índice | [index.html](index.html) | Mapa general de las 13 pantallas, resumen de reglas de dominio y accesibilidad. | — |
+| 1. Compra rápida | [compra-rapida.html](compra-rapida.html) | Pantalla inicial: selector `Hogar \| Personal` (default `Hogar`, 0 toques extra), teclado numérico COP con `000`, categorías frecuentes (incl. `Arriendo`), medio recordado localmente, opción `Financiada con préstamo`, chips `1 / 3 / 6 / 12 / Otro` y CTA `Guardar` visible sin scroll a 390×844. | [compra-rapida.md](../../docs/flows/compra-rapida.md) |
+| 1. Compra rápida | [compra-cuotas.html](compra-cuotas.html) | `"mercado $300.000 a 3 cuotas"` (22 nov, corte 15, pago 25): cuotas **25 dic / 25 ene / 25 feb**, interés exacto E.A.→M.V. (`$6.299 / $4.199 / $2.100`) y desglose sin doble conteo. | [compra-rapida.md](../../docs/flows/compra-rapida.md) |
+| 1. Compra rápida | [escanear-factura.html](escanear-factura.html) | Escaneo local QR DIAN (4 estados: leyendo, precargado con IVA `$13.571` sobre `$85.000` y categoría sugerida por `AliasComercio`, solo URL con OCR/manual, duplicada por `cufe`) + enlace opcional `Verificar en la DIAN`. | [compra-rapida.md](../../docs/flows/compra-rapida.md) |
+| 2. Obligaciones | [obligaciones-del-mes.html](obligaciones-del-mes.html) | Tres métricas separadas derivadas (Consumo real / Capital cuotas separado en **pagado** `$220.000` y **pendiente** `$450.000` / Costo financiero `$68.799`), préstamo cocina como `Deuda del hogar`, arriendo en categoría `Arriendo`. | [obligaciones-del-mes.md](../../docs/flows/obligaciones-del-mes.md) |
+| 2. Obligaciones | [registrar-pago-obligacion.html](registrar-pago-obligacion.html) | Pago de cuota 1/3 de la Visa de Santiago por Camila (`$100.000 + $6.299 = $106.299`), aporte libre sin deuda entre pareja y aviso de **posible pago duplicado o sobrepago** (`saldo_a_favor` explícito). | [obligaciones-del-mes.md](../../docs/flows/obligaciones-del-mes.md) |
+| 2. Obligaciones | [nueva-tarjeta-credito.html](nueva-tarjeta-credito.html) | Alta de `Tarjeta`, `Crédito` (miembro) o `Deuda` (miembro u hogar), **`Sin tasa` preseleccionada por defecto** y bloque de **saldo inicial** (`PlanDeCuotas` con saldo inicial, sistema, `n_cuotas` y `fecha_primera_cuota`). | [obligaciones-del-mes.md](../../docs/flows/obligaciones-del-mes.md) |
+| 3. Balance | [balance-de-pareja.html](balance-de-pareja.html) | Aporte libre por mes calendario con 1 decimal (`58,0 %` / `42,0 %`), transferencias al fondo común, interruptores `% de su ingreso` e `Incluir personales` **apagados por defecto**, y `Marcar recibido` con monto recibido distinto en ingresos fijos. | [balance-de-pareja.md](../../docs/flows/balance-de-pareja.md) |
+| 3. Balance | [transferir-fondo-comun.html](transferir-fondo-comun.html) | Alta de `Aporte` desde `MedioDePago` de un miembro hacia `MedioDePago` del hogar (fondo común), sin doble conteo. | [balance-de-pareja.md](../../docs/flows/balance-de-pareja.md) |
+| 3. Balance | [registrar-ingreso.html](registrar-ingreso.html) | Registro de `Ingreso` fijo (con día esperado) o variable (al llegar) en COP enteros. | [balance-de-pareja.md](../../docs/flows/balance-de-pareja.md) |
+| 4. Mascotas | [despensa-mascotas.html](despensa-mascotas.html) | Total mensual `$245.000` 100 % reconciliable (solo compras de noviembre), nivel restante derivado, umbral de alerta `20 %`, próxima compra estimada, `Ajustar nivel` inline y `Recomprar`. | [despensa-mascotas.md](../../docs/flows/despensa-mascotas.md) |
+| 4. Mascotas | [nuevo-insumo-mascota.html](nuevo-insumo-mascota.html) | Alta de `ItemDespensa` con 4 tipos (`Comida`, `Higiene`, `Salud`, `Otro`), frecuencia en días y umbral de alerta `%` (default `20`). | [despensa-mascotas.md](../../docs/flows/despensa-mascotas.md) |
+| Ajustes | [ajustes-exportar.html](ajustes-exportar.html) | Estado de exportación automática semanal (JSON + CSV en Storage), descarga manual, botón `Exportar ahora` e indicador de copia local en IndexedDB. | [balance-de-pareja.md](../../docs/flows/balance-de-pareja.md) |
 
 ## Decisiones de diseño
 
 | Área | Decisión | Motivo |
 | --- | --- | --- |
-| **Inicio en Compra rápida** | La PWA abre directo en Compra rápida con teclado numérico COP visible y último medio recordado. | Elimina el toque de "+ Nuevo gasto" y el toque para enfocar un input, cumpliendo la meta de <= 3 acciones. |
-| **Escaneo QR DIAN 100% local** | Lee los dos formatos del Anexo Técnico FEV 1.9 (con campos y solo URL), deduplica por CUFE/CUDE único por hogar y ofrece fallback OCR/manual + enlace manual opcional a la DIAN. | El catálogo DIAN bloquea automatización (captcha y NIT); la app nunca debe depender de consultarlo (ver [docs/dian-qr.md](../../docs/dian-qr.md)). |
-| **Tecla `000` en teclado COP** | El teclado incluye una tecla dedicada `000` (miles) en lugar de punto decimal. | En Colombia los montos son enteros sin centavos y casi todos terminan en miles (`$85.000`, `$300.000`); ahorra 2 pulsaciones por compra. |
-| **Tres columnas contables separadas** | En *Obligaciones del mes* se muestran tres tarjetas independientes: **Consumo real**, **Pagos de deuda** y **Costo financiero**, sin totalizador que los sume. | Refuerza visualmente la regla de `docs/domain.md`: una compra a cuotas nunca se cuenta dos veces. |
-| **Lenguaje libre de culpa en Balance** | El bloque principal explica explícitamente **Aporte libre** y muestra pesos, `%` del total y `%` opcional del ingreso propio. | Evita cualquier lectura de deuda entre miembros (nunca "X le debe a Y" ni metas 50/50). |
-| **Datos coherentes entre pantallas** | Todas las pantallas usan el mismo mes ficticio (noviembre 2026, hogar Santiago & Camila, mascotas Luna & Milo) con montos enteros en formato `$300.000`. | Permite revisar de extremo a extremo cómo un mercado a cuotas o un pago cruzado se refleja en todos los núcleos. |
-| **Interactividad sin JS** | Navegación real con `<a href>`, selectores colapsables con `<details>/<summary>` y toasts de guardado con `:target`. | Mantiene el prototipo liviano, cero dependencias y 100% auditable en cualquier navegador. |
+| **Inicio en Compra rápida** | La PWA abre directo en Compra rápida con `Hogar` activo por defecto, teclado numérico COP visible, último medio recordado localmente y CTA `Guardar` visible sin scroll a 390×844. | Elimina toques extra y cumple la meta de <= 3 acciones. |
+| **Escaneo QR DIAN 100 % local** | Lee los dos formatos del Anexo Técnico FEV 1.9, deduplica por `cufe` único por hogar, sugiere categoría con `AliasComercio` y calcula IVA informativo (`$13.571` sobre `$85.000`). | El catálogo DIAN bloquea automatización (ver [docs/dian-qr.md](../../docs/dian-qr.md)). |
+| **Sin doble conteo ni saldos guardados** | Separa Consumo real, Capital cuotas (**pagado** como `PagoDeDeuda` vs **pendiente**) y Costo financiero (balde aparte). Todos los saldos, estados, niveles y totales son derivados. | Mantiene consistencia offline entre dispositivos y evita doble conteo. |
+| **Aporte libre y vista discreta** | Incluye `Aporte` (transferencias al fondo común), porcentajes con 1 decimal (`58,0 %`), e interruptores `% de su ingreso` e `Incluir personales` apagados por defecto. | Evita fricción de pareja y protege compras personales. |
+| **Interactividad sin JS** | Navegación real con `<a href>`, desplegables con `<details>/<summary>`, interruptores con CSS `:has()` y toasts con `:target`. | Mantiene el prototipo liviano, cero dependencias y 100 % auditable. |
 
 ## Accesibilidad (WCAG AA)
 
-- **Contraste verificado:** texto principal `#161E1B` sobre `#FFFFFF` (~16.6:1), texto secundario `#4A5752` (~7.6:1), botones primarios `#0F5C48` con blanco (~7.95:1), índigo `#2D4387` con blanco (~9.29:1), alertas `#8A4B00` (~6.8:1) y `#A61C1C` (~7.5:1), bordes de controles `#6E7A75` (~4.37:1 >= 3:1).
+- **Contraste verificado:** texto principal `#161E1B` sobre `#FFFFFF` (~16.6:1), texto secundario `#4A5752` (~7.6:1), botones primarios `#0F5C48` con blanco (~7.95:1), índigo `#2D4387` con blanco (~9.29:1), alertas `#8A4B00` (~6.8:1) y `#A61C1C` (~7.5:1), bordes `#6E7A75` (~4.37:1 >= 3:1).
 - **No depender solo del color:** todos los estados combinan color de alto contraste, icono/símbolo textual (`✓`, `▲`, `◷`, `●`) y patrón diagonal en barras comparativas y de urgencia.
-- **Objetivos táctiles:** todos los botones, chips, enlaces de navegación, teclas del teclado numérico e inputs tienen un mínimo de `44×44px`.
-- **Semántica y teclado:** `html lang="es"`, enlace *Saltar al contenido principal*, jerarquía estricta `h1 → h2 → h3`, foco visible de `3px` (`#1B4FD8`), `<label for>` en cada campo y `aria-label` en botones de solo icono.
+- **Objetivos táctiles:** todos los botones, chips, enlaces, teclas numéricas, interruptores e inputs tienen un mínimo de `44×44px`.
+- **Semántica y teclado:** `html lang="es"`, enlace *Saltar al contenido principal*, jerarquía `h1 → h2 → h3`, foco visible `3px` (`#1B4FD8`), `<label for>` en cada campo y `aria-label` en botones de solo icono.

@@ -19,22 +19,56 @@
       <div class="header-left">
         <div>
           <h1 class="app-title">Despensa de mascotas</h1>
-          <p class="app-subtitle">Luna y Milo · 1 insumo por acabarse</p>
+          <p class="app-subtitle">Luna y Milo · 2 alertas (&lt;= umbral)</p>
         </div>
       </div>
       <a class="btn btn--secondary btn--sm" href="nuevo-insumo-mascota.html">+ Insumo</a>
     </header>
 
     <main id="contenido" class="app-main">
-      <!-- Resumen gasto del mes en Mascotas -->
+      <!-- Toast al registrar ajuste de nivel -->
+      <div id="nivel-ajustado" class="toast-target" role="status" aria-live="polite">
+        <span>✓ Ajuste guardado (nivel derivado recalculado)</span>
+        <a href="#contenido">Cerrar</a>
+      </div>
+
+      <!-- Resumen gasto del mes en Mascotas (100% reconciliable: solo compras con fecha de noviembre) -->
       <section class="card card--accent-primary" aria-labelledby="gasto-mascotas-heading">
         <div class="item-card__top">
           <div>
             <h2 id="gasto-mascotas-heading" class="section-title">Gasto en Mascotas (noviembre)</h2>
-            <p class="item-card__meta">Comida, arena y salud · Consumo real</p>
+            <p class="item-card__meta">Derivado · Solo compras con fecha 1–30 nov</p>
           </div>
           <span class="item-card__amount-main cop">$245.000</span>
         </div>
+
+        <details class="inline-picker" style="margin-top: 10px;">
+          <summary>
+            <span>Ver desglose reconciliable de noviembre (3 compras)</span>
+            <span aria-hidden="true">▾</span>
+          </summary>
+          <div class="inline-picker__body">
+            <dl class="kv-list">
+              <div class="kv-row">
+                <dt>15 nov · Concentrado esterilizado (Milo)</dt>
+                <dd class="cop">$68.000</dd>
+              </div>
+              <div class="kv-row">
+                <dt>11 nov · Arena sanitaria 10 kg (Milo)</dt>
+                <dd class="cop">$42.000</dd>
+              </div>
+              <div class="kv-row">
+                <dt>08 nov · Consulta veterinaria (Luna)</dt>
+                <dd class="cop">$135.000</dd>
+              </div>
+              <div class="kv-row kv-row--total">
+                <dt>Total compras Mascotas en noviembre</dt>
+                <dd class="cop">$245.000</dd>
+              </div>
+            </dl>
+            <p class="field-help">Las compras hechas en octubre (concentrado de Luna del 22 oct y antipulgas del 29 oct) no suman a noviembre.</p>
+          </div>
+        </details>
       </section>
 
       <!-- Filtros por mascota -->
@@ -44,99 +78,119 @@
         <button type="button" class="chip" aria-pressed="false">Milo (gato)</button>
       </div>
 
-      <!-- Lista de insumos priorizada por urgencia -->
+      <!-- Lista de insumos priorizada por urgencia (nivel derivado <= umbral_alerta_pct) -->
       <section aria-labelledby="inventario-heading">
         <div class="section-header">
           <h2 id="inventario-heading" class="section-title">Insumos y recurrentes</h2>
-          <span class="section-meta">Orden: urgencia</span>
+          <span class="section-meta">Nivel y fecha derivados</span>
         </div>
 
         <ul class="item-list">
-          <!-- Urgente: Por acabarse -->
+          <!-- Urgente: nivel 15% <= umbral 20% -->
           <li class="item-card card--accent-danger">
             <div class="item-card__top">
               <div>
                 <h3 class="item-card__title">Concentrado adulto 12 kg</h3>
-                <p class="item-card__meta">Luna · Comida · Último precio: $165.000</p>
+                <p class="item-card__meta">Luna · Comida · Última compra: 22 oct ($165.000 · no suma a nov)</p>
               </div>
-              <span class="badge badge--danger">▲ Por acabarse</span>
+              <span class="badge badge--danger">▲ Alerta &lt;= 20 %</span>
             </div>
 
             <div>
-              <div class="progress-track" role="progressbar" aria-label="Nivel restante de concentrado de Luna" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100">
+              <div class="progress-track" role="progressbar" aria-label="Nivel restante derivado de concentrado de Luna" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100">
                 <div class="progress-fill--danger" style="width: 15%;"></div>
               </div>
               <div class="legend-row">
-                <span><strong>15% restante</strong> (~4 días)</span>
-                <span>Duración: 35 días</span>
+                <span><strong>15 % restante</strong> (~4 días)</span>
+                <span>Próxima compra est.: <strong>26 nov</strong></span>
               </div>
+              <p class="field-help" style="margin-top: 4px;">Frecuencia: 35 días · Umbral de alerta: 20 %</p>
             </div>
 
-            <div class="btn-row">
-              <a class="btn btn--primary btn--sm" href="compra-rapida.html">Recomprar $165.000</a>
-              <a class="btn btn--secondary btn--sm" href="nuevo-insumo-mascota.html">Ajustar nivel</a>
-            </div>
+            <a class="btn btn--primary btn--sm btn--full" href="compra-rapida.html">Recomprar $165.000</a>
+
+            <details class="inline-picker">
+              <summary>
+                <span>Ajustar nivel observado</span>
+                <span aria-hidden="true">▾</span>
+              </summary>
+              <div class="inline-picker__body">
+                <div class="field">
+                  <label for="nivel-luna-concentrado">Nivel observado hoy (% restante, 0–100)</label>
+                  <input id="nivel-luna-concentrado" class="input" type="number" min="0" max="100" value="15">
+                </div>
+                <p class="field-help">Guarda un registro de ajuste hoy y recalcula los días y próxima compra estimada.</p>
+                <a class="btn btn--secondary btn--sm btn--full" href="#nivel-ajustado">Guardar ajuste de nivel</a>
+              </div>
+            </details>
           </li>
 
-          <!-- Próximo recurrente compartido -->
+          <!-- Alerta justa en umbral: 20% <= 20% -->
           <li class="item-card card--accent-amber">
             <div class="item-card__top">
               <div>
                 <h3 class="item-card__title">Antipulgas mensual</h3>
-                <p class="item-card__meta">Luna y Milo (compartido) · Salud</p>
+                <p class="item-card__meta">Todas (compartido) · Salud · Última compra: 29 oct ($95.000 · no suma a nov)</p>
               </div>
-              <span class="badge badge--amber">◷ Próximo</span>
+              <span class="badge badge--amber">◷ Próximo (20 %)</span>
             </div>
-            <dl class="kv-list">
-              <div class="kv-row">
-                <dt>Próxima dosis</dt>
-                <dd>28 nov (en 6 días)</dd>
+
+            <div>
+              <div class="progress-track" role="progressbar" aria-label="Nivel restante derivado de antipulgas mensual" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-fill--amber" style="width: 20%;"></div>
               </div>
-              <div class="kv-row">
-                <dt>Último precio</dt>
-                <dd class="cop">$95.000</dd>
+              <div class="legend-row">
+                <span><strong>20 % restante</strong> (~6 días)</span>
+                <span>Próxima compra est.: <strong>28 nov</strong></span>
               </div>
-            </dl>
-            <a class="btn btn--secondary btn--sm btn--full" href="compra-rapida.html">Recomprar $95.000</a>
+              <p class="field-help" style="margin-top: 4px;">Frecuencia: 30 días · Umbral de alerta: 20 %</p>
+            </div>
+
+            <div class="btn-row">
+              <a class="btn btn--secondary btn--sm" href="compra-rapida.html">Recomprar $95.000</a>
+              <a class="btn btn--secondary btn--sm" href="#nivel-ajustado">Ajustar nivel</a>
+            </div>
           </li>
 
-          <!-- Nivel medio -->
+          <!-- Nivel medio (comprado en noviembre: $42.000) -->
           <li class="item-card card--accent-indigo">
             <div class="item-card__top">
               <div>
                 <h3 class="item-card__title">Arena sanitaria 10 kg</h3>
-                <p class="item-card__meta">Milo · Higiene · Último precio: $42.000</p>
+                <p class="item-card__meta">Milo · Higiene · Comprada: 11 nov ($42.000)</p>
               </div>
               <span class="badge badge--indigo">● Media</span>
             </div>
             <div>
-              <div class="progress-track" role="progressbar" aria-label="Nivel restante de arena sanitaria de Milo" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100">
+              <div class="progress-track" role="progressbar" aria-label="Nivel restante derivado de arena sanitaria de Milo" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100">
                 <div class="progress-fill--indigo" style="width: 45%;"></div>
               </div>
               <div class="legend-row">
-                <span><strong>45% restante</strong> (~12 días)</span>
-                <span>Duración: 25 días</span>
+                <span><strong>45 % restante</strong> (~14 días)</span>
+                <span>Próxima compra est.: <strong>6 dic</strong></span>
               </div>
+              <p class="field-help" style="margin-top: 4px;">Frecuencia: 25 días · Umbral de alerta: 20 %</p>
             </div>
           </li>
 
-          <!-- Nivel bien -->
+          <!-- Nivel bien (comprado en noviembre: $68.000) -->
           <li class="item-card card--accent-primary">
             <div class="item-card__top">
               <div>
                 <h3 class="item-card__title">Concentrado gato esterilizado 3 kg</h3>
-                <p class="item-card__meta">Milo · Comida · Último precio: $68.000</p>
+                <p class="item-card__meta">Milo · Comida · Comprado: 15 nov ($68.000)</p>
               </div>
               <span class="badge badge--primary">✓ Bien</span>
             </div>
             <div>
-              <div class="progress-track" role="progressbar" aria-label="Nivel restante de concentrado de Milo" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100">
+              <div class="progress-track" role="progressbar" aria-label="Nivel restante derivado de concentrado de Milo" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100">
                 <div class="progress-fill--primary" style="width: 75%;"></div>
               </div>
               <div class="legend-row">
-                <span><strong>75% restante</strong> (~22 días)</span>
-                <span>Duración: 30 días</span>
+                <span><strong>75 % restante</strong> (~23 días)</span>
+                <span>Próxima compra est.: <strong>15 dic</strong></span>
               </div>
+              <p class="field-help" style="margin-top: 4px;">Frecuencia: 30 días · Umbral de alerta: 20 %</p>
             </div>
           </li>
         </ul>

@@ -19,7 +19,7 @@
       <div class="header-left">
         <div>
           <h1 class="app-title">Compra rápida</h1>
-          <p class="app-subtitle">Pagando como <strong>Santiago</strong> · Hoy, 22 nov</p>
+          <p class="app-subtitle"><strong>Santiago</strong> · Hoy, 22 nov</p>
         </div>
       </div>
       <a class="btn btn--secondary btn--sm" href="escanear-factura.html" aria-label="Escanear factura electrónica con QR DIAN">
@@ -36,14 +36,23 @@
     <main id="contenido" class="app-main app-main--compact">
       <!-- Confirmación no bloqueante al guardar (activada con #guardado) -->
       <div id="guardado" class="toast-target" role="status" aria-live="polite">
-        <span>✓ Guardado: Mercado $85.000 · Visa ••4521</span>
+        <span>✓ Guardado: Hogar · Mercado $85.000 · Visa ••4521</span>
         <a href="#contenido">Deshacer</a>
       </div>
+
+      <!-- Ámbito: Hogar | Personal (default Hogar, 0 toques extra) -->
+      <section aria-labelledby="ambito-heading">
+        <h2 id="ambito-heading" class="visually-hidden">Ámbito de la compra</h2>
+        <div class="segmented" role="group" aria-label="Ámbito de la compra: Hogar o Personal">
+          <button type="button" class="segmented__btn" aria-pressed="true">✓ Hogar</button>
+          <button type="button" class="segmented__btn" aria-pressed="false">Personal (solo yo)</button>
+        </div>
+      </section>
 
       <!-- Paso 1: Monto entero COP -->
       <section aria-labelledby="monto-heading">
         <h2 id="monto-heading" class="visually-hidden">Paso 1: Monto en pesos colombianos</h2>
-        <div class="amount-display">
+        <div class="amount-display" style="padding: 6px 12px;">
           <div class="amount-display__label">
             <label for="monto-input">Monto en COP (sin centavos)</label>
             <span class="badge badge--neutral">1 cuota</span>
@@ -57,14 +66,14 @@
             aria-describedby="monto-ayuda"
           >
           <p id="monto-ayuda" class="field-help" style="text-align: right;">
-            Último mercado similar: $85.000
+            Consumo único en noviembre · Hogar
           </p>
         </div>
       </section>
 
       <!-- Paso 2: Categoría con chips de las 6 más usadas -->
       <section aria-labelledby="categoria-heading">
-        <div class="section-header" style="margin-bottom: 6px;">
+        <div class="section-header" style="margin-bottom: 4px;">
           <h2 id="categoria-heading" class="section-title">Categoría (más usadas)</h2>
           <span class="section-meta">1 toque</span>
         </div>
@@ -72,43 +81,54 @@
           <button type="button" class="chip chip--active" aria-pressed="true">✓ Mercado</button>
           <button type="button" class="chip" aria-pressed="false">Mascotas</button>
           <button type="button" class="chip" aria-pressed="false">Transporte</button>
-          <button type="button" class="chip" aria-pressed="false">Comida</button>
+          <button type="button" class="chip" aria-pressed="false">Arriendo</button>
           <button type="button" class="chip" aria-pressed="false">Servicios</button>
           <button type="button" class="chip" aria-pressed="false">Hogar</button>
         </div>
       </section>
 
-      <!-- Medio de pago recordado + cuotas inline (0 toques si no cambia) -->
+      <!-- Medio de pago recordado localmente + opción financiada con préstamo + cuotas 1/3/6/12/Otro -->
       <section aria-labelledby="medio-heading" style="display: flex; flex-direction: column; gap: 6px;">
-        <h2 id="medio-heading" class="visually-hidden">Medio de pago y cuotas</h2>
+        <h2 id="medio-heading" class="visually-hidden">Medio de pago, préstamo y cuotas</h2>
 
         <details class="inline-picker">
           <summary>
             <span>Medio: <strong>Visa ••4521</strong> · Santiago</span>
-            <span class="badge badge--neutral">Recordado ▾</span>
+            <span class="badge badge--neutral">Local ▾</span>
           </summary>
           <div class="inline-picker__body">
-            <div class="chip-row" role="group" aria-label="Elegir medio de pago">
+            <p class="field-help">Último medio recordado en este dispositivo (preferencia local por miembro, no se sincroniza).</p>
+            <div class="chip-row" role="group" aria-label="Elegir medio de pago o pasivo">
               <button type="button" class="chip chip--active" aria-pressed="true">✓ Visa ••4521 (Santiago)</button>
               <button type="button" class="chip" aria-pressed="false">Bancolombia débito</button>
               <button type="button" class="chip" aria-pressed="false">Efectivo</button>
+              <button type="button" class="chip" aria-pressed="false">Fondo común (Hogar)</button>
             </div>
-            <a class="btn btn--secondary btn--sm" href="nueva-tarjeta-credito.html">+ Agregar tarjeta o crédito</a>
+            <div class="field" style="margin-top: 4px;">
+              <label for="prestamo-origen">O compra financiada con préstamo en efectivo</label>
+              <select id="prestamo-origen" class="select" aria-describedby="ayuda-prestamo">
+                <option value="" selected>No — pago con el medio elegido</option>
+                <option value="cocina">Financiada con préstamo: Remodelación cocina (Deuda del hogar)</option>
+              </select>
+              <p id="ayuda-prestamo" class="field-help">Las compras financiadas con préstamo no suman aporte hoy; el aporte cuenta al pagar el préstamo.</p>
+            </div>
+            <a class="btn btn--secondary btn--sm" href="nueva-tarjeta-credito.html">+ Agregar tarjeta, crédito o deuda</a>
           </div>
         </details>
 
-        <div class="chip-row" style="gap: 6px;" role="group" aria-label="Número de cuotas en Visa">
-          <a class="chip chip--active" href="compra-rapida.html" aria-current="true">✓ 1 cuota</a>
-          <a class="chip" href="compra-cuotas.html">3 cuotas</a>
-          <a class="chip" href="compra-cuotas.html">6 cuotas</a>
-          <a class="chip" href="compra-cuotas.html">12 cuotas</a>
+        <div class="chip-row--5" role="group" aria-label="Número de cuotas en Visa">
+          <a class="chip chip--active" href="compra-rapida.html" aria-current="true" aria-label="1 cuota">✓ 1</a>
+          <a class="chip" href="compra-cuotas.html" aria-label="3 cuotas">3</a>
+          <a class="chip" href="compra-cuotas.html" aria-label="6 cuotas">6</a>
+          <a class="chip" href="compra-cuotas.html" aria-label="12 cuotas">12</a>
+          <a class="chip" href="compra-cuotas.html#otro-cuotas" aria-label="Otro número de cuotas">Otro</a>
         </div>
       </section>
 
       <!-- Teclado numérico grande COP con tecla 000 -->
       <section aria-labelledby="teclado-heading">
         <h2 id="teclado-heading" class="visually-hidden">Teclado numérico en pesos colombianos</h2>
-        <div class="keypad" role="group" aria-label="Teclado numérico COP">
+        <div class="keypad" style="gap: 5px;" role="group" aria-label="Teclado numérico COP">
           <button type="button" class="keypad__key">1</button>
           <button type="button" class="keypad__key">2</button>
           <button type="button" class="keypad__key">3</button>
@@ -124,19 +144,19 @@
         </div>
       </section>
 
-      <!-- Nota opcional colapsada para no añadir fricción -->
+      <!-- Nota, comercio y fecha opcionales colapsados para no añadir fricción -->
       <details class="inline-picker">
         <summary>
-          <span>Agregar nota o cambiar fecha (opcional)</span>
+          <span>Nota, comercio o fecha (opcional)</span>
           <span aria-hidden="true">▾</span>
         </summary>
         <div class="inline-picker__body">
           <div class="field">
-            <label for="nota-compra">Nota breve</label>
-            <input id="nota-compra" class="input" type="text" placeholder="Ej. Frutas y verduras D1">
+            <label for="nota-compra">Descripción o comercio</label>
+            <input id="nota-compra" class="input" type="text" placeholder="Ej. Almacenes Éxito (sugiere Mercado)">
           </div>
           <div class="field">
-            <label for="fecha-compra">Fecha del gasto</label>
+            <label for="fecha-compra">Fecha civil del consumo</label>
             <input id="fecha-compra" class="input" type="date" value="2026-11-22">
           </div>
         </div>
