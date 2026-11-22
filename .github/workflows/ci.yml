@@ -31,6 +31,6 @@ jobs:
           node-version: 22
       - name: Instalar Playwright y axe
         run: |
-          npm i --no-save --no-audit --no-fund playwright@1 @axe-core/playwright@4
+          npm i --no-save --no-audit --no-fund playwright@1.65.1 @axe-core/playwright@4.14.0
           npx playwright install --with-deps chromium
       - run: node scripts/a11y-mockups.mjs design/mockups

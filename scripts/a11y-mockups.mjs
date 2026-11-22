@@ -9,6 +9,8 @@ const { chromium } = await import('playwright');
 const { default: AxeBuilder } = await import('@axe-core/playwright');
 const b = await chromium.launch();
 const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+// Los mockups son estáticos: solo se permite leer archivos locales, nunca la red.
+await ctx.route('**/*', ruta => (ruta.request().url().startsWith('file:') ? ruta.continue() : ruta.abort()));
 let fallas = 0;
 for (const f of files) {
   const p = await ctx.newPage();
@@ -38,8 +40,11 @@ for (const f of files) {
     };
     const libre = e => {
       const r = e.getBoundingClientRect();
-      const t = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
-      if (!t) return true;
+      const cx = r.x + r.width / 2, cy = r.y + r.height / 2;
+      // Fuera de la pantalla a propósito (ej. enlace "Saltar al contenido" hasta recibir foco): no aplica.
+      if (cx < 0 || cy < 0 || cx > innerWidth || cy > innerHeight) return !e.matches('[data-sin-scroll]');
+      const t = document.elementFromPoint(cx, cy);
+      if (!t) return false;
       const labels = e.labels ? [...e.labels] : [];
       return e.contains(t) || t.contains(e) || labels.some(l => l.contains(t) || t.contains(l));
     };
