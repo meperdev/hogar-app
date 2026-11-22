@@ -1,0 +1,68 @@
+[
+  {
+    "file": "balance-de-pareja.html",
+    "violations": [],
+    "smallTargets": [],
+    "hscroll": false
+  },
+  {
+    "file": "compra-cuotas.html",
+    "violations": [],
+    "smallTargets": [],
+    "hscroll": false
+  },
+  {
+    "file": "compra-rapida.html",
+    "violations": [],
+    "smallTargets": [],
+    "hscroll": false
+  },
+  {
+    "file": "despensa-mascotas.html",
+    "violations": [],
+    "smallTargets": [],
+    "hscroll": false
+  },
+  {
+    "file": "escanear-factura.html",
+    "violations": [],
+    "smallTargets": [],
+    "hscroll": false
+  },
+  {
+    "file": "index.html",
+    "violations": [],
+    "smallTargets": [],
+    "hscroll": false
+  },
+  {
+    "file": "nueva-tarjeta-credito.html",
+    "violations": [],
+    "smallTargets": [],
+    "hscroll": false
+  },
+  {
+    "file": "nuevo-insumo-mascota.html",
+    "violations": [],
+    "smallTargets": [],
+    "hscroll": false
+  },
+  {
+    "file": "obligaciones-del-mes.html",
+    "violations": [],
+    "smallTargets": [],
+    "hscroll": false
+  },
+  {
+    "file": "registrar-ingreso.html",
+    "violations": [],
+    "smallTargets": [],
+    "hscroll": false
+  },
+  {
+    "file": "registrar-pago-obligacion.html",
+    "violations": [],
+    "smallTargets": [],
+    "hscroll": false
+  }
+]
