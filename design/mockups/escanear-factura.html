@@ -26,7 +26,7 @@
       <span class="badge badge--primary">Sin DIAN</span>
     </header>
 
-    <main id="contenido" class="app-main">
+    <main id="contenido" class="app-main app-main--with-action-bar">
       <!-- Confirmación de guardado al confirmar factura precargada -->
       <div id="factura-guardada" class="toast-target" role="status" aria-live="polite">
         <span>✓ Guardado: Mercado $85.000 · CUFE registrado</span>
@@ -276,6 +276,11 @@
         </div>
       </section>
     </main>
+
+    <!-- CTA principal fijo visible sin scroll encima de la barra inferior -->
+    <div class="action-bar" role="region" aria-label="Acción principal de factura escaneada">
+      <a class="btn btn--primary btn--full" href="#factura-guardada">Guardar factura ($85.000)</a>
+    </div>
 
     <nav class="bottom-nav" aria-label="Navegación principal">
       <a class="bottom-nav__link" href="compra-rapida.html" aria-current="page">

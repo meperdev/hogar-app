@@ -15,7 +15,7 @@
   </div>
 
   <div class="app-shell">
-    <header class="app-header">
+    <header class="app-header" style="padding: 8px 14px;">
       <div class="header-left">
         <div>
           <h1 class="app-title">Compra rápida</h1>
@@ -33,7 +33,7 @@
       </a>
     </header>
 
-    <main id="contenido" class="app-main">
+    <main id="contenido" class="app-main app-main--compact">
       <!-- Confirmación no bloqueante al guardar (activada con #guardado) -->
       <div id="guardado" class="toast-target" role="status" aria-live="polite">
         <span>✓ Guardado: Mercado $85.000 · Visa ••4521</span>
@@ -50,14 +50,13 @@
           </div>
           <input
             id="monto-input"
-            class="visually-hidden"
+            class="amount-display__input"
             type="text"
             inputmode="numeric"
-            value="85000"
+            value="$85.000"
             aria-describedby="monto-ayuda"
           >
-          <div class="amount-display__value" aria-hidden="true">$85.000</div>
-          <p id="monto-ayuda" class="field-help" style="text-align: right; margin-top: 2px;">
+          <p id="monto-ayuda" class="field-help" style="text-align: right;">
             Último mercado similar: $85.000
           </p>
         </div>
@@ -65,11 +64,11 @@
 
       <!-- Paso 2: Categoría con chips de las 6 más usadas -->
       <section aria-labelledby="categoria-heading">
-        <div class="section-header">
+        <div class="section-header" style="margin-bottom: 6px;">
           <h2 id="categoria-heading" class="section-title">Categoría (más usadas)</h2>
           <span class="section-meta">1 toque</span>
         </div>
-        <div class="chip-grid" role="group" aria-label="Categorías frecuentes">
+        <div class="chip-grid" style="gap: 6px;" role="group" aria-label="Categorías frecuentes">
           <button type="button" class="chip chip--active" aria-pressed="true">✓ Mercado</button>
           <button type="button" class="chip" aria-pressed="false">Mascotas</button>
           <button type="button" class="chip" aria-pressed="false">Transporte</button>
@@ -80,7 +79,7 @@
       </section>
 
       <!-- Medio de pago recordado + cuotas inline (0 toques si no cambia) -->
-      <section aria-labelledby="medio-heading" style="display: flex; flex-direction: column; gap: 8px;">
+      <section aria-labelledby="medio-heading" style="display: flex; flex-direction: column; gap: 6px;">
         <h2 id="medio-heading" class="visually-hidden">Medio de pago y cuotas</h2>
 
         <details class="inline-picker">
@@ -98,7 +97,7 @@
           </div>
         </details>
 
-        <div class="chip-row" role="group" aria-label="Número de cuotas en Visa">
+        <div class="chip-row" style="gap: 6px;" role="group" aria-label="Número de cuotas en Visa">
           <a class="chip chip--active" href="compra-rapida.html" aria-current="true">✓ 1 cuota</a>
           <a class="chip" href="compra-cuotas.html">3 cuotas</a>
           <a class="chip" href="compra-cuotas.html">6 cuotas</a>
@@ -142,10 +141,12 @@
           </div>
         </div>
       </details>
-
-      <!-- Paso 3: Guardar -->
-      <a class="btn btn--primary btn--full" href="#guardado">Guardar $85.000</a>
     </main>
+
+    <!-- Paso 3: CTA fijo visible sin scroll encima de la barra inferior -->
+    <div class="action-bar" role="region" aria-label="Guardar compra rápida">
+      <a class="btn btn--primary btn--full" href="#guardado">Guardar $85.000</a>
+    </div>
 
     <nav class="bottom-nav" aria-label="Navegación principal">
       <a class="bottom-nav__link" href="compra-rapida.html" aria-current="page">

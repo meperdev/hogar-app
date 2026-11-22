@@ -26,7 +26,7 @@
       <span class="badge badge--indigo">3 cuotas</span>
     </header>
 
-    <main id="contenido" class="app-main">
+    <main id="contenido" class="app-main app-main--with-action-bar">
       <div id="guardado-cuotas" class="toast-target" role="status" aria-live="polite">
         <span>✓ Guardado: Mercado $300.000 + 3 cuotas</span>
         <a href="obligaciones-del-mes.html">Ver cuotas</a>
@@ -40,9 +40,15 @@
             <label for="monto-cuotas-input">Valor total de la compra (COP)</label>
             <span class="badge badge--primary">Mercado</span>
           </div>
-          <input id="monto-cuotas-input" class="visually-hidden" type="text" inputmode="numeric" value="300000">
-          <div class="amount-display__value" aria-hidden="true">$300.000</div>
-          <p class="field-help" style="text-align: right; margin-top: 2px;">
+          <input
+            id="monto-cuotas-input"
+            class="amount-display__input"
+            type="text"
+            inputmode="numeric"
+            value="$300.000"
+            aria-describedby="monto-cuotas-ayuda"
+          >
+          <p id="monto-cuotas-ayuda" class="field-help" style="text-align: right;">
             Visa ••4521 · Santiago (28,32% E.A. / 2,10% M.V.)
           </p>
         </div>
@@ -117,11 +123,13 @@
         <input id="nota-cuotas" class="input" type="text" value="Mercado Éxito">
       </div>
 
-      <div class="btn-row">
-        <a class="btn btn--primary btn--full" href="#guardado-cuotas">Guardar $300.000 en 3 cuotas</a>
-        <a class="btn btn--secondary btn--full" href="obligaciones-del-mes.html">Ver cómo queda en Obligaciones</a>
-      </div>
+      <a class="btn btn--secondary btn--full" href="obligaciones-del-mes.html">Ver cómo queda en Obligaciones</a>
     </main>
+
+    <!-- CTA principal fijo visible sin scroll encima de la barra inferior -->
+    <div class="action-bar" role="region" aria-label="Guardar compra a cuotas">
+      <a class="btn btn--primary btn--full" href="#guardado-cuotas">Guardar $300.000 en 3 cuotas</a>
+    </div>
 
     <nav class="bottom-nav" aria-label="Navegación principal">
       <a class="bottom-nav__link" href="compra-rapida.html" aria-current="page">
