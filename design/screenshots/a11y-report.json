@@ -1,5 +1,11 @@
 [
   {
+    "file": "ajustes-exportar.html",
+    "violations": [],
+    "smallTargets": [],
+    "hscroll": false
+  },
+  {
     "file": "balance-de-pareja.html",
     "violations": [],
     "smallTargets": [],
@@ -61,6 +67,12 @@
   },
   {
     "file": "registrar-pago-obligacion.html",
+    "violations": [],
+    "smallTargets": [],
+    "hscroll": false
+  },
+  {
+    "file": "transferir-fondo-comun.html",
     "violations": [],
     "smallTargets": [],
     "hscroll": false
