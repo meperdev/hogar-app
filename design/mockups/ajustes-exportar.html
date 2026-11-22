@@ -29,28 +29,20 @@
     <main id="contenido" class="app-main">
       <!-- Confirmación de exportación manual -->
       <div id="exportacion-lista" class="toast-target" role="status" aria-live="polite">
-        <span>✓ Exportación generada: hechos del hogar y tus personales (JSON y CSV)</span>
+        <span>✓ Exportación lista: 2 descargas separadas — Hogar (compartido) y Mis personales</span>
         <a href="#contenido">Cerrar</a>
       </div>
 
-      <!-- Exportación automática semanal (Supabase Storage) -->
+      <!-- Exportación automática semanal (Supabase Storage: 2 familias separadas) -->
       <section class="card card--accent-primary" aria-labelledby="export-auto-heading">
         <div class="section-header">
           <h2 id="export-auto-heading" class="section-title">Exportación automática semanal</h2>
           <span class="badge badge--primary">✓ Activa</span>
         </div>
 
-        <p class="field-help" style="margin-bottom: 10px;">Cada semana una función programada genera respaldos en <strong>JSON + CSV</strong> en Storage. <strong>Alcance por miembro:</strong> descargas todos los hechos del hogar más <strong>tus compras personales</strong>; nunca se incluyen las compras personales del otro miembro.</p>
+        <p class="field-help" style="margin-bottom: 10px;">Cada semana una función programada genera <strong>dos descargas separadas</strong> (JSON + CSV) en Storage, <strong>nunca mezcladas</strong>: los hechos compartidos del hogar y tus registros personales propios.</p>
 
         <dl class="kv-list" style="margin-bottom: 12px;">
-          <div class="kv-row">
-            <dt>Alcance de tu descarga</dt>
-            <dd>Hogar + tus personales (Santiago)</dd>
-          </div>
-          <div class="kv-row">
-            <dt>Privacidad</dt>
-            <dd>Excluye personales de Camila</dd>
-          </div>
           <div class="kv-row">
             <dt>Última exportación automática</dt>
             <dd>Dom 22 nov 2026 · 03:00</dd>
@@ -60,14 +52,35 @@
             <dd>Dom 29 nov 2026 · 03:00</dd>
           </div>
           <div class="kv-row">
-            <dt>Archivos generados</dt>
-            <dd>148 KB JSON · 42 KB CSV</dd>
+            <dt>Privacidad</dt>
+            <dd>Ámbitos separados · sin personales de Camila</dd>
           </div>
         </dl>
 
-        <div class="btn-row" style="margin-bottom: 8px;">
-          <a class="btn btn--secondary btn--sm" href="#exportacion-lista">Descargar JSON</a>
-          <a class="btn btn--secondary btn--sm" href="#exportacion-lista">Descargar CSV</a>
+        <div class="form-stack" style="gap: 10px; margin-bottom: 12px;">
+          <div class="card card--muted">
+            <div class="section-header" style="margin-bottom: 4px;">
+              <h3 class="section-title">Hogar (compartido)</h3>
+              <span class="badge badge--primary">Sin personales</span>
+            </div>
+            <p class="field-help" style="margin-bottom: 10px;">Solo hechos compartidos del hogar (ninguna fila personal). 122 KB JSON · 35 KB CSV.</p>
+            <div class="btn-row">
+              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar Hogar (compartido) en JSON">Descargar JSON</a>
+              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar Hogar (compartido) en CSV">Descargar CSV</a>
+            </div>
+          </div>
+
+          <div class="card card--muted">
+            <div class="section-header" style="margin-bottom: 4px;">
+              <h3 class="section-title">Mis personales</h3>
+              <span class="badge badge--indigo">Solo Santiago</span>
+            </div>
+            <p class="field-help" style="margin-bottom: 10px;">Solo tus compras, pasivos y costos personales (nunca los de Camila). 26 KB JSON · 7 KB CSV.</p>
+            <div class="btn-row">
+              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar Mis personales en JSON">Descargar JSON</a>
+              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar Mis personales en CSV">Descargar CSV</a>
+            </div>
+          </div>
         </div>
 
         <a class="btn btn--primary btn--full" href="#exportacion-lista">Exportar ahora</a>
@@ -83,7 +96,7 @@
         <dl class="kv-list" style="margin-bottom: 12px;">
           <div class="kv-row">
             <dt>Estado sin conexión</dt>
-            <dd>✓ Copia al día (hogar + tus personales)</dd>
+            <dd>✓ Al día (alcance de Santiago)</dd>
           </div>
           <div class="kv-row">
             <dt>Última sincronización</dt>
@@ -95,9 +108,12 @@
           </div>
         </dl>
 
-        <p class="field-help" style="margin-bottom: 10px;">Cada dispositivo conserva en IndexedDB los hechos del hogar y únicamente tus compras personales para operar offline sin exponer las compras personales del otro miembro.</p>
+        <p class="field-help" style="margin-bottom: 10px;">Cada sesión conserva en IndexedDB el alcance autorizado (hogar y solo tus personales) para operar sin conexión, y permite descargar cada ámbito por separado.</p>
 
-        <a class="btn btn--secondary btn--full" href="#exportacion-lista">Descargar copia local (JSON)</a>
+        <div class="btn-row">
+          <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar copia local de Hogar (compartido) en JSON">Hogar (JSON)</a>
+          <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar copia local de Mis personales en JSON">Mis personales (JSON)</a>
+        </div>
       </section>
 
       <!-- Historial de respaldos semanales -->
@@ -112,13 +128,17 @@
             <div class="item-card__top">
               <div>
                 <h3 class="item-card__title">Respaldo 22 nov 2026</h3>
-                <p class="item-card__meta">Automático semanal · 148 KB JSON / 42 KB CSV</p>
+                <p class="item-card__meta">Hogar (compartido): 122 KB JSON / 35 KB CSV · Mis personales: 26 KB / 7 KB</p>
               </div>
               <span class="badge badge--primary">✓ Listo</span>
             </div>
             <div class="btn-row">
-              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar JSON del 22 de noviembre de 2026">JSON</a>
-              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar CSV del 22 de noviembre de 2026">CSV</a>
+              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar Hogar (compartido) JSON del 22 de noviembre de 2026">Hogar JSON</a>
+              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar Hogar (compartido) CSV del 22 de noviembre de 2026">Hogar CSV</a>
+            </div>
+            <div class="btn-row">
+              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar Mis personales JSON del 22 de noviembre de 2026">Personales JSON</a>
+              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar Mis personales CSV del 22 de noviembre de 2026">Personales CSV</a>
             </div>
           </li>
 
@@ -126,13 +146,17 @@
             <div class="item-card__top">
               <div>
                 <h3 class="item-card__title">Respaldo 15 nov 2026</h3>
-                <p class="item-card__meta">Automático semanal · 141 KB JSON / 39 KB CSV</p>
+                <p class="item-card__meta">Hogar (compartido): 117 KB JSON / 33 KB CSV · Mis personales: 24 KB / 6 KB</p>
               </div>
               <span class="badge badge--neutral">Archivado</span>
             </div>
             <div class="btn-row">
-              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar JSON del 15 de noviembre de 2026">JSON</a>
-              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar CSV del 15 de noviembre de 2026">CSV</a>
+              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar Hogar (compartido) JSON del 15 de noviembre de 2026">Hogar JSON</a>
+              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar Hogar (compartido) CSV del 15 de noviembre de 2026">Hogar CSV</a>
+            </div>
+            <div class="btn-row">
+              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar Mis personales JSON del 15 de noviembre de 2026">Personales JSON</a>
+              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar Mis personales CSV del 15 de noviembre de 2026">Personales CSV</a>
             </div>
           </li>
 
@@ -140,13 +164,17 @@
             <div class="item-card__top">
               <div>
                 <h3 class="item-card__title">Respaldo 08 nov 2026</h3>
-                <p class="item-card__meta">Automático semanal · 134 KB JSON / 37 KB CSV</p>
+                <p class="item-card__meta">Hogar (compartido): 112 KB JSON / 31 KB CSV · Mis personales: 22 KB / 6 KB</p>
               </div>
               <span class="badge badge--neutral">Archivado</span>
             </div>
             <div class="btn-row">
-              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar JSON del 8 de noviembre de 2026">JSON</a>
-              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar CSV del 8 de noviembre de 2026">CSV</a>
+              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar Hogar (compartido) JSON del 8 de noviembre de 2026">Hogar JSON</a>
+              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar Hogar (compartido) CSV del 8 de noviembre de 2026">Hogar CSV</a>
+            </div>
+            <div class="btn-row">
+              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar Mis personales JSON del 8 de noviembre de 2026">Personales JSON</a>
+              <a class="btn btn--secondary btn--sm" href="#exportacion-lista" aria-label="Descargar Mis personales CSV del 8 de noviembre de 2026">Personales CSV</a>
             </div>
           </li>
         </ul>

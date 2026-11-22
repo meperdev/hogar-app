@@ -32,8 +32,9 @@ Concentrar en una sola vista todo lo que hay que pagar en el mes calendario en c
      - *(Nota: la compra de Mercado Éxito por `$300.000` del **22 nov** en [compra-cuotas.html](../../design/mockups/compra-cuotas.html) —con primera cuota el `25 dic`— es una **simulación sin guardar** del flujo de cuotas y por eso no suma al `$3.112.000` de noviembre; las compras personales de `$140.000` también quedan fuera por defecto).*
    - **Capital pagado (cuotas):** el título distingue explícitamente que el valor destacado (**`$220.000`**) es únicamente el **capital pagado (`PagoDeDeuda`)**, separado del **capital pendiente (`$450.000`)** de la agenda del mes (total cuotas del mes `$670.000`). **Solo lo pagado (`$220.000`) es `PagoDeDeuda` real**; el capital pendiente aún no ha salido de caja.
    - **Costo financiero:** `Σ CostoFinanciero.monto` (`ambito = 'hogar'`) del mes (ej. `$68.799` = `$14.500` pagado + `$54.299` estimado pendiente), en su **balde aparte** (no es una `Categoria` de consumo).
-3. Debajo se muestra la lista de obligaciones del mes (estado **DERIVADO** por FIFO para `Cuota`, y derivado por existencia de `Compra(obligacion_id, periodo)` para `Obligacion`): **Vencidas**, **Pendientes este mes** y **Pagadas en noviembre**.
-4. Cada tarjeta muestra:
+3. Junto a las métricas se aclara la diferencia entre **agenda por `periodo`** y **gasto por `fecha`**: una obligación recurrente (ej. recibo de noviembre pagado el 2 de diciembre) cierra noviembre en la agenda por su `periodo` y suma al gasto real de diciembre por su `fecha` de pago.
+4. Debajo se muestra la lista de obligaciones del mes (estado **DERIVADO** por FIFO para `Cuota`, y derivado por existencia de `Compra(obligacion_id, periodo)` para `Obligacion`): **Vencidas**, **Pendientes este mes** y **Pagadas en noviembre**.
+5. Cada tarjeta muestra:
    - Nombre y tipo (ej. `Cuota 1/3 · Mercado Éxito (compra guardada 10 nov)` en `Visa ••4521`, `Préstamo remodelación cocina` como **`Deuda del hogar`**, `Arriendo apartamento` en categoría **`Arriendo`**, `Servicios públicos EPM` en categoría `Servicios`).
    - **Propiedad del pasivo:** `Deuda de Santiago`, `Deuda de Camila`, `Deuda del hogar` (`Pasivo.tipo = 'deuda'`, `owner_tipo = 'hogar'`) u `Obligación del hogar`.
    - Desglose en COP enteros: capital + costo financiero exacto (ej. `$100.000 cap. + $6.299 int. = $106.299`), fecha límite y estado con icono + texto (`◷ Pendiente`, `▲ Vence pronto`, `✓ Pagado`).
@@ -59,14 +60,14 @@ Concentrar en una sola vista todo lo que hay que pagar en el mes calendario en c
 
 1. Desde **Obligaciones del mes**, el usuario toca **`+ Pasivo`** / **`+ Agregar tarjeta, crédito o deuda`**.
 2. Selecciona `Pasivo.tipo` y su único `Pasivo.ambito` (`'hogar'` por defecto; si es `'personal'`, exige `owner_tipo = 'miembro'` y queda inmutable con hechos vinculados):
-   - **Tarjeta de crédito (`tarjeta`):** titular obligatorio = un `Miembro` (fase 1). Pide `dia_corte`, `dia_pago`, `cupo` informativo opcional y saldo inicial opcional (`origen = 'saldo_inicial'`). Una tarjeta **no** admite planes `origen = 'desembolso'`.
+   - **Tarjeta de crédito (`tarjeta`):** titular obligatorio = un `Miembro` (fase 1). Pide `dia_corte`, `dia_pago`, `cupo` informativo opcional y saldo inicial opcional (`origen = 'saldo_inicial'`). Una tarjeta **no** admite planes `origen = 'desembolso'`. Si una misma tarjeta física se usa para gastos del hogar y personales, lleva **dos libros** (dos `Pasivo` separados con los mismos últimos 4 dígitos).
    - **Crédito bancario (`credito`):** titular obligatorio = un `Miembro` (fase 1). Pide `entidad`, `referencia` opcional y plan de capital: **`saldo_inicial`** (si es deuda previa que ya existía) o **`desembolso`** (si es un préstamo en efectivo nuevo cuyo giro financiará compras vinculadas vía `Compra.financiada_por_pasivo_id`).
    - **Deuda (`deuda`):** pasivo informal o no bancario (ej. `Préstamo remodelación cocina`, acreedor externo texto libre). Permite elegir dueño **`Miembro` u `Hogar`**, con plan **`saldo_inicial`** o **`desembolso`**.
 3. En **Tasa de interés (opcional)** viene **`Sin tasa` preseleccionado por defecto** (`tasa_tipo = null, tasa_ppm = null`).
    - Si el usuario cambia a **`% E.A.`** o **`% M.V.`**, muestra la equivalencia exacta (`MV = (1 + EA)^(1/12) − 1`, `EA = (1 + MV)^12 − 1`), guardando la tasa en `tasa_ppm` (partes por millón) y redondeando solo el interés final al peso.
 4. En **Plan de capital (`PlanDeCuotas` con `origen = 'saldo_inicial'` o `'desembolso'`)**:
    - Elige si es **`saldo_inicial`** (deuda previa; no sirve para vincular compras nuevas) o **`desembolso`** (capital de préstamo en efectivo en `Credito`/`Deuda`; las compras que gastan ese efectivo apuntan con `Compra.financiada_por_pasivo_id` sin crear otro plan ni sumar capital).
-   - Ingresa `capital` en COP, `sistema` (`capital_fijo`, `cuota_fija` o `sin_calendario`), y si tiene calendario, **`n_cuotas`** y **`fecha_primera_cuota`**.
+   - Ingresa `capital` en COP, **`fecha_inicio`** (fecha del saldo inicial o del giro, hoy por defecto) y `sistema` con **`sin_calendario` preseleccionado por defecto** (sin inventar cuotas ni fecha de primera cuota; entra en FIFO en su `fecha_inicio`). Si el usuario conoce el calendario, puede elegir `capital_fijo` o `cuota_fija` y completar `n_cuotas` y `fecha_primera_cuota`.
 5. Al tocar **`Guardar pasivo`**, crea el `Pasivo`, su subtipo (`Tarjeta`/`Credito`/`Deuda`) y el `PlanDeCuotas` (`saldo_inicial` o `desembolso`) con sus `Cuota` en un solo lote atómico.
 
 ## Casos borde y manejo de errores
@@ -89,7 +90,7 @@ flowchart TD
     A["Abrir Obligaciones del mes"] --> B["Derivar Consumo real, Capital cuotas (pagado vs pendiente) y Costo financiero"]
     B --> C{"Accion del usuario"}
     C -- "Nuevo pasivo" --> D["Elegir Tarjeta/Credito (miembro) o Deuda (miembro/hogar), ambito unico (hogar/personal) y Sin tasa por defecto"]
-    D --> E["Configurar saldo inicial o desembolso si aplica: PlanDeCuotas (capital, sistema, n_cuotas, fecha_primera_cuota)"]
+    D --> E["Configurar saldo inicial o desembolso si aplica: PlanDeCuotas (capital, fecha_inicio, sin_calendario por defecto)"]
     E --> F["Guardar Pasivo + subtipo (+ PlanDeCuotas/Cuota) en lote atomico"]
     C -- "Registrar pago" --> I["Abrir detalle de Cuota u Obligacion"]
     I --> J["Elegir MedioDePago de origen y revisar capital + CostoFinanciero"]

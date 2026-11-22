@@ -52,10 +52,10 @@ Meta: **abrir → escanear → confirmar categoría → guardar** (sin escribir 
 | --- | --- | --- | --- |
 | 0 | Abrir la PWA | Abre directo en Compra rápida (`Hogar`, `Visa ••4521` recordada localmente) | 0 |
 | 1 | Abrir escáner | Tocar botón `Escanear` en la cabecera | 1 |
-| — | Apuntar al QR DIAN | Lectura local en cámara (0 toques): precarga `nit_comercio`, `fecha`, `monto_total`, `iva` informativo y `cufe`; consulta `AliasComercio` y verifica dedupe por `(hogar_id, cufe)` | 0 |
+| — | Apuntar al QR DIAN | Lectura local en cámara (0 toques): precarga `nit_comercio`, `fecha`, `monto_total`, `iva` informativo y `cufe`; consulta `AliasComercio` y verifica dedupe dentro de su alcance de visibilidad (`(hogar_id, cufe)` en hogar o `(hogar_id, miembro_id, cufe)` en personales propias) | 0 |
 | 2 | Confirmar categoría | Tocar chip `Mercado` (o 0 toques si `AliasComercio.categoria_sugerida_id` ya sugirió `Mercado`) | 1 (0 si sugerida) |
 | 3 | Guardar gasto | Tocar botón primario `Guardar $85.000` | 1 |
-| **Total** | **`Compra` precargada desde factura registrada** | Toast con `Deshacer` (5 s) y `cufe` único por hogar | **3 toques (2 si `AliasComercio` sugiere categoría)** |
+| **Total** | **`Compra` precargada desde factura registrada** | Toast con `Deshacer` (5 s) y `cufe` único por alcance (hogar o personal propio) | **3 toques (2 si `AliasComercio` sugiere categoría)** |
 
 > **Si el QR solo trae URL (Formato 2):** el escáner extrae `cufe` de la URL y ofrece **OCR del tiquete** (`+1 toque`) o **completar a mano** `monto_total`, `nit_comercio` y `fecha`. Nunca intenta consultar la DIAN en segundo plano.
 
@@ -84,14 +84,15 @@ Meta: **abrir → escanear → confirmar categoría → guardar** (sin escribir 
    - Una compra personal solo la ve su `miembro_id` dueño.
    - Los reportes y el *Balance de pareja* del hogar la excluyen por defecto, salvo que el propio miembro active el interruptor local `incluir_personales` (apagado por defecto, que solo muestra **sus propias** compras personales).
    - **Nunca cuenta como aporte al hogar**, incluso si se pagó con un `MedioDePago` del miembro.
-   - **Deduplicación de CUFE sin exponer datos ajenos:** el índice único `(hogar_id, cufe)` sigue bloqueando duplicados en todo el hogar, pero si otro miembro escanea una factura ya registrada como compra personal ajena, solo ve el aviso `"Esta factura ya está registrada en el hogar"` **sin mostrar ningún detalle** (ni comercio, ni monto, ni categoría, ni dueño).
-   - **Exportación por miembro:** en los respaldos y descargas de *Ajustes*, cada miembro descarga los hechos del hogar más **sus propias** compras personales, nunca las personales del otro miembro.
+   - **Deduplicación de CUFE por alcance de visibilidad:** existen dos índices únicos parciales entre no eliminadas —`(hogar_id, cufe)` para compras del hogar y `(hogar_id, miembro_id, cufe)` para compras personales—. El escaneo solo detecta duplicados entre compras del hogar y compras personales del mismo dueño; una compra personal ajena **no se detecta ni se insinúa** (ni siquiera con un aviso de «ya está registrada»).
+   - **Sin escritura en filas compartidas:** guardar una compra con `ambito = 'personal'` **nunca** crea ni actualiza filas compartidas del hogar —ni `AliasComercio` ni `ItemDespensa.monto_habitual`—, y tampoco liquida una `Obligacion` compartida.
+   - **Exportación separada por alcance:** en *Ajustes*, cada miembro tiene dos descargas separadas: **«Hogar (compartido)»** (sin ninguna fila personal) y **«Mis personales»** (solo las propias, nunca las del otro miembro).
 
 ### Variante: compra financiada con préstamo en efectivo (`Compra.financiada_por_pasivo_id`)
 
 1. El capital del préstamo en efectivo ya se registró una única vez en un `Pasivo` tipo `Credito` o `Deuda` (en fase 1 nunca `Tarjeta`) mediante un **`PlanDeCuotas` con `origen = 'desembolso'`** y su fecha de giro `fecha_inicio`. Un pasivo que solo tiene `PlanDeCuotas(origen = 'saldo_inicial')` corresponde a deuda previa y **no** sirve para vincular compras nuevas.
 2. En el selector de medio de pago, el usuario elige **`Financiada con préstamo`** y selecciona ese `Pasivo` con desembolso disponible (`Compra.fecha >= fecha_inicio` del desembolso y suma acumulada de compras vinculadas `<=` capital desembolsado a esa fecha; todas las compras vinculadas a un mismo pasivo deben compartir un único `ambito`).
-3. La app muestra un aviso breve: *"Esta compra registra el consumo hoy usando el capital del desembolso, sin crear otro plan de cuotas ni sumar aporte todavía; el aporte aparecerá cuando se registre cada `PagoDeDeuda(tipo = 'abono')` aplicado FIFO a cargos del hogar."*
+3. La app muestra un aviso breve: *"Esta compra registra el consumo hoy usando el capital del desembolso, sin crear otro plan de cuotas ni sumar aporte todavía; el aporte aparecerá completo cuando se registre cada `PagoDeDeuda(tipo = 'abono')` sobre un pasivo con `ambito = 'hogar'` (en un pasivo personal aporta `$0`)."*
 4. Al guardar, persiste la `Compra` con `pago_tipo = 'contado'`, `medio_de_pago_id = null` y `financiada_por_pasivo_id = pasivo.id`, **sin crear un segundo `PlanDeCuotas`**, sin aumentar el saldo del pasivo y sin sumar al aporte del mes.
 
 ### Variante: compra a cuotas con tarjeta de crédito
@@ -110,25 +111,25 @@ Basado en el Anexo Técnico FEV 1.9 (num. 11.7) documentado en [docs/dian-qr.md]
 1. Desde **Compra rápida**, el usuario toca **`Escanear`**.
 2. Se abre el visor de cámara en estado **Leyendo QR**, con acciones visibles de fallback (`Tomar foto (OCR)` e `Ingresar manual`).
 3. Al detectar un código QR DIAN, la app extrae localmente el `cufe`:
-   - **Deduplicación inmediata por hogar respetando privacidad:** busca `(hogar_id, cufe)` entre compras no eliminadas.
-     - Si la compra existente es del hogar (`ambito = 'hogar'`) o personal del mismo miembro (`miembro_id = miembro_activo`): bloquea el duplicado y muestra **"Esta factura ya está registrada en el hogar"** junto con el detalle del registro existente.
-     - Si la compra existente es **personal de otro miembro** (`ambito = 'personal'` y `miembro_id != miembro_activo`): bloquea igualmente el duplicado y muestra únicamente el aviso **"Esta factura ya está registrada en el hogar"** **sin mostrar ningún detalle** del registro ajeno.
-4. Si el `cufe` es nuevo, bifurca según el formato del QR:
+   - **Deduplicación por alcance de visibilidad:** verifica unicidad de `cufe` entre compras no eliminadas únicamente dentro del alcance visible del actor: compras del hogar `(hogar_id, cufe)` y compras personales del mismo dueño `(hogar_id, miembro_id, cufe)`.
+     - Si ya existe una compra del hogar (`ambito = 'hogar'`) o personal del mismo miembro (`miembro_id = miembro_activo`): bloquea el duplicado y muestra **"Esta factura ya está registrada"** junto con el detalle del registro existente.
+     - Si existe una compra **personal de otro miembro** (`ambito = 'personal'` y `miembro_id != miembro_activo`): **no se detecta, no se bloquea ni se insinúa** su existencia (ni siquiera con un aviso de «ya está registrada»).
+4. Si el `cufe` no existe en ese alcance, bifurca según el formato del QR:
    - **Formato 1 — QR con campos (`NumFac`, `FecFac`, `NitFac`, `ValIva`, `ValTolFac`, `CUFE`/`CUDE` + URL `catalogo-vpfe`):**
      - Precarga `nit_comercio` (sin guardar nunca `DocAdq`), `fecha`, `monto_total` en COP enteros (ej. `$85.000`), `iva` informativo (ej. `$13.571` para IVA 19 % incluido en `$85.000`, nunca sumado aparte) y `cufe`.
-     - Consulta `AliasComercio` por `(hogar_id, nit_comercio)`: si existe (ej. `890900608 → Almacenes Éxito`), rellena el nombre y sugiere `categoria_sugerida_id` (`Mercado`). Si el comercio es nuevo, permite guardar el alias al confirmar.
+     - Consulta `AliasComercio` por `(hogar_id, nit_comercio)`: si existe (ej. `890900608 → Almacenes Éxito`), rellena el nombre y sugiere `categoria_sugerida_id` (`Mercado`). Si el comercio es nuevo y la compra es del hogar (`ambito = 'hogar'`), permite guardar el alias al confirmar; una compra personal puede leer `AliasComercio`, pero **nunca** lo crea ni lo actualiza.
      - El QR nunca trae líneas de producto (en Fase 2 entran desde el ZIP XML+PDF por correo).
      - El usuario confirma `Categoria`, `ambito` (`Hogar` por defecto), medio recordado y cuotas (`1 / 3 / 6 / 12 / Otro`), y toca **`Guardar`**.
    - **Formato 2 — QR solo con URL (`catalogo-vpfe` con `cufe` embebido):**
      - Conserva el `cufe` de la URL y ofrece **`Leer total y fecha con OCR del tiquete`** o edición manual en la misma pantalla.
 5. En todos los estados con URL válida, ofrece el botón opcional **`Verificar en la DIAN (opcional) ↗`**, que abre el navegador externo sin bloquear el guardado.
-6. Al tocar **`Guardar`**, persiste la `Compra` (`origen = 'qr'` u `'ocr'`, `cufe`, `nit_comercio`, `iva`) y actualiza `AliasComercio` si el usuario asoció nombre/categoría.
+6. Al tocar **`Guardar`**, persiste la `Compra` (`origen = 'qr'` u `'ocr'`, `cufe`, `nit_comercio`, `iva`) y, **solo si `ambito = 'hogar'`**, crea o actualiza `AliasComercio` cuando el usuario asoció nombre/categoría (si la compra es `personal`, no modifica ninguna fila compartida).
 
 ### Variante: entrada desde Despensa de mascotas ("Recomprar")
 
 1. Desde *Despensa de mascotas*, el usuario toca `Recomprar $165.000` en un `ItemDespensa` (ej. `Concentrado adulto 12 kg`).
 2. Se abre **Compra rápida** prellenada con `monto_total = $165.000`, `categoria_id = Mascotas`, `mascota_id = Luna`, `item_despensa_id`, `ambito = 'hogar'` y `descripcion = "Concentrado adulto 12 kg · Luna"`.
-3. El usuario confirma con **1 toque** (`Guardar $165.000`). En el mismo lote atómico la app crea la `Compra` y un hecho `NivelDespensa(nivel_pct = 100, origen = 'compra', fecha = Compra.fecha)` (y actualiza `ItemDespensa.monto_habitual` si cambió el precio).
+3. El usuario confirma con **1 toque** (`Guardar $165.000`). En el mismo lote atómico la app crea la `Compra` y un hecho `NivelDespensa(item_despensa_id, compra_id = Compra.id, fecha = Compra.fecha, nivel_pct = 100, origen = 'compra')`. Solo si `ambito = 'hogar'`, actualiza `ItemDespensa.monto_habitual` si cambió el precio (una compra con `ambito = 'personal'` **nunca** actualiza `ItemDespensa.monto_habitual` ni otras filas compartidas).
 
 ## Casos borde y manejo de errores
 
@@ -142,7 +143,7 @@ Basado en el Anexo Técnico FEV 1.9 (num. 11.7) documentado en [docs/dian-qr.md]
 | **Tarjeta sin tasa configurada (`tasa_tipo = null`)** | La app **no** inventa ni calcula `CostoFinanciero`. Muestra solo las cuotas de capital y aclara: `"Sin tasa: registrarás intereses a mano en Obligaciones"`. |
 | **Error de dedo / registro duplicado manual** | Toast con `Deshacer` durante 5 s. Si en `< 60 s` se repite monto, categoría y medio, muestra confirmación inline antes de duplicar. |
 | **Sin conexión (PWA offline)** | La `Compra` se guarda en la copia local de **IndexedDB** con UUIDv7 y cola de sincronización; se confirma con `"Guardado en el dispositivo · se sincronizará al volver la conexión"`. |
-| **Factura ya registrada (`cufe` duplicado en el hogar)** | Índice único `(hogar_id, cufe)` bloquea el duplicado. Si la compra existente es del hogar o personal propia, muestra `▲ Esta factura ya está registrada en el hogar` con su detalle; si es una compra personal de otro miembro, muestra únicamente `▲ Esta factura ya está registrada en el hogar` sin revelar ningún detalle ajeno. |
+| **Factura ya registrada (`cufe` duplicado en tu alcance)** | Dos índices únicos parciales entre no eliminadas: `(hogar_id, cufe)` para compras del hogar y `(hogar_id, miembro_id, cufe)` para personales. Solo bloquea duplicados dentro de compras del hogar y personales del mismo dueño (muestra `▲ Esta factura ya está registrada` con su detalle). Una compra personal de otro miembro **no se detecta ni se insinúa** (ni siquiera «ya está registrada»). |
 | **Total DIAN con centavos (`ValTolFac: 85000.40`)** | Se redondea al peso entero COP más cercano (`$85.000`), editable antes de guardar. |
 | **QR dañado, sin cámara o no DIAN** | Aviso claro con salidas inmediatas a `Tomar foto (OCR)` o `Ingresar manual`. Nunca bloquea el registro. |
 
@@ -159,8 +160,8 @@ flowchart TD
     Q2 -- No --> Q3["Fallback: OCR del tiquete o ingreso manual"]
     Q3 --> C
     Q2 -- Si --> Q4["Extraer cufe localmente (sin consultar la DIAN)"]
-    Q4 --> Q5{"(hogar_id, cufe) ya existe?"}
-    Q5 -- Si --> Q6["Bloquear duplicado: avisar factura ya registrada (sin detalle si es personal ajena)"]
+    Q4 --> Q5{"cufe existe en hogar o personales propias?"}
+    Q5 -- Si --> Q6["Bloquear duplicado con detalle (nunca detecta ni insinua personales ajenas)"]
     Q5 -- No --> Q7{"Formato del QR DIAN"}
     Q7 -- "Formato 1: con campos" --> Q8["Precargar nit_comercio, fecha, monto_total, iva y sugerir Categoria via AliasComercio"]
     Q7 -- "Formato 2: solo URL" --> Q9["Conservar cufe + completar total/fecha con OCR o a mano"]
@@ -176,7 +177,7 @@ flowchart TD
     H --> I{"monto_total > 0 y Categoria elegida?"}
     I -- No --> J["Mostrar error accesible y enfocar campo"]
     J --> C
-    I -- Si --> M["Guardar lote atomico en IndexedDB (+ NivelDespensa=100 si viene de Recomprar)"]
+    I -- Si --> M["Guardar lote atomico en IndexedDB (+ NivelDespensa=100 con compra_id si Recomprar; sin editar filas compartidas si personal)"]
     M --> N["Actualizar preferencia local de ultimo medio y mostrar toast con Deshacer"]
 ```
 
@@ -186,11 +187,11 @@ Nombres canónicos alineados con `docs/data-model.md` y [docs/decisiones-2026-11
 
 | Entidad / Concepto | Tipo | Operación | Campos principales | Regla aplicada |
 | --- | --- | --- | --- | --- |
-| **`Compra`** | Hecho (tabla replicada) | Escritura / Lectura (dedupe) | `id`, `hogar_id`, `fecha`, `descripcion`, `monto_total`, `categoria_id`, `ambito` (`'hogar' \| 'personal'`, default `'hogar'`), `miembro_id`, `pago_tipo` (`'contado' \| 'financiado'`), `medio_de_pago_id`, `financiada_por_pasivo_id`, `registrado_por`, `mascota_id`, `item_despensa_id`, `cufe`, `nit_comercio`, `iva`, `origen` | Se registra **una sola vez** por `monto_total` en `fecha`. Único `(hogar_id, cufe)` por hogar (sin revelar detalle si coincide con una compra personal ajena). `ambito = 'personal'` solo la ve `miembro_id` y nunca suma aporte al hogar. Con `financiada_por_pasivo_id`, usa `pago_tipo = 'contado'`, `medio_de_pago_id = null`, apunta a un `Pasivo` (`Credito`/`Deuda`) con `PlanDeCuotas(origen = 'desembolso')` sin crear otro plan, y no suma aporte hasta pagar el préstamo. |
+| **`Compra`** | Hecho (tabla replicada) | Escritura / Lectura (dedupe) | `id`, `hogar_id`, `fecha`, `descripcion`, `monto_total`, `categoria_id`, `ambito` (`'hogar' \| 'personal'`, default `'hogar'`), `miembro_id`, `pago_tipo` (`'contado' \| 'financiado'`), `medio_de_pago_id`, `financiada_por_pasivo_id`, `registrado_por`, `mascota_id`, `item_despensa_id`, `cufe`, `nit_comercio`, `iva`, `origen` | Se registra **una sola vez** por `monto_total` en `fecha`. Dos únicos parciales entre no eliminadas: `(hogar_id, cufe)` para compras del hogar y `(hogar_id, miembro_id, cufe)` para personales; una compra personal ajena nunca se detecta ni se insinúa. `ambito = 'personal'` solo la ve `miembro_id`, nunca suma aporte al hogar y nunca actualiza filas compartidas (`AliasComercio`, `ItemDespensa.monto_habitual`). Con `financiada_por_pasivo_id`, usa `pago_tipo = 'contado'`, `medio_de_pago_id = null`, apunta a un `Pasivo` (`Credito`/`Deuda`) con `PlanDeCuotas(origen = 'desembolso')` sin crear otro plan, y no suma aporte hasta pagar el préstamo. |
 | **`PlanDeCuotas`** | Hecho (tabla replicada) | Escritura (si `pago_tipo = 'financiado'`) | `id`, `pasivo_id`, `origen` (`'compra' \| 'saldo_inicial' \| 'desembolso'`), `compra_id`, `fecha_inicio`, `capital`, `sistema`, `n_cuotas`, `fecha_primera_cuota`, `tasa_tipo`, `tasa_ppm` | Este flujo crea planes con `origen = 'compra'` (`capital = Compra.monto_total`; en tarjeta, `fecha_primera_cuota` = primer `dia_pago` posterior al `dia_corte` siguiente a `fecha`). Cuando la compra usa `financiada_por_pasivo_id`, **no** crea plan: el capital ya vive en el plan `origen = 'desembolso'` del pasivo. |
 | **`Cuota`** | Hecho (tabla replicada) | Escritura (si `sistema != 'sin_calendario'`) | `id`, `plan_id`, `numero`, `fecha_vencimiento`, `capital` | `Σ capital = PlanDeCuotas.capital` en COP enteros. Nunca suma al consumo. Su **estado** es siempre DERIVADO. |
 | **`CostoFinanciero`** | Hecho (tabla replicada) | Escritura opcional (si la tarjeta tiene tasa) | `id`, `tipo` (`'interes'`), `monto`, `fecha_causacion`, `pasivo_id`, `cuota_id`, `origen` (`'calculado'`), `registrado_por` | Balde aparte (no es una `Categoria`). Conversión exacta E.A.→M.V., redondeando solo el interés al peso. |
 | **`MedioDePago` / `Pasivo`** | Hecho (tabla replicada) | Lectura | `MedioDePago` (`id`, `nombre`, `tipo`, `owner_tipo`, `owner_miembro_id`); `Pasivo` (`id`, `tipo`, `nombre`, `owner_tipo`, `tasa_tipo`, `tasa_ppm`) + `Tarjeta` (`dia_corte`, `dia_pago`) | `MedioDePago` paga de contado; `Tarjeta` (subtipo de `Pasivo`) genera plan de cuotas. El **último medio usado** es una **preferencia LOCAL del dispositivo por miembro** (no se sincroniza ni es columna). |
-| **`AliasComercio`** | Hecho (tabla replicada) | Lectura / Escritura | `id`, `hogar_id`, `nit_comercio`, `nombre`, `categoria_sugerida_id` | Sincronizado por hogar; único `(hogar_id, nit_comercio)`. Traduce `nit_comercio` del QR y sugiere `categoria_sugerida_id`. |
-| **`ItemDespensa` / `NivelDespensa`** | Hecho (tabla replicada) | Escritura opcional (si viene de *Recomprar*) | `ItemDespensa.monto_habitual`; `NivelDespensa` (`item_despensa_id`, `fecha`, `nivel_pct = 100`, `origen = 'compra'`) | Recomprar registra un hecho `NivelDespensa` al `100 %`; el nivel actual y la próxima compra se **DERIVAN**, nunca se guardan. |
+| **`AliasComercio`** | Hecho (tabla replicada) | Lectura / Escritura (solo si `ambito = 'hogar'`) | `id`, `hogar_id`, `nit_comercio`, `nombre`, `categoria_sugerida_id` | Sincronizado por hogar; único `(hogar_id, nit_comercio)`. Traduce `nit_comercio` del QR y sugiere `categoria_sugerida_id`. Una compra personal nunca crea ni actualiza `AliasComercio`. |
+| **`ItemDespensa` / `NivelDespensa`** | Hecho (tabla replicada) | Escritura opcional (si viene de *Recomprar*) | `ItemDespensa.monto_habitual`; `NivelDespensa` (`item_despensa_id`, `compra_id`, `fecha`, `nivel_pct = 100`, `origen = 'compra'`) | Recomprar registra un hecho `NivelDespensa(origen = 'compra', compra_id = Compra.id)` al `100 %`; el nivel actual y la próxima compra se **DERIVAN**, nunca se guardan. Solo una compra con `ambito = 'hogar'` puede actualizar `ItemDespensa.monto_habitual`. |
 | **Totales del mes / Aportes / Saldos** | **DERIVADO (nunca guardado)** | Solo lectura calculada | `gasto(mes)`, `aportes(M)`, `saldo(Pasivo)` | Calculados en el dispositivo a partir de los hechos; nunca existen columnas ni tablas de saldos o totales persistidos. |

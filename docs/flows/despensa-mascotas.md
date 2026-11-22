@@ -6,7 +6,7 @@ Controlar comida, higiene, salud y otros insumos recurrentes de cada `Mascota` d
 
 - Anticipar cuándo se acaba un insumo mediante nivel restante **DERIVADO**, umbral de alerta configurable (`ItemDespensa.umbral_alerta_pct`, default `20 %`) y próxima compra estimada.
 - Permitir registrar ajustes manuales de inventario (`Ajustar nivel` → nuevo hecho `NivelDespensa` con `origen = 'ajuste'`) sin guardar columnas mutables de saldo.
-- Conectar la reposición directamente con **Compra rápida** (`Recomprar` en 1 toque), generando en un lote atómico la `Compra` y un hecho `NivelDespensa(nivel_pct = 100, origen = 'compra')`.
+- Conectar la reposición directamente con **Compra rápida** (`Recomprar` en 1 toque), generando en un lote atómico la `Compra` y un hecho `NivelDespensa(origen = 'compra', compra_id = Compra.id, fecha = Compra.fecha, nivel_pct = 100)`.
 - Mostrar un **Gasto en Mascotas del mes** reconciliable peso a peso: suma únicamente las `Compra` con `categoria = Mascotas` (o etiquetadas con `mascota_id`) cuya `fecha` cae dentro del mes calendario en curso.
 
 ## Pantallas
@@ -54,8 +54,8 @@ Controlar comida, higiene, salud y otros insumos recurrentes de cada `Mascota` d
    - `descripcion`: `Concentrado adulto 12 kg · Luna`.
 3. Al tocar **`Guardar`**, la app ejecuta en un solo lote atómico:
    - Crea la `Compra` (respetando la regla de consumo y cuotas sin doble conteo).
-   - Crea un hecho **`NivelDespensa`** (`item_despensa_id`, `fecha = Compra.fecha`, `nivel_pct = 100`, `origen = 'compra'`).
-   - Actualiza `ItemDespensa.monto_habitual` si el precio cambió.
+   - Crea un hecho **`NivelDespensa`** (`item_despensa_id`, `compra_id = Compra.id`, `fecha = Compra.fecha`, `nivel_pct = 100`, `origen = 'compra'`), vinculado al ciclo de vida y visibilidad de esa compra (si la compra se edita o elimina, la observación se edita o elimina en el mismo lote).
+   - **Solo si `Compra.ambito = 'hogar'`**, actualiza `ItemDespensa.monto_habitual` si el precio cambió. Si el usuario cambia el ámbito a `personal`, la app **nunca** actualiza `ItemDespensa.monto_habitual` ni otras filas compartidas, y la observación `NivelDespensa` vinculada solo la ve su dueño.
 
 ### 4. Agregar un nuevo insumo o gasto recurrente (`ItemDespensa`)
 
@@ -80,6 +80,7 @@ Controlar comida, higiene, salud y otros insumos recurrentes de cada `Mascota` d
 | **Compra de un bulto a cuotas (ej. `$300.000` en 3 cuotas)** | Pasa por *Compra rápida*: el consumo de `$300.000` suma una sola vez a `Mascotas` en la fecha de compra y sus cuotas van a *Obligaciones del mes*. |
 | **Insumo compartido (`mascota_id = null`)** | Se etiqueta `Compartido (todas las mascotas)` y aparece al filtrar por Luna o por Milo sin duplicar su monto en el gasto del mes. |
 | **Gasto eventual de veterinario (sin `ItemDespensa`)** | Se registra desde *Compra rápida* con `categoria_id = Mascotas` y `mascota_id = Luna`; suma automáticamente al total reconciliable del mes (`$135.000`). |
+| **Compra de un ítem marcada como personal (`ambito = 'personal'`)** | Nunca actualiza filas compartidas (`ItemDespensa.monto_habitual` permanece intacto). Su `NivelDespensa(origen = 'compra', compra_id = Compra.id)` hereda la visibilidad privada de la compra y no altera el cálculo compartido del hogar. |
 | **Umbral fuera de rango (`< 0` o `> 100`) o `frecuencia_dias <= 0`** | Validación inline accesible junto al campo afectado antes de guardar. |
 
 ## Diagrama de flujo
@@ -97,7 +98,7 @@ flowchart TD
     H --> F
     G -- Si --> I["Guardar ItemDespensa"]
     C -- "Recomprar" --> J["Abrir Compra rapida prellenada (monto_habitual, Categoria Mascotas, item_despensa_id, mascota_id)"]
-    J --> K["Guardar en lote atomico: Compra + NivelDespensa(nivel_pct=100, origen='compra')"]
+    J --> K["Guardar en lote atomico: Compra + NivelDespensa(origen='compra', compra_id, nivel_pct=100); monto_habitual solo si hogar"]
     K --> B
 ```
 
@@ -108,7 +109,7 @@ Nombres canónicos alineados con `docs/data-model.md` y [docs/decisiones-2026-11
 | Entidad / Concepto | Tipo | Operación | Campos principales | Regla aplicada |
 | --- | --- | --- | --- | --- |
 | **`Mascota`** | Hecho (tabla replicada) | Lectura / Escritura | `id`, `hogar_id`, `nombre`, `especie` (`'perro' \| 'gato' \| 'otro'`), `fecha_nacimiento`, `activa` | Pertenece al hogar. No guarda gasto propio; su gasto se deriva de `Compra.mascota_id`. |
-| **`ItemDespensa`** | Hecho (tabla replicada) | Lectura / Escritura | `id`, `hogar_id`, `mascota_id` (`null` = todas), `nombre`, `tipo` (`'comida' \| 'higiene' \| 'salud' \| 'otro'`), `categoria_id`, `frecuencia_dias`, `umbral_alerta_pct` (`0..100`, default `20`), `monto_habitual`, `activo` | Define el producto, tipo, frecuencia y umbral de alerta. Nunca guarda nivel restante ni fecha de próxima compra. |
-| **`NivelDespensa`** | Hecho (tabla replicada) | Lectura / Escritura | `id`, `hogar_id`, `item_despensa_id`, `fecha`, `nivel_pct` (`0..100`), `origen` (`'compra' \| 'ajuste'`) | Registra observaciones como hechos inmutables. Toda compra del ítem crea `nivel_pct = 100, origen = 'compra'`; `Ajustar nivel` crea `origen = 'ajuste'`. |
+| **`ItemDespensa`** | Hecho (tabla replicada) | Lectura / Escritura | `id`, `hogar_id`, `mascota_id` (`null` = todas), `nombre`, `tipo` (`'comida' \| 'higiene' \| 'salud' \| 'otro'`), `categoria_id`, `frecuencia_dias`, `umbral_alerta_pct` (`0..100`, default `20`), `monto_habitual`, `activo` | Define el producto, tipo, frecuencia y umbral de alerta. Nunca guarda nivel restante ni fecha de próxima compra. `monto_habitual` es fila compartida del hogar: una compra con `ambito = 'personal'` nunca la modifica. |
+| **`NivelDespensa`** | Hecho (tabla replicada) | Lectura / Escritura | `id`, `hogar_id`, `item_despensa_id`, `compra_id` (nullable), `fecha`, `nivel_pct` (`0..100`), `origen` (`'compra' \| 'ajuste'`) | Registra observaciones como hechos inmutables. Toda compra del ítem crea en el mismo lote atómico `NivelDespensa(origen = 'compra', compra_id = Compra.id, fecha = Compra.fecha, nivel_pct = 100)` (`compra_id` único entre activas; enlaza ciclo de vida y visibilidad); `Ajustar nivel` crea `origen = 'ajuste'` con `compra_id = null`. |
 | **`Compra`** | Hecho (tabla replicada) | Lectura / Escritura (vía *Compra rápida*) | `id`, `fecha`, `monto_total`, `categoria_id`, `ambito`, `mascota_id`, `item_despensa_id`, `pago_tipo`, `medio_de_pago_id`, `registrado_por` | Solo las compras con `fecha` dentro del mes calendario suman al gasto mensual de Mascotas (reconciliable). |
 | **Nivel actual, días restantes, alerta (`<= umbral_alerta_pct`), próxima compra estimada, gasto mensual Mascotas** | **DERIVADO (nunca guardado)** | Solo lectura calculada | `nivel_actual_pct`, `dias_restantes`, `en_alerta`, `proxima_compra_estimada`, `gasto_mascotas(mes)` | Siempre calculados en el dispositivo desde `ItemDespensa`, `NivelDespensa` y `Compra`. Nunca se almacenan en base de datos. |

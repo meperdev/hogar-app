@@ -67,8 +67,8 @@ Mostrar de forma transparente cuánto aportó cada `Miembro` al hogar durante el
 
 ### 4. Exportación automática y respaldo (Ajustes)
 
-1. Desde **Ajustes y exportación** ([ajustes-exportar.html](../../design/mockups/ajustes-exportar.html)), el usuario ve la **última exportación automática semanal** (función programada que genera JSON + CSV en Storage de Supabase), los botones **`Descargar JSON`** y **`Descargar CSV`**, el botón **`Exportar ahora`** y el estado de la **copia local en IndexedDB** del dispositivo.
-2. **Alcance por miembro (privacidad de datos personales):** en toda descarga (respaldo semanal, `Exportar ahora` y copia local en IndexedDB), **cada miembro descarga los hechos del hogar más sus propias compras personales**, y **nunca** las compras personales del otro miembro.
+1. Desde **Ajustes y exportación** ([ajustes-exportar.html](../../design/mockups/ajustes-exportar.html)), el usuario ve la **última exportación automática semanal** (función programada que genera JSON + CSV en Storage de Supabase en **dos familias separadas**), dos bloques de descarga independientes —**«Hogar (compartido)»** y **«Mis personales»**—, el botón **`Exportar ahora`** y el estado de la **copia local en IndexedDB** del dispositivo.
+2. **Dos descargas separadas (nunca mezcladas):** **«Hogar (compartido)»** contiene únicamente hechos compartidos del hogar (sin ninguna fila personal de ningún miembro); **«Mis personales»** contiene únicamente las filas personales del miembro activo y sus dependientes, y **nunca** las del otro miembro.
 
 ## Casos borde y manejo de errores
 
@@ -81,7 +81,7 @@ Mostrar de forma transparente cuánto aportó cada `Miembro` al hogar durante el
 | **Intento de crear `Aporte` entre dos medios de miembros** | Rechazado por la invariante I17: `medio_origen_id` debe tener `owner_tipo = 'miembro'` y `medio_destino_id` debe tener `owner_tipo = 'hogar'` (las transferencias entre miembros no crean deuda ni aporte). |
 | **Compra financiada con préstamo en efectivo (`financiada_por_pasivo_id`)** | No aparece como aporte al comprarse; el préstamo tiene un único `Pasivo.ambito` (si financia compras del hogar y personales, se modela como dos pasivos). El aporte aparece completo en el mes en que el miembro registre `PagoDeDeuda(tipo = 'abono')` sobre el pasivo con `ambito = 'hogar'` (si el pasivo es `'personal'`, aporta `$0`). |
 | **Pago de deuda según `Pasivo.ambito` y `saldo_a_favor`** | Cada `Pasivo` tiene un único `ambito` (`'hogar'` o `'personal'`): un `PagoDeDeuda(tipo = 'abono')` desde cualquier medio de `M` a un pasivo `'hogar'` aporta completo a `M`; a un pasivo `'personal'` aporta `$0`. FIFO solo asigna cuotas/cargos, no decide el aporte. Si una transferencia cubre dos libros (ej. tarjeta hogar y tarjeta personal), se registran dos `PagoDeDeuda` separados. Un `saldo_a_favor` en un pasivo `'hogar'` solo aporta al aplicarse a un cargo posterior (en el mes de ese cargo). |
-| **Compra personal (`ambito = 'personal'`)** | Nunca suma al aporte del hogar; excluida de la vista por defecto salvo el interruptor local `incluir_personales` (solo muestra las del propio miembro). En exportaciones, cada miembro descarga solo sus personales, nunca los del otro. |
+| **Compra personal (`ambito = 'personal'`)** | Nunca suma al aporte del hogar; excluida de la vista por defecto salvo el interruptor local `incluir_personales` (solo muestra las del propio miembro). En exportaciones, **«Hogar (compartido)»** y **«Mis personales»** se descargan por separado (nunca mezclados ni con personales del otro miembro). |
 | **Cambio de salario a mitad de vigencia** | Se cierra `Ingreso.vigente_hasta` del anterior y se crea un nuevo `Ingreso` con `vigente_desde`, conservando la historia de meses pasados. |
 | **Día esperado 31 en mes de 28/30 días** | Se ajusta automáticamente al último día del mes calendario (`30` en noviembre, `28/29` en febrero). |
 

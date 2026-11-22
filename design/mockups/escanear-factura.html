@@ -113,7 +113,7 @@
               <dd class="cop">$13.571</dd>
             </div>
             <div class="kv-row">
-              <dt>CUFE (único por hogar)</dt>
+              <dt>CUFE (único en tu alcance)</dt>
               <dd class="mono-code">a8f39d2c…710e92e1</dd>
             </div>
           </dl>
@@ -124,6 +124,7 @@
             <button type="button" class="segmented__btn" aria-pressed="true">✓ Hogar</button>
             <button type="button" class="segmented__btn" aria-pressed="false">Personal (solo yo)</button>
           </div>
+          <p class="field-help">Si la guardas como <strong>Personal</strong>, no modifica filas compartidas del hogar (como el alias del comercio).</p>
 
           <div>
             <h3 class="section-title" style="margin-bottom: 8px;">Confirma categoría (sugerida por alias del comercio)</h3>
@@ -241,13 +242,13 @@
           <div class="callout callout--danger" role="alert">
             <span class="callout__icon" aria-hidden="true">▲</span>
             <div>
-              <p><strong>Esta factura ya está registrada en el hogar.</strong></p>
-              <p>El CUFE <span class="mono-code">a8f39d2c…710e92e1</span> ya tiene una compra guardada. No se creó un segundo registro para evitar doble conteo.</p>
+              <p><strong>Esta factura ya está registrada.</strong></p>
+              <p>El CUFE <span class="mono-code">a8f39d2c…710e92e1</span> ya tiene una compra guardada en el hogar o en tus personales. No se creó un segundo registro para evitar doble conteo.</p>
             </div>
           </div>
 
           <div class="card card--muted">
-            <h3 class="section-title" style="margin-bottom: 8px;">Registro existente (solo si es del hogar o tuyo)</h3>
+            <h3 class="section-title" style="margin-bottom: 8px;">Registro existente (hogar o personal propio)</h3>
             <dl class="kv-list">
               <div class="kv-row">
                 <dt>Comercio</dt>
@@ -270,7 +271,7 @@
 
           <div class="callout callout--indigo">
             <span class="callout__icon" aria-hidden="true">ℹ</span>
-            <p><strong>Privacidad en compras personales:</strong> si el CUFE coincide con una compra personal del otro miembro, se muestra únicamente el aviso <em>«Esta factura ya está registrada en el hogar»</em> y <strong>se oculta todo el detalle</strong> del registro ajeno.</p>
+            <p><strong>Privacidad en compras personales:</strong> la detección de duplicados solo revisa compras del hogar y <strong>tus propias</strong> compras personales. Una compra personal del otro miembro <strong>nunca se detecta ni se insinúa</strong> (ni siquiera con «ya está registrada»).</p>
           </div>
 
           <div class="btn-row">

@@ -27,7 +27,7 @@
 
     <main id="contenido" class="app-main app-main--no-nav">
       <div id="tarjeta-guardada" class="toast-target" role="status" aria-live="polite">
-        <span>✓ Guardado: Visa ••4521 (Santiago · Sin tasa)</span>
+        <span>✓ Guardado: Visa ••4521 (Hogar · Santiago · Sin tasa)</span>
         <a href="obligaciones-del-mes.html">Ver lista</a>
       </div>
 
@@ -49,6 +49,25 @@
             </label>
           </div>
           <p class="field-help">Fase 1: Tarjeta y Crédito pertenecen a un solo miembro. Deuda (informal o no bancaria, ej. remodelación cocina) puede ser de un miembro o del hogar.</p>
+        </fieldset>
+
+        <fieldset class="radio-group">
+          <legend class="fieldset-legend">Ámbito del pasivo</legend>
+          <div class="radio-options">
+            <label class="radio-card" for="ambito-hogar">
+              <input id="ambito-hogar" type="radio" name="ambito-pasivo" value="hogar" checked>
+              <span>Hogar</span>
+            </label>
+            <label class="radio-card" for="ambito-personal">
+              <input id="ambito-personal" type="radio" name="ambito-pasivo" value="personal">
+              <span>Personal (solo yo)</span>
+            </label>
+          </div>
+          <p class="field-help">Cada pasivo es un libro de un solo ámbito (inmutable cuando tiene movimientos). Si eliges <strong>Personal</strong>, el titular debe ser un miembro y sus pagos no suman como aporte al hogar.</p>
+          <div class="callout callout--indigo">
+            <span class="callout__icon" aria-hidden="true">ℹ</span>
+            <p><strong>Tarjeta usada para ambos ámbitos:</strong> lleva <strong>dos libros</strong> aparte. Crea dos pasivos distintos (ej. <em>Visa ••4521 Hogar</em> y <em>Visa ••4521 Personal</em>) con los mismos últimos 4 dígitos.</p>
+          </div>
         </fieldset>
 
         <div class="field">
@@ -152,22 +171,29 @@
           </div>
 
           <div class="field">
+            <label for="fecha-saldo-inicial">Fecha del saldo inicial o giro</label>
+            <input id="fecha-saldo-inicial" class="input" type="date" value="2026-11-22" aria-describedby="ayuda-fecha-saldo">
+            <p id="ayuda-fecha-saldo" class="field-help">Fecha desde la que se registra la deuda previa (o fecha del desembolso). Define su orden en FIFO.</p>
+          </div>
+
+          <div class="field">
             <label for="sistema-amortizacion">Sistema de cuotas</label>
-            <select id="sistema-amortizacion" class="select">
-              <option value="capital_fijo" selected>Capital fijo (cuotas iguales de capital)</option>
+            <select id="sistema-amortizacion" class="select" aria-describedby="ayuda-sistema">
+              <option value="sin_calendario" selected>Sin calendario (por defecto · abonos libres)</option>
+              <option value="capital_fijo">Capital fijo (cuotas iguales de capital)</option>
               <option value="cuota_fija">Cuota fija (sistema francés)</option>
-              <option value="sin_calendario">Sin calendario (abonos libres)</option>
             </select>
+            <p id="ayuda-sistema" class="field-help">Por defecto se guarda <strong>sin calendario</strong> (sin inventar cuotas ni fechas). Completa las cuotas solo si conoces el calendario.</p>
           </div>
 
           <div class="field-row">
             <div class="field">
-              <label for="n-cuotas-inicial">N.º de cuotas restantes</label>
+              <label for="n-cuotas-inicial">N.º cuotas (si hay calendario)</label>
               <input id="n-cuotas-inicial" class="input" type="number" min="1" max="360" placeholder="Ej. 24">
             </div>
             <div class="field">
-              <label for="fecha-primera-cuota">Fecha primera cuota</label>
-              <input id="fecha-primera-cuota" class="input" type="date" value="2026-12-28">
+              <label for="fecha-primera-cuota">Primera cuota (opcional)</label>
+              <input id="fecha-primera-cuota" class="input" type="date">
             </div>
           </div>
         </section>
