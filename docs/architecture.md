@@ -34,6 +34,7 @@ Fase 1: solo diseño (flujos, mockups y estos documentos). No hay código de pro
 | [domain.md](domain.md) | Fuente de verdad del negocio |
 | [data-model.md](data-model.md) | Entidades, campos, tipos, relaciones e invariantes I1–I17 |
 | [examples.md](examples.md) | Ejemplos trabajados con números en COP y sus totales del mes |
+| [dian-qr.md](dian-qr.md) | Investigación del QR de factura electrónica DIAN (Anexo Técnico FEV 1.9) |
 | [AGENTS.md](../AGENTS.md) | Reglas de trabajo para agentes y semáforo de PR |
 
 ## 2. Principios
@@ -252,7 +253,59 @@ Resumen para leer el resto del documento; las definiciones exactas, las reglas d
 
 Las cuotas se cuentan como pagos de deuda y los intereses como costo financiero; el consumo se cuenta una sola vez, en la fecha de la compra. Los porcentajes se redondean solo al mostrarse y nunca se guardan.
 
-## 8. Riesgos
+## 8. Factura electrónica DIAN (QR)
+
+La investigación que sostiene esta sección está en [dian-qr.md](dian-qr.md). El objetivo es que registrar un gasto real cueste dos toques en vez de transcribir cifras, sin romper P1 (offline-first) ni P4 (nada derivable se guarda).
+
+### 8.1 Qué trae el QR
+
+El QR impreso de una factura electrónica (Anexo Técnico FEV 1.9, num. 11.7) se emite en dos formatos y el parser acepta ambos:
+
+| Formato | Contenido | Qué se puede precargar |
+| --- | --- | --- |
+| Campos | `NumFac`, `FecFac`, `HorFac`, `NitFac`, `DocAdq`, `ValFac`, `ValIva`, `ValOtroIm`, `ValTolFac`, `CUFE`/`CUDE` y la URL del catálogo | NIT del comercio, fecha, total, IVA y CUFE/CUDE |
+| Solo URL | La URL de `catalogo-vpfe.dian.gov.co`, con el CUFE dentro de la URL | El CUFE, si la URL lo trae; el resto lo completa el usuario o el OCR |
+
+El QR **nunca** trae los ítems de la factura: solo la cabecera y la identidad del documento (§8.5).
+
+### 8.2 Flujo y capas
+
+| Paso | Dónde vive | Qué pasa |
+| --- | --- | --- |
+| Leer el QR | `ui/` | La cámara entrega el texto decodificado; nada más |
+| Interpretarlo | `domain/` | Parser puro de los dos formatos: campos o solo URL, con la extracción del CUFE |
+| Precargar | `app/` | Caso de uso `precargarCompraDesdeFactura`: arma el borrador de `Compra` |
+| Confirmar | `ui/` | El usuario revisa, completa categoría y medio de pago, y guarda |
+
+El camino corre completo en el cliente y **offline**: no hay ninguna petición HTTP en el flujo, así que un fallo de la DIAN no bloquea registrar un gasto.
+
+Se precargan **NIT del comercio, fecha, total, IVA y CUFE/CUDE**, siempre como propuesta editable que el usuario confirma; nada se guarda sin confirmación. El total ya incluye el IVA y el IVA se guarda solo como dato informativo: nunca se suma aparte al gasto (P3, I2, I4).
+
+Fallbacks, en este orden: OCR del tiquete impreso (a pedido, con todos los campos editables) y entrada manual, que sigue siendo el camino base.
+
+### 8.3 Lo que la app no hace
+
+La app **no consulta ni scrapea el catálogo de la DIAN**. El catálogo tiene captcha y desde julio de 2026 exige NIT, así que automatizarlo es frágil, va contra los términos del servicio y mete una dependencia de red en un flujo que debe ser offline.
+
+Lo único que se ofrece es un botón "Verificar en la DIAN" que abre la URL oficial en el navegador para verificación manual: un enlace, no una integración. La app no guarda el resultado del catálogo.
+
+### 8.4 Deduplicación
+
+`Compra.cufe` lleva único `(hogar_id, cufe)` entre no eliminadas, así que escanear dos veces la misma factura no crea dos consumos (ver [data-model.md](data-model.md) §3.7). Si una factura se reparte en varias compras por categoría, solo la de mayor `monto_total` lleva el `cufe` (y el `iva`); las demás quedan en `null`.
+
+### 8.5 Fase 2: ítems desde el correo
+
+El detalle de líneas no entra en fase 1: el QR no lo trae y el tiquete obliga a OCR. En fase 2 el miembro reenvía la factura por correo (ZIP con XML UBL y PDF) y la ingesta obtiene los ítems cuando la factura sale a nombre del miembro; esas compras entran con `origen='correo'`.
+
+### 8.6 Riesgos
+
+| Riesgo | Efecto | Mitigación |
+| --- | --- | --- |
+| QR ilegible, dañado o borroso | No hay precarga y el usuario transcribe a mano | Fallback OCR y entrada manual; el escaneo nunca es obligatorio para guardar |
+| CUFE ausente en el formato solo-URL (la URL no lo trae) | Sin `cufe` no hay deduplicación automática y la verificación manual depende del enlace | Se guarda la compra con `cufe` nulo y se avisa en la UI: la compra queda válida, sin dedupe |
+| Facturas POS (tirilla que no es factura electrónica) | No hay QR ni CUFE que leer | Queda el tiquete: OCR o manual, con `origen='ocr'` o `origen='manual'` |
+
+## 9. Riesgos
 
 | # | Riesgo | Impacto | Mitigación |
 | --- | --- | --- | --- |
@@ -265,7 +318,7 @@ Las cuotas se cuentan como pagos de deuda y los intereses como costo financiero;
 | R7 | Datos locales sin cifrar | Quien acceda al teléfono desbloqueado ve las finanzas del hogar | Riesgo aceptado en fase 1; depende del bloqueo del dispositivo. Cifrar el almacenamiento local queda como decisión nueva para una fase posterior |
 | R8 | Cliente viejo después de un cambio de esquema | Escrituras con campos que el servidor ya no acepta | `schema_version` en el lote, rechazo con `actualizar_app`, service worker que fuerza la actualización y `outbox` conservado hasta actualizar |
 
-## 9. Decisiones abiertas para Santiago
+## 10. Decisiones abiertas para Santiago
 
 Cada pregunta trae el default de la fase 1 y la consecuencia de cada opción. Los defaults que ya se tomaron están reflejados en el modelo; Q2 no cambia el esquema.
 

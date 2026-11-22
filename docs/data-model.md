@@ -189,8 +189,13 @@ El gasto real: una vez, en la fecha de la compra, por su valor total, sea de con
 | `obligacion_id` | `uuid` | sí | FK → `Obligacion(id)` |
 | `periodo` | `text` | sí | `'YYYY-MM'`; presente si y solo si hay `obligacion_id`. Es el mes de la instancia de la obligación, no el del pago: el recibo de noviembre pagado el 2 de diciembre lleva `periodo='2026-11'` y cuenta en el gasto de diciembre (por `fecha`) |
 | `cufe` | `text` | sí | CUFE/CUDE de la factura electrónica DIAN si se escaneó. Único `(hogar_id, cufe)` entre no eliminadas: escanear dos veces la misma factura no crea dos consumos. Si una factura se reparte en varias compras (una por categoría), solo la de mayor `monto_total` lleva el `cufe`; las demás quedan en `null` |
+| `nit_comercio` | `text` | sí | NIT del emisor tal como viene en el QR (`NitFac`), sin normalizar el dígito de verificación. `null` si la compra no viene de una factura. Nunca se guarda `DocAdq`: el documento del adquiriente es dato personal |
+| `iva` | `bigint` | sí | CHECK `iva >= 0`. IVA incluido en `monto_total` (`ValIva`), informativo: nunca se suma aparte (I2, I4). `null` si no se conoce o si la compra no lleva el `cufe` de la factura |
+| `origen` | `enum('manual','qr','ocr','correo')` | no | Procedencia del registro: digitado, escaneado del QR, leído por OCR del tiquete o ingestado desde un correo de factura (fase 2). Default `'manual'` |
 
 Una categoría por compra en fase 1: un tiquete mixto se registra como dos compras. Coherencia de mascota: si el `ItemDespensa` tiene `mascota_id`, la compra lleva ese mismo `mascota_id` (el caso de uso lo copia; trigger diferido lo valida); si el ítem es de todas las mascotas, `mascota_id` es libre. `financiado` ⇔ exactamente un `PlanDeCuotas`; `contado` ⇔ sin plan y con medio (I3).
+
+**Ítems de factura: fase 2.** `Compra` no guarda líneas de detalle en fase 1. El QR de la DIAN nunca las trae ([architecture.md](architecture.md) §8) y el detalle solo aparece cuando la factura llega a nombre del miembro: la entidad `ItemCompra` (una línea por producto, con su propio monto dentro de `monto_total`) entra junto con la ingesta de correos de factura (ZIP con XML UBL y PDF). Hasta entonces, un tiquete mixto se resuelve partiéndolo en varias `Compra` por categoría, sin detalle de producto.
 
 ### 3.8 PlanDeCuotas
 
