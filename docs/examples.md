@@ -50,7 +50,7 @@ Todos los ejemplos usan el mismo hogar. Los identificadores de las tablas (`comp
 | Saldo del pasivo | Σ capital de planes con `fecha_inicio` ≤ fecha + Σ costos cargados al pasivo − Σ `PagoDeDeuda` `abono` − Σ saldo a favor aplicado a cargos; **nunca negativo** | No depende de los aportes |
 
 Definiciones exactas, campos, fórmulas e invariantes: [data-model.md](data-model.md) (entidades, campos, totales e
-invariantes I1–I22). Este documento no redefine nada: solo calcula con esas reglas.
+invariantes I1–I23). Este documento no redefine nada: solo calcula con esas reglas.
 
 ### Convenciones de lectura
 
@@ -673,12 +673,12 @@ noviembre desde la Cuenta Beto.
 
 `NivelDespensa` (hechos observados; cada compra del ítem registra nivel 100 en el mismo lote atómico)
 
-| id | item_despensa_id | fecha | nivel_pct | origen | lote |
-| --- | --- | --- | --- | --- | --- |
-| `nivel-oct` | `item-concentrado` | 2026-10-05 | 100 | compra | con `compra-conc-oct` |
-| `nivel-nov` | `item-concentrado` | 2026-11-04 | 100 | compra | con `compra-conc-nov` |
-| `nivel-ajuste-1` | `item-concentrado` | 2026-11-20 | 54 | ajuste | propio |
-| `nivel-ajuste-2` | `item-concentrado` | 2026-11-28 | 15 | ajuste | propio |
+| id | item_despensa_id | compra_id | fecha | nivel_pct | origen | lote |
+| --- | --- | --- | --- | --- | --- | --- |
+| `nivel-oct` | `item-concentrado` | `compra-conc-oct` | 2026-10-05 | 100 | compra | con `compra-conc-oct` |
+| `nivel-nov` | `item-concentrado` | `compra-conc-nov` | 2026-11-04 | 100 | compra | con `compra-conc-nov` |
+| `nivel-ajuste-1` | `item-concentrado` | null | 2026-11-20 | 54 | ajuste | propio |
+| `nivel-ajuste-2` | `item-concentrado` | null | 2026-11-28 | 15 | ajuste | propio |
 
 **Derivado, no guardado**, con `frecuencia_dias = 30` y `umbral_alerta_pct = 20`:
 
@@ -692,7 +692,7 @@ noviembre desde la Cuenta Beto.
 
 Cada compra **resetea** el nivel a 100 con un hecho nuevo, no con una columna: un ajuste posterior lo baja y la
 compra siguiente lo vuelve a subir. El nivel actual, los días restantes, la próxima compra estimada y la alerta se
-calculan en cada consulta a partir del último hecho por `(fecha, id)`; el ítem no guarda ninguno de los cuatro
+calculan en cada consulta a partir del último hecho compartido por `(fecha, id)`; el ítem no guarda ninguno de los cuatro
 (**I21**). La próxima compra estimada es un recordatorio: no es gasto, no es obligación y no tiene entidad propia.
 
 ### 3. Cómo se ven los totales
@@ -735,8 +735,9 @@ El 2026-12-03 se compra el concentrado por `$182.000` con la Visa Ana, a 1 cuota
 | 2026-12 (variante) | Mascotas $182.000 | — | $182.000 | — | — | $182.000 |
 | 2027-01 (variante) | — | — | $0 | quien pague, $182.000 | cuota $182.000, pagada | $0 |
 
-Esa compra agrega `NivelDespensa(origen='compra', nivel_pct=100, fecha=2026-12-03)` en el mismo lote, así que el
-nivel vuelve a 100, los días restantes a `floor(100 × 30 / 100) = 30` y la próxima compra estimada pasa a ser
+Esa compra agrega `NivelDespensa` con `compra_id='compra-conc-dic'`, `origen='compra'`, `nivel_pct=100` y
+`fecha=2026-12-03` en el mismo lote. El nivel vuelve a 100, los días restantes a `floor(100 × 30 / 100) = 30` y
+la próxima compra estimada pasa a ser
 `2026-12-03 + 30 días = 2027-01-02`, con la alerta apagada porque 100 > 20.
 
 ### 4. Lo que NO pasa
@@ -767,7 +768,7 @@ nivel vuelve a 100, los días restantes a `floor(100 × 30 / 100) = 30` y la pr�
 - **T-e-1 (dos contados).** *Given* Luna y su ítem. *When* se registran las compras de octubre y noviembre.
   *Then* `totalesDelMes(2026-10)` da gasto Mascotas `180000` y aportes `0`; `totalesDelMes(2026-11)` da
   `185000` y aporte de Beto `185000`; el filtro por Luna devuelve `185000` en noviembre; cada compra creó su
-  `NivelDespensa` con `nivel_pct = 100` y `origen='compra'` en el mismo lote; el nivel derivado es `100`, no hay
+  `NivelDespensa` con su `compra_id`, `nivel_pct = 100` y `origen='compra'` en el mismo lote; el nivel derivado es `100`, no hay
   alerta y la próxima compra estimada es `2026-12-04`, sin aparecer en gasto ni en obligaciones.
 - **T-e-2 (variante financiada).** *Given* el hogar con Luna y su ítem. *When* se registra la compra del
   2026-12-03 por `$182.000` con Visa Ana a 1 cuota. *Then* existe 1 `PlanDeCuotas` y 1 `Cuota` con vencimiento
@@ -775,8 +776,8 @@ nivel vuelve a 100, los días restantes a `floor(100 × 30 / 100) = 30` y la pr�
   Visa Ana es `182000`; la compra resetea el nivel a `100` y la próxima compra estimada es `2027-01-02`; y al
   registrar el pago del 2027-01-10 el aporte del mes es de quien pagó y el saldo vuelve a `0`.
 - **T-e-3 (propiedad, nivel derivado).** Para cualquier `nivel_pct` en `0..100` y cualquier `frecuencia_dias = f`
-  positivo: `dias_restantes = floor(nivel_pct × f / 100)`, `proxima_compra_estimada = fecha_observacion +
-  dias_restantes` y `alerta` es verdadera si y solo si `nivel_pct ≤ umbral_alerta_pct`; sin observación el nivel es
+  positivo: `dias_restantes = floor(nivel_pct × f / 100)`, `proxima_compra_estimada = observacion.fecha +
+  dias_restantes` y `alerta` es verdadera si y solo si `nivel_pct ≤ umbral_alerta_pct`; sin observación compartida el nivel es
   desconocido, sin alerta y sin fecha; con `frecuencia_dias` nula el nivel y la alerta existen pero los días y la
   próxima compra son `null`. Ninguna función de totales incluye la fecha estimada y el gasto acumulado sigue siendo
   Σ de los `monto_total` de las compras no eliminadas (**I16**, **I21**).
@@ -886,9 +887,9 @@ cuota la paga alguien desde su cuenta: Ana la 1 y la 3, Beto la 2 y la 4, cada u
 
 `Pasivo` / `Credito`
 
-| id | tipo | nombre | owner_tipo | owner_miembro_id | tasa_tipo | tasa_ppm | entidad | referencia |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `credito-ana` | credito | Crédito Andino | miembro | `ana` | null | null | Banco Andino | 001-2026 |
+| id | tipo | nombre | owner_tipo | owner_miembro_id | ambito | tasa_tipo | tasa_ppm | entidad | referencia |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `credito-ana` | credito | Crédito Andino | miembro | `ana` | hogar | null | null | Banco Andino | 001-2026 |
 
 `PlanDeCuotas` (el desembolso se registra **una sola vez**, en la fecha del giro)
 
@@ -915,8 +916,9 @@ del giro. Por eso en noviembre el saldo de `credito-ana` ya es `$2.000.000`, ant
 | `compra-lavadora` | 2026-11-05 | Lavadora | $1.200.000 | Hogar y electrodomésticos | hogar | contado | null | `credito-ana` | Ana |
 | `compra-mercado-may` | 2026-11-10 | Mercado mayorista | $300.000 | Mercado | hogar | contado | null | `credito-ana` | Ana |
 
-Ninguna de las dos crea plan ni suma capital: la plata ya estaba en el plan `desembolso`. La compra solo declara de
-dónde salió (**I19**) y su ámbito fija el del plan: `hogar`.
+Ninguna de las dos crea plan ni suma capital: la plata ya estaba en el plan `desembolso`. El `Pasivo.ambito` de
+`credito-ana` fija el ámbito del desembolso (`hogar`). Cada compra indica de dónde salieron los fondos y debe
+coincidir con ese ámbito; no lo determina (**I19**).
 
 **Lotes 4 a 7 — `registrarPagoDeDeuda`, uno por cuota** (`tipo='abono'`, capital sin intereses porque no hay tasa):
 

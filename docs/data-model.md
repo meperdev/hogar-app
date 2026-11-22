@@ -219,6 +219,8 @@ El gasto real: una vez, en la fecha de la compra, por su valor total, sea de con
 
 Una categoría por compra en fase 1: un tiquete mixto se registra como dos compras. Coherencia de mascota: si el `ItemDespensa` tiene `mascota_id`, la compra lleva ese mismo `mascota_id` (el caso de uso lo copia; trigger diferido lo valida); si el ítem es de todas las mascotas, `mascota_id` es libre. `financiado` ⇔ exactamente un `PlanDeCuotas` con `compra_id`; `contado` ⇔ sin plan y con exactamente uno de `medio_de_pago_id` o `financiada_por_pasivo_id` (I3). Una compra personal exige `miembro_id`; una del hogar lo deja nulo. Una compra personal nunca es aporte, aunque la vista tenga `incluir_personales=true`.
 
+Una vez sincronizada la compra, `ambito` y `miembro_id` son inmutables (I18). Para reclasificarla, se anula la original con un tombstone en su alcance original y se crea otra con un ID nuevo en el alcance de destino. Así, quien ya recibió una compra del hogar puede recibir su anulación; reclasificarla no borra retroactivamente lo que ya vio.
+
 **Compra financiada por un préstamo en efectivo.** `financiada_por_pasivo_id` no es un plan de cuotas: el capital ya se registró una vez en el plan `origen='desembolso'` del pasivo (§3.8). La compra solo consume esos fondos y suma al gasto. Reglas, validadas en el mismo lote (trigger diferido o función de dominio):
 
 - El pasivo debe tener al menos un plan `origen='desembolso'`; en fase 1, el pasivo es `Credito` o `Deuda`, no `Tarjeta`.
@@ -370,7 +372,7 @@ Artículo de reposición periódica (concentrado, aseo). **No** es gasto ni obli
 | `categoria_id` | `uuid` | no | FK → `Categoria(id)`. Categoría sugerida |
 | `frecuencia_dias` | `smallint` | sí | `> 0`. Nulo = sin recordatorio ni estimación de días |
 | `umbral_alerta_pct` | `integer` | no | CHECK `0..100`; default `20`. Alerta cuando el nivel derivado es menor o igual |
-| `monto_habitual` | `bigint` | sí | Referencia de precio, no gasto |
+| `monto_habitual` | `bigint` | sí | Referencia de precio compartida, no gasto. Una compra personal nunca lo actualiza (I23) |
 | `activo` | `boolean` | no | |
 
 #### 3.14.1 NivelDespensa
@@ -412,7 +414,7 @@ Nombre y categoría sugerida para un NIT de comercio ya conocido. **No** es una 
 | `nombre` | `text` | no | Nombre visible del comercio |
 | `categoria_sugerida_id` | `uuid` | sí | FK → `Categoria(id)`. Categoría propuesta al precargar |
 
-La preferencia del **último medio de pago usado** es local del dispositivo por miembro (§1.3), no una columna de `AliasComercio`.
+Un borrador personal puede usar el alias como sugerencia, pero al guardar una compra personal no se crea ni se actualiza ningún `AliasComercio` (I23). La preferencia del **último medio de pago usado** es local del dispositivo por miembro (§1.3), no una columna de `AliasComercio`.
 
 ## 4. Propiedad (owner polimórfico)
 
@@ -724,21 +726,21 @@ La agenda se lee por `periodo` de la obligación y el gasto por `fecha` de la co
 **Despensa con nivel.** El nivel es un hecho observado; el resto se deriva y nunca se guarda.
 
 ```
-nivel_actual = NivelDespensa más reciente por (fecha, id); null si no hay ninguno
+observacion = NivelDespensa compartido más reciente por (fecha, id); null si no hay ninguno
+nivel_actual = observacion.nivel_pct si hay observacion; si no: null
 
 dias_restantes = si nivel_actual != null y frecuencia_dias != null:
-                   floor(nivel_pct × frecuencia_dias / 100)
+                   floor(nivel_actual × frecuencia_dias / 100)
                  si no: null
 
 proxima_compra_estimada =
-  si nivel_actual != null y dias_restantes != null: fecha_observacion + dias_restantes
-  si no, si hay última Compra del ítem y frecuencia_dias != null: fecha_última_compra + frecuencia_dias
+  si dias_restantes != null: observacion.fecha + dias_restantes
   si no: null
 
 alerta = nivel_actual != null && nivel_actual <= umbral_alerta_pct
 ```
 
-Sin ninguna observación, el nivel es **desconocido**, no hay alerta y no se estima fecha. Si falta `frecuencia_dias`, el nivel y la alerta siguen existiendo, pero `dias_restantes` y `proxima_compra_estimada` quedan en `null`. La compra de un ítem crea `NivelDespensa(origen='compra', nivel_pct=100, fecha=Compra.fecha)` en el mismo lote atómico.
+Sin una observación compartida, el nivel compartido es **desconocido**, no hay alerta y no se estima fecha. Si falta `frecuencia_dias`, el nivel y la alerta siguen existiendo, pero `dias_restantes` y `proxima_compra_estimada` quedan en `null`. La compra de un ítem crea la observación con su `compra_id` en el mismo lote (§3.14.1); una observación originada en una compra personal no alimenta el cálculo compartido.
 
 **Identidad de conservación** (base de los tests de propiedades). "Salidas externas" = compras de contado desde cualquier medio (incluye personales; no incluye las pagadas con desembolso) + `PagoDeDeuda` (ambos tipos) + costos pagados directo.
 
@@ -794,8 +796,13 @@ Un `desembolso` no es gasto ni salida externa: su capital está en el saldo del 
 | I15 | Tombstones: nada se borra físicamente; los eliminados no cuentan en ningún total | `eliminado_en` + RLS sin `DELETE` | Tras eliminar, la fila llega por pull y no aparece en totales ni unicidad |
 | I16 | Conservación (identidad de §8), de todos los ámbitos: resta capital `saldo_inicial`, saldo no usado de `desembolso` y saldo a favor no aplicado; incluye compras personales | Función de dominio + test de propiedades | `Σ gasto = Σ salidas externas + Σ saldo − Σ capital saldo_inicial − Σ saldo_no_usado_desembolso − Σ saldo_a_favor_no_aplicado` con datos generados, incluido un préstamo gastado en parte |
 | I17 | `Aporte`: origen con dueño miembro, destino con dueño hogar | Trigger diferido / función de dominio | Aporte con destino de dueño miembro se rechaza; con origen del hogar también |
-| I18 | `Compra.ambito='personal'` ⇔ `miembro_id` no nulo; una compra personal y sus costos no son gasto del hogar ni aporte, con o sin `incluir_personales`; `Pasivo.ambito='personal'` exige `owner_tipo='miembro'`, `owner_miembro_id` no nulo igual al `miembro_id` de sus compras, y el libro es de un solo ámbito e inmutable con hechos vinculados; un pago pertenece a un solo `pasivo_id` | CHECK + validación en `sync_push` + función de dominio + RLS/UI | Compra personal desde medio de un miembro: gasto personal, aporte 0; con la vista prendida: aporte 0; pago de libro personal: 0; cambiar el `ambito` de un pasivo con hechos vinculados se rechaza; compra personal con pasivo del hogar se rechaza |
+| I18 | `Compra.ambito='personal'` ⇔ `miembro_id` no nulo. Ambos campos son inmutables tras sincronizar la compra. Una compra personal y sus costos no son gasto del hogar ni aporte, con o sin `incluir_personales`; `Pasivo.ambito='personal'` exige `owner_tipo='miembro'`, `owner_miembro_id` no nulo igual al `miembro_id` de sus compras, y el libro es de un solo ámbito e inmutable con hechos vinculados; un pago pertenece a un solo `pasivo_id` | CHECK + validación en `sync_push` + función de dominio + RLS/UI | Compra personal desde medio de un miembro: gasto personal, aporte 0; con la vista prendida: aporte 0; pago de libro personal: 0; cambiar el `ambito` de un pasivo con hechos vinculados se rechaza; compra personal con pasivo del hogar se rechaza. Reclasificación: ver prueba debajo |
 | I19 | `financiada_por_pasivo_id` no crea plan ni suma capital; exige plan `desembolso` previo, `fecha` no anterior al giro y acumulado de compras ≤ fondos desembolsados a esa fecha; no es aporte; las compras vinculadas tienen el ámbito y dueño del pasivo | Trigger diferido / función de dominio en el mismo lote | Préstamo 100.000, compra 60.000: saldo 100.000, gasto 60.000, aporte 0; compra de 41.000 se rechaza; compra antes del giro se rechaza; compra vinculada con plan de compra se rechaza; compra de otro ámbito se rechaza |
 | I20 | Saldo de pasivo nunca negativo en ninguna fecha histórica; un `abono` que lo haría negativo se rechaza y el exceso va como `saldo_a_favor`; `cuota_id` solo en pago completo y único; `saldo_a_favor` no reduce capital ni costo | `sync_push` con lock del pasivo y validación en la misma transacción + único parcial `(cuota_id)` + dominio | Dos pagos offline de la misma cuota se serializan y el segundo se rechaza o pasa a saldo a favor; ningún histórico queda negativo; dos enlaces completos a la misma cuota se rechazan |
-| I21 | Nivel de despensa derivado (nunca guardado), determinista con nivel desconocido o `frecuencia_dias` nula; la compra del ítem guarda `NivelDespensa(100)` en el mismo lote atómico | Tipos (no existen columnas derivadas) + lote atómico + dominio | Compra del ítem crea nivel 100 en el mismo lote; ajuste a 15 % con frecuencia 30 da 4 días; sin frecuencia: días y próxima compra nulos pero alerta; sin observaciones: desconocido sin alerta |
+| I21 | Nivel de despensa derivado (nunca guardado), determinista con nivel desconocido o `frecuencia_dias` nula; la compra del ítem guarda `NivelDespensa(100)` en el mismo lote atómico | Tipos (no existen columnas derivadas) + lote atómico + dominio | Compra del ítem crea nivel 100 en el mismo lote; ajuste a 15 % con frecuencia 30 da 4 días; sin frecuencia: días y próxima compra nulos pero alerta; sin observación compartida: desconocido, sin alerta ni fecha, aunque exista una observación personal |
 | I22 | `RecepcionIngreso`: único `(ingreso_id, periodo)` entre no eliminadas, solo para ingresos fijos; el balance usa `monto_recibido` si `recibido=true`, si no el esperado | Único parcial + CHECK/trigger + dominio | Dos recibos del mismo periodo se rechazan; salario esperado 4.500.000 recibido 4.400.000 da ingreso 4.400.000; sin fila da 4.500.000 esperado |
+| I23 | Registrar o editar una compra personal no crea ni modifica filas compartidas, incluido `AliasComercio` y `ItemDespensa.monto_habitual` | Caso de uso local + validación del lote en `sync_push` | Ver prueba de escritura compartida debajo |
+
+**I18 — Reclasificación tras sincronizar.** Ana y Beto ya descargaron una compra del hogar; Ana también tiene una compra personal sincronizada. Intentar cambiar el ámbito de la primera (incluso enviando un dueño válido) o reasignar la segunda a Beto debe rechazar cada lote sin modificar ninguna fila ni los totales. Si Ana anula la compartida y crea otra personal con un ID nuevo, el pull de Beto recibe el tombstone compartido, pero ni la nueva compra ni sus dependientes. Tras el pull, el gasto y los aportes del hogar dejan de contar la anulada; solo Ana ve la nueva en su gasto personal y no suma aporte.
+
+**I23 — Escritura compartida desde compra personal.** Registrar una compra personal con un NIT sin alias no crea un alias compartido. Guardar o editar una personal con un NIT conocido y un ítem de despensa no cambia el alias, su categoría sugerida, el monto habitual ni la alerta compartida, aunque difieran los datos de la compra. En ambos casos la compra es válida y, si apunta al ítem, su `NivelDespensa` queda visible solo para el dueño. Si se fuerza alguna de esas escrituras compartidas en el lote de la compra personal, `sync_push` rechaza el lote completo sin aplicar cambios.

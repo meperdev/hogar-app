@@ -1,6 +1,6 @@
 # Arquitectura de hogar-app
 
-Este documento fija las decisiones técnicas de la fase 1: principios, stack, capas, sincronización entre miembros, privacidad de los gastos personales, exportación y respaldo, autenticación, riesgos y las decisiones que Santiago tomó el 22 nov 2026. El modelo de datos (entidades, campos e invariantes I1–I22) vive en [data-model.md](data-model.md) y los números trabajados en [examples.md](examples.md). El negocio manda desde [domain.md](domain.md).
+Este documento fija las decisiones técnicas de la fase 1: principios, stack, capas, sincronización entre miembros, privacidad de los gastos personales, exportación y respaldo, autenticación, riesgos y las decisiones que Santiago tomó el 22 nov 2026. El modelo de datos (entidades, campos e invariantes I1–I23) vive en [data-model.md](data-model.md) y los números trabajados en [examples.md](examples.md). El negocio manda desde [domain.md](domain.md).
 
 **En una línea:** una PWA offline-first que guarda hechos en el teléfono, replica a Postgres con un protocolo propio pequeño y auditable, y calcula lo derivado en el dispositivo con las filas que el actor puede ver.
 
@@ -32,7 +32,7 @@ Fase 1: solo diseño (flujos, mockups y estos documentos). No hay código de pro
 | Documento | Rol |
 | --- | --- |
 | [domain.md](domain.md) | Fuente de verdad del negocio |
-| [data-model.md](data-model.md) | Entidades, campos, tipos, relaciones e invariantes I1–I22 |
+| [data-model.md](data-model.md) | Entidades, campos, tipos, relaciones e invariantes I1–I23 |
 | [examples.md](examples.md) | Ejemplos trabajados con números en COP y sus totales del mes |
 | [decisiones-2026-11-22.md](decisiones-2026-11-22.md) | Decisiones de Santiago y nombres canónicos de la ronda 2 |
 | [dian-qr.md](dian-qr.md) | Investigación del QR de factura electrónica DIAN (Anexo Técnico FEV 1.9) |
@@ -201,6 +201,8 @@ Decisión D1 (§11). «Una compra personal la ve solo su dueño» es una regla d
 
 **Qué es dato dependiente.** Una fila es personal si su ámbito es personal ([data-model.md](data-model.md) §8) o si cuelga de una compra o de un pasivo personal: el `Pasivo` personal y su subtipo, `PlanDeCuotas`, `Cuota`, `PagoDeDeuda`, `CostoFinanciero` y el `NivelDespensa` que generó una compra personal. El dueño se resuelve por `Compra.miembro_id` o `Pasivo.owner_miembro_id` según el origen; la observación de una compra usa su `compra_id`. Un nivel compartido de despensa solo usa hechos compartidos: una observación personal no modifica la alerta compartida.
 
+**Qué no cambia al guardar.** Una compra sincronizada conserva su ámbito y dueño. Para reclasificarla, se anula en su alcance original y se crea otra; el pull no retira copias por un cambio de visibilidad (I18). Guardar una compra personal tampoco crea ni modifica filas compartidas como `AliasComercio` o `ItemDespensa.monto_habitual` (I23).
+
 #### 5.9.1 Una sola definición de visibilidad
 
 El predicado `puede_ver(actor, fila)` vive en una única función SQL y lo usan las políticas RLS, el pull y el export personal. El export compartido no lo relaja: aplica un alcance hogar aún más estricto, sin ninguna fila personal. Duplicar el predicado es la forma típica de abrir un agujero, así que hay uno solo.
@@ -278,7 +280,7 @@ Supabase Auth con código OTP o enlace mágico por correo; Google opcional. No h
 | Invitar miembros | Sí | No |
 | Desactivar miembros | Sí | No |
 | Renombrar el hogar | Sí | No |
-| Descargar el export del hogar (nunca incluye personales ajenos) | Sí | Sí |
+| Descargar el export del hogar (no incluye ninguna fila personal) | Sí | Sí |
 | Descargar su propio export personal | Sí | Sí |
 
 El rol no da visibilidad sobre lo personal ajeno: la privacidad es de la fila, no del rol. Un admin no puede leer ni exportar las compras personales de otro miembro (§5.9, §9).
@@ -291,7 +293,7 @@ La sesión se persiste; sin red se trabaja con la sesión en caché. Si el refre
 
 ## 7. Totales y definiciones clave
 
-Resumen para leer el resto del documento; las definiciones exactas, las reglas de cálculo (tasas, reparto de capital, FIFO, fechas de tarjeta) y los invariantes I1–I22 están en [data-model.md](data-model.md), secciones 8 a 10.
+Resumen para leer el resto del documento; las definiciones exactas, las reglas de cálculo (tasas, reparto de capital, FIFO, fechas de tarjeta) y los invariantes I1–I23 están en [data-model.md](data-model.md), secciones 8 a 10.
 
 | Concepto | Definición en una línea | Invariantes |
 | --- | --- | --- |
@@ -345,7 +347,7 @@ Lo único que se ofrece es un botón "Verificar en la DIAN" que abre la URL ofic
 
 ### 8.4 Deduplicación
 
-`Compra.cufe` es único entre no eliminadas dentro de su alcance de visibilidad (hogar o personal del mismo miembro); un escaneo repetido dentro de ese alcance no crea dos consumos. Un escaneo compartido no puede revelar que otro miembro registró la factura en privado. Ver [data-model.md](data-model.md) §3.7. Si una factura se reparte en varias compras por categoría, solo la de mayor `monto_total` lleva el `cufe` (y el `iva`); las demás quedan en `null`.
+El escaneo solo busca coincidencias en compras del hogar y personales del mismo miembro. `Compra.cufe` es único entre no eliminadas por índice: `(hogar_id, cufe)` para hogar y `(hogar_id, miembro_id, cufe)` para personal. Una coincidencia visible en el otro ámbito puede avisar, pero no bloquea. Las compras personales ajenas no afectan el aviso ni la respuesta del guardado o la sincronización. Ver [data-model.md](data-model.md) §3.7. Si una factura se reparte en varias compras por categoría, solo la de mayor `monto_total` lleva el `cufe` (y el `iva`); las demás quedan en `null`.
 
 ### 8.5 Fase 2: ítems desde el correo
 
@@ -366,18 +368,18 @@ Decisión D4 (§11): se acepta Supabase gratis y el respaldo no depende de que a
 ### 9.1 Qué se exporta
 
 - **Hechos, no derivados.** Las tablas replicadas con sus columnas de sync (§5.1): ids, fechas, montos y tombstones. Saldos, aportes, niveles de despensa, totales y estados no viajan: se recalculan con [data-model.md](data-model.md) §8. Un export no es una segunda fuente de verdad.
-- **Formato.** JSON con todas las filas del alcance y CSV con un archivo por tabla, con la misma data. Los dos salen del mismo recorrido, así que no pueden discrepar.
-- **Dos familias de archivos, nunca mezcladas:**
-  - `hogar/<hogar_id>/<AAAA-MM-DD>/`: todo lo compartido —filas del hogar y filas dependientes de ámbito hogar— y **ninguna fila personal**, de ningún miembro, ni sus dependientes.
-  - `personal/<hogar_id>/<miembro_id>/<AAAA-MM-DD>/`: solo las filas personales de ese miembro y sus dependientes.
-- **Alcance por hogar y por actor.** El generador siempre corre con un actor explícito: el archivo compartido del hogar no depende del actor y se genera una vez, y lo personal se genera únicamente para el `miembro_id` de ese actor. El compartido usa el alcance hogar —ninguna fila personal, ni siquiera la del propio actor— y el personal usa `puede_ver` (§5.9); no hay una lista de tablas copiada a mano. El actor descarga el compartido de su hogar y el personal de su propio `miembro_id`; nunca el de otro.
+- **Dos archivos descargables por miembro, nunca mezclados:**
+  - **Hogar** (`hogar/<hogar_id>/<AAAA-MM-DD>/`): un archivo común a todos los miembros, con las filas compartidas y sus dependientes. No incluye ninguna fila personal, ni siquiera la de quien descarga.
+  - **Personal** (`personal/<hogar_id>/<miembro_id>/<AAAA-MM-DD>/`): un archivo con solo las filas personales de ese miembro y sus dependientes. No incluye filas compartidas ni personales ajenas.
+- **Formato.** Cada archivo es un ZIP con el JSON de todas las filas de su alcance y un CSV por tabla. Ambas representaciones se generan a partir de las mismas filas.
+- **Alcance por hogar y por actor.** El archivo compartido se genera una sola vez por hogar y fecha, sin depender del actor. Para generar el personal, el actor es explícito: se seleccionan solo filas de ámbito personal y se aplica `puede_ver` (§5.9). No hay una lista de tablas copiada a mano.
 
 ### 9.2 Cómo se genera y cómo se descarga
 
 | Disparador | Qué corre | Qué obtiene el actor |
 | --- | --- | --- |
 | Semanal (`pg_cron`) | `exportar_hogar(hogar_id)`: el compartido una vez y un archivo personal por miembro activo, cada uno en su prefijo | Nada automático: los archivos quedan en Storage, privados |
-| "Exportar ahora" (Ajustes) | La misma función y las mismas reglas, con la fecha de hoy | URL firmada del compartido y del personal propio |
+| "Exportar ahora" (Ajustes) | La misma función y las mismas reglas, con la fecha de hoy | Dos URLs firmadas, una para el archivo del hogar y otra para el personal propio |
 
 Semanal y a pedido son **el mismo camino**: cambia el disparador, no el generador ni las reglas de alcance. El botón no puede pedir el personal de otro miembro ni el export de otro hogar.
 
@@ -418,7 +420,7 @@ Reemplazan las preguntas abiertas de la ronda 1. Fuente: [decisiones-2026-11-22.
 
 | # | Decisión | Consecuencia técnica |
 | --- | --- | --- |
-| D1 | Gastos del hogar **y** personales: `Compra.ambito ∈ {hogar, personal}`, dueño en `miembro_id`, visibilidad solo para el dueño; reportes y balance excluyen lo personal y `incluir_personales` es una preferencia local de vista, apagada | RLS y `puede_ver` por fila, push con propiedad, pull filtrado, export en dos familias, Realtime sin payload e índice local por actor (§5.9, §9); una compra personal nunca es aporte (I6, I18); cada `Pasivo` es un libro de un solo ámbito y un pago cubre un solo libro (§5.10) |
+| D1 | Gastos del hogar **y** personales: `Compra.ambito ∈ {hogar, personal}`, dueño en `miembro_id`, visibilidad solo para el dueño; reportes y balance excluyen lo personal y `incluir_personales` es una preferencia local de vista, apagada | RLS y `puede_ver` por fila, push con propiedad, pull filtrado, dos archivos de exportación por miembro, Realtime sin payload e índice local por actor (§5.9, §9); una compra personal nunca es aporte (I6, I18); cada `Pasivo` es un libro de un solo ámbito y un pago cubre un solo libro (§5.10) |
 | D2 | Todos los miembros ven los ingresos del otro; `Hogar.mostrar_pct_ingreso = false` por defecto | No cambia la RLS de `Ingreso`; el balance muestra pesos y % del total aportado y agrega el % del ingreso propio solo si el hogar prende el interruptor |
 | D3 | Mes calendario | Una sola ventana para gasto, aportes e ingresos; la agenda se lee por `periodo` y el gasto por `fecha`, sin reconciliación por mes (§7) |
 | D4 | Se acepta Supabase gratis con exportación automática semanal JSON+CSV a Storage, botón "Exportar ahora" y réplica local completa | Función programada y botón comparten generador y alcance; bucket privado con prefijos por hogar y dueño; IndexedDB por actor (§9) |
