@@ -31,7 +31,7 @@ Tres conceptos que nunca se suman entre sí:
 | --- | --- | --- |
 | **Consumo** | El gasto real (ej. mercado de $300.000) | Una sola vez, en la fecha de la compra, por el valor total, en su categoría |
 | **Pago de deuda** | Plata que sale para abonar a una tarjeta o crédito (cuota, capital) | Cada vez que se paga. **No** es consumo nuevo |
-| **Costo financiero** | Intereses, cuota de manejo, seguros, mora | Cuando se causa. Es gasto en un balde aparte ("Costo financiero", no es una categoría de consumo), separado del consumo |
+| **Costo financiero** | Intereses, cuota de manejo, seguros, mora | Cuando se causa. Es gasto, pero en categoría "costo financiero", separado del consumo |
 
 Ejemplo: mercado de $300.000 a 3 cuotas con tarjeta.
 - Consumo: $300.000 en "Mercado", una vez, el día de la compra.
