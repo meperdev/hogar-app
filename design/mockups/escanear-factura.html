@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Escanear factura (QR DIAN) — hogar-app</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido principal</a>
+
+  <div class="review-bar">
+    <a href="index.html">← Índice de mockups</a>
+    <span>Núcleo 1 · QR DIAN · 390px</span>
+  </div>
+
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-left">
+        <a class="icon-btn" href="compra-rapida.html" aria-label="Volver a Compra rápida">←</a>
+        <div>
+          <h1 class="app-title">Escanear factura</h1>
+          <p class="app-subtitle">QR DIAN, OCR del tiquete o manual</p>
+        </div>
+      </div>
+      <span class="badge badge--primary">Sin DIAN</span>
+    </header>
+
+    <main id="contenido" class="app-main">
+      <!-- Confirmación de guardado al confirmar factura precargada -->
+      <div id="factura-guardada" class="toast-target" role="status" aria-live="polite">
+        <span>✓ Guardado: Mercado $85.000 · CUFE registrado</span>
+        <a href="compra-rapida.html">Listo</a>
+      </div>
+
+      <!-- Navegación rápida entre los 4 estados del escáner (tabs 2x2 >= 44x44px) -->
+      <nav aria-label="Estados del escáner de factura">
+        <div class="state-tabs">
+          <a class="state-tab" href="#estado-leyendo">1. Leyendo QR</a>
+          <a class="state-tab" href="#estado-precargado">2. Precargado</a>
+          <a class="state-tab" href="#estado-solo-url">3. Solo URL</a>
+          <a class="state-tab" href="#estado-duplicada">4. Duplicada</a>
+        </div>
+      </nav>
+
+      <!-- ============================================================ -->
+      <!-- ESTADO 1: LEYENDO QR (VISOR DE CÁMARA SIMULADO)              -->
+      <!-- ============================================================ -->
+      <section id="estado-leyendo" class="state-section" aria-labelledby="leyendo-heading">
+        <div class="card" style="display: flex; flex-direction: column; gap: 12px;">
+          <div class="section-header" style="margin-bottom: 0;">
+            <h2 id="leyendo-heading" class="section-title">Estado 1: Leyendo QR DIAN</h2>
+            <span class="badge badge--neutral">Cámara activa</span>
+          </div>
+
+          <div class="camera-frame" role="region" aria-label="Visor simulado de cámara para escanear código QR de factura DIAN">
+            <span class="camera-status" role="status" aria-live="polite">● Buscando código QR DIAN…</span>
+            <div class="camera-reticle">
+              <svg width="88" height="88" viewBox="0 0 88 88" fill="none" aria-hidden="true" focusable="false">
+                <rect x="6" y="6" width="24" height="24" rx="2" stroke="#7AE5C3" stroke-width="4"/>
+                <rect x="13" y="13" width="10" height="10" fill="#7AE5C3"/>
+                <rect x="58" y="6" width="24" height="24" rx="2" stroke="#7AE5C3" stroke-width="4"/>
+                <rect x="65" y="13" width="10" height="10" fill="#7AE5C3"/>
+                <rect x="6" y="58" width="24" height="24" rx="2" stroke="#7AE5C3" stroke-width="4"/>
+                <rect x="13" y="65" width="10" height="10" fill="#7AE5C3"/>
+                <rect x="42" y="42" width="10" height="10" fill="#FFFFFF"/>
+                <rect x="58" y="42" width="10" height="10" fill="#FFFFFF"/>
+                <rect x="42" y="58" width="10" height="10" fill="#FFFFFF"/>
+                <rect x="68" y="62" width="14" height="14" fill="#7AE5C3"/>
+              </svg>
+              <span style="font-size: 0.8125rem; font-weight: 700;">Apunta al QR de la factura</span>
+            </div>
+            <p class="camera-caption">Lectura 100% local en tu dispositivo. Funciona sin internet y sin consultar el portal de la DIAN.</p>
+          </div>
+
+          <div class="btn-row">
+            <a class="btn btn--primary btn--sm" href="#estado-precargado">Simular QR con campos</a>
+            <a class="btn btn--secondary btn--sm" href="#estado-solo-url">Simular QR solo URL</a>
+          </div>
+
+          <div class="btn-row">
+            <a class="btn btn--secondary btn--sm" href="#estado-solo-url">Tomar foto (OCR)</a>
+            <a class="btn btn--secondary btn--sm" href="compra-rapida.html">Ingresar manual</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- ESTADO 2: PRECARGADO PARA CONFIRMAR (FORMATO 1: CON CAMPOS)  -->
+      <!-- ============================================================ -->
+      <section id="estado-precargado" class="state-section" aria-labelledby="precargado-heading">
+        <div class="card card--accent-primary" style="display: flex; flex-direction: column; gap: 12px;">
+          <div class="section-header" style="margin-bottom: 0;">
+            <h2 id="precargado-heading" class="section-title">Estado 2: Precargado para confirmar</h2>
+            <span class="badge badge--primary">✓ QR con campos</span>
+          </div>
+
+          <dl class="kv-list">
+            <div class="kv-row">
+              <dt>Comercio (NIT 890900608)</dt>
+              <dd>Almacenes Éxito</dd>
+            </div>
+            <div class="kv-row">
+              <dt>Fecha factura</dt>
+              <dd>22 nov 2026 · 14:15</dd>
+            </div>
+            <div class="kv-row">
+              <dt>Total (COP enteros)</dt>
+              <dd class="cop" style="font-size: 1.125rem;">$85.000</dd>
+            </div>
+            <div class="kv-row">
+              <dt>IVA incluido (informativo)</dt>
+              <dd class="cop">$9.450</dd>
+            </div>
+            <div class="kv-row">
+              <dt>CUFE (único por hogar)</dt>
+              <dd class="mono-code">a8f39d2c…710e92e1</dd>
+            </div>
+          </dl>
+
+          <p class="field-help">El QR no incluye el detalle de productos (en Fase 2 se leen desde el ZIP por correo). Confirma la categoría y guarda.</p>
+
+          <div>
+            <h3 class="section-title" style="margin-bottom: 8px;">Confirma categoría (sugerida por NIT)</h3>
+            <div class="chip-grid" role="group" aria-label="Confirmar categoría de la factura">
+              <button type="button" class="chip chip--active" aria-pressed="true">✓ Mercado</button>
+              <button type="button" class="chip" aria-pressed="false">Mascotas</button>
+              <button type="button" class="chip" aria-pressed="false">Hogar</button>
+              <button type="button" class="chip" aria-pressed="false">Comida</button>
+              <button type="button" class="chip" aria-pressed="false">Transporte</button>
+              <button type="button" class="chip" aria-pressed="false">Servicios</button>
+            </div>
+          </div>
+
+          <div class="callout callout--indigo">
+            <span class="callout__icon" aria-hidden="true">ℹ</span>
+            <p><strong>Medio recordado:</strong> Visa ••4521 (Santiago) · <strong>1 cuota</strong>. Si la difieres a cuotas, el consumo se cuenta una sola vez hoy.</p>
+          </div>
+
+          <div class="chip-row" role="group" aria-label="Cuotas de la compra escaneada">
+            <button type="button" class="chip chip--active" aria-pressed="true">✓ 1 cuota</button>
+            <a class="chip" href="compra-cuotas.html">Diferir a cuotas</a>
+          </div>
+
+          <a class="btn btn--primary btn--full" href="#factura-guardada">Guardar $85.000</a>
+
+          <a
+            class="btn btn--secondary btn--full"
+            href="https://catalogo-vpfe.dian.gov.co/document/searchqr?documentkey=a8f39d2c710e92e1"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Verificar en la DIAN (opcional) ↗
+          </a>
+          <p class="field-help">Abre la URL oficial en tu navegador para verificación manual. No es necesario para guardar el gasto.</p>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- ESTADO 3: SOLO URL (FORMATO 2: FALTAN CAMPOS -> OCR/MANUAL)  -->
+      <!-- ============================================================ -->
+      <section id="estado-solo-url" class="state-section" aria-labelledby="solo-url-heading">
+        <div class="card card--accent-amber" style="display: flex; flex-direction: column; gap: 12px;">
+          <div class="section-header" style="margin-bottom: 0;">
+            <h2 id="solo-url-heading" class="section-title">Estado 3: QR solo con URL</h2>
+            <span class="badge badge--amber">▲ Faltan campos</span>
+          </div>
+
+          <div class="callout callout--amber">
+            <span class="callout__icon" aria-hidden="true">▲</span>
+            <div>
+              <p><strong>CUFE capturado de la URL:</strong> <span class="mono-code">c4b18e09…44a2</span></p>
+              <p>Este QR no trae total ni fecha y la app no consulta la DIAN automáticamente. Usa OCR del tiquete o completa los datos a mano.</p>
+            </div>
+          </div>
+
+          <button type="button" class="btn btn--indigo btn--full">Leer total y fecha con OCR del tiquete</button>
+
+          <form class="form-stack" action="#factura-guardada">
+            <div class="field">
+              <label for="url-total-cop">Total de la factura en COP (entero)</label>
+              <input id="url-total-cop" class="input input--cop" type="text" inputmode="numeric" placeholder="Ej. $85.000">
+            </div>
+
+            <div class="field">
+              <label for="url-comercio">NIT o nombre del comercio</label>
+              <input id="url-comercio" class="input" type="text" placeholder="Ej. 890900608 · D1 o Carulla">
+            </div>
+
+            <div class="field-row">
+              <div class="field">
+                <label for="url-fecha">Fecha factura</label>
+                <input id="url-fecha" class="input" type="date" value="2026-11-22">
+              </div>
+              <div class="field">
+                <label for="url-iva">IVA COP (opcional)</label>
+                <input id="url-iva" class="input" type="text" inputmode="numeric" placeholder="Ej. $9.450">
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="url-cufe">CUFE / CUDE extraído (para evitar duplicados)</label>
+              <input id="url-cufe" class="input mono-code" type="text" value="c4b18e09f21a90c1882a44a2" readonly>
+            </div>
+
+            <div class="btn-row">
+              <a class="btn btn--primary btn--full" href="#factura-guardada">Guardar gasto</a>
+              <a class="btn btn--secondary btn--full" href="compra-rapida.html">Ir a ingreso manual</a>
+            </div>
+          </form>
+
+          <a
+            class="btn btn--secondary btn--full"
+            href="https://catalogo-vpfe.dian.gov.co/document/searchqr?documentkey=c4b18e09f21a90c1882a44a2"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Verificar en la DIAN (opcional) ↗
+          </a>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- ESTADO 4: FACTURA DUPLICADA (DEDUPE POR CUFE)                -->
+      <!-- ============================================================ -->
+      <section id="estado-duplicada" class="state-section" aria-labelledby="duplicada-heading">
+        <div class="card card--accent-danger" style="display: flex; flex-direction: column; gap: 12px;">
+          <div class="section-header" style="margin-bottom: 0;">
+            <h2 id="duplicada-heading" class="section-title">Estado 4: Factura duplicada</h2>
+            <span class="badge badge--danger">▲ Ya registrada</span>
+          </div>
+
+          <div class="callout callout--danger" role="alert">
+            <span class="callout__icon" aria-hidden="true">▲</span>
+            <div>
+              <p><strong>Esta factura ya está registrada en tu hogar.</strong></p>
+              <p>El CUFE <span class="mono-code">a8f39d2c…710e92e1</span> ya tiene un consumo guardado. No se creó un segundo registro para evitar doble conteo.</p>
+            </div>
+          </div>
+
+          <div class="card card--muted">
+            <h3 class="section-title" style="margin-bottom: 8px;">Registro existente</h3>
+            <dl class="kv-list">
+              <div class="kv-row">
+                <dt>Comercio</dt>
+                <dd>Almacenes Éxito (NIT 890900608)</dd>
+              </div>
+              <div class="kv-row">
+                <dt>Categoría y monto</dt>
+                <dd class="cop">Mercado · $85.000</dd>
+              </div>
+              <div class="kv-row">
+                <dt>Registrado por</dt>
+                <dd>Santiago · 22 nov, 14:15</dd>
+              </div>
+              <div class="kv-row">
+                <dt>Medio de pago</dt>
+                <dd>Visa ••4521 (1 cuota)</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div class="btn-row">
+            <a class="btn btn--primary btn--full" href="#estado-leyendo">Escanear otra factura</a>
+            <a class="btn btn--secondary btn--full" href="compra-rapida.html">Volver a Compra rápida</a>
+          </div>
+
+          <a
+            class="btn btn--secondary btn--full"
+            href="https://catalogo-vpfe.dian.gov.co/document/searchqr?documentkey=a8f39d2c710e92e1"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Verificar en la DIAN (opcional) ↗
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Navegación principal">
+      <a class="bottom-nav__link" href="compra-rapida.html" aria-current="page">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 8v8M8 12h8"/>
+        </svg>
+        <span>Compra</span>
+      </a>
+      <a class="bottom-nav__link" href="obligaciones-del-mes.html">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <rect x="4" y="5" width="16" height="15" rx="2"/>
+          <path d="M8 3v4M16 3v4M4 10h16"/>
+        </svg>
+        <span>Obligaciones</span>
+      </a>
+      <a class="bottom-nav__link" href="balance-de-pareja.html">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <circle cx="9" cy="9" r="3"/>
+          <circle cx="16" cy="9" r="3"/>
+          <path d="M3 19c0-3 2.5-5 6-5s6 2 6 5M14 14c3 0 6 1.8 6 5"/>
+        </svg>
+        <span>Balance</span>
+      </a>
+      <a class="bottom-nav__link" href="despensa-mascotas.html">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <circle cx="7" cy="9" r="2"/>
+          <circle cx="12" cy="7" r="2"/>
+          <circle cx="17" cy="9" r="2"/>
+          <path d="M7 16c0-2.5 2.2-4 5-4s5 1.5 5 4c0 1.8-1.4 3-3 3h-4c-1.6 0-3-1.2-3-3z"/>
+        </svg>
+        <span>Mascotas</span>
+      </a>
+    </nav>
+  </div>
+</body>
+</html>
