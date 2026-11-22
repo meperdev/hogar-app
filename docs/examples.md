@@ -5,11 +5,22 @@ cómo se ven los totales del mes, qué error de doble conteo evita el modelo y q
 Sirve como oráculo para los tests de fase 2 y como material de revisión para verificar que las definiciones de
 totales cierran a mano.
 
+Las reglas de negocio están en [domain.md](domain.md) y las entidades, campos, fórmulas e invariantes en
+[data-model.md](data-model.md); acá no se redefinen, solo se calculan con ellas. Todas las cifras de este
+documento se verificaron con `python3` (aritmética entera, redondeo al peso y porcentajes a un decimal).
+
 ## Propósito
 
 - Comprobar con aritmética explícita que las definiciones de los totales del mes producen los números esperados.
 - Mostrar que un consumo se cuenta **una sola vez**, aunque se pague en cuotas y con intereses.
 - Mostrar que pagar el pasivo de otro miembro no crea ninguna deuda entre miembros.
+- Mostrar que lo personal y lo del hogar no se mezclan, ni en el gasto ni en los aportes.
+- Mostrar que el desembolso de un préstamo en efectivo entra una vez, en la fecha del giro, y que el aporte
+  aparece cuando se paga el préstamo.
+- Mostrar que un pago que dejaría el saldo del pasivo negativo, o un segundo enlace a una cuota ya cubierta, se
+  rechazan, y que un reintento del mismo lote no se confunde con un pago nuevo.
+- Mostrar que un ingreso fijo recibido por un monto distinto cambia el denominador de "% de su ingreso" y no los
+  aportes.
 - Dar a los tests de fase 2 un resultado concreto que se pueda afirmar sin ambigüedad.
 
 ## Escenario base
@@ -20,7 +31,7 @@ Todos los ejemplos usan el mismo hogar. Los identificadores de las tablas (`comp
 
 | Entidad | id corto | Campos relevantes |
 | --- | --- | --- |
-| Hogar | `hogar-1` | `nombre` "Casa", `moneda` COP, `zona_horaria` America/Bogota |
+| Hogar | `hogar-1` | `nombre` "Casa", `moneda` COP, `zona_horaria` America/Bogota, `mostrar_pct_ingreso` false |
 | Miembro | `ana` | `nombre` Ana, `rol` admin, `activo` true |
 | Miembro | `beto` | `nombre` Beto, `rol` miembro, `activo` true |
 | MedioDePago | `cuenta-ana` | `nombre` "Cuenta Ana", `tipo` cuenta, `owner_tipo` miembro (`ana`), `activo` true |
@@ -28,17 +39,18 @@ Todos los ejemplos usan el mismo hogar. Los identificadores de las tablas (`comp
 | MedioDePago | `cuenta-comun` | `nombre` "Cuenta común", `tipo` cuenta, `owner_tipo` hogar, `owner_miembro_id` null |
 | Pasivo / Tarjeta | `visa-ana` | `tipo` tarjeta, `nombre` "Visa Ana", `owner_tipo` miembro (`ana`), `dia_corte` 25, `dia_pago` 10, `tasa_tipo`/`tasa_ppm` null (en a2: EA / 280000) |
 
-## Los cuatro totales
+## Los totales
 
 | Total | Qué suma | Qué nunca suma |
 | --- | --- | --- |
-| Gasto del mes | Σ `Compra.monto_total` con fecha en el mes + Σ `CostoFinanciero.monto` con `fecha_causacion` en el mes | `PagoDeDeuda`, `Aporte` |
-| Aportes del mes | Plata que salió de medios de cada miembro hacia el hogar (compras de contado, `PagoDeDeuda`, costos pagados directo, `Aporte`) | Compras financiadas, costos cargados a un pasivo, salidas del fondo común |
+| Gasto del hogar del mes | Σ `Compra.monto_total` con `ambito='hogar'` y fecha en el mes + Σ `CostoFinanciero.monto` de ámbito hogar con `fecha_causacion` en el mes | Compras personales, `PagoDeDeuda`, `Aporte`; el `iva` de una factura (ya está dentro de `monto_total`) |
+| Gasto personal del mes | Σ compras `ambito='personal'` del miembro con fecha en el mes + los costos de ámbito personal atribuidos a ese miembro | Se muestra al dueño o con `incluir_personales`; nunca entra al gasto del hogar ni a los aportes |
+| Aportes del mes | Salidas de medios de cada miembro que cubren cargos del hogar: compras de contado del hogar, pagos `abono` de pasivos del hogar, saldo a favor aplicado, costos pagados directo, `Aporte` | Compras personales, compras pagadas con `financiada_por_pasivo_id`, pagos a un libro personal, saldo a favor no aplicado, salidas del fondo común |
 | Obligaciones del mes | Agenda: cuotas con `fecha_vencimiento` en el mes (capital más sus costos con `cuota_id`) + costos cargados **sin `cuota_id`** causados en el mes + instancias de `Obligacion` del mes, con su estado derivado | No se suma al gasto; el interés de una cuota nunca se cuenta dos veces en la agenda |
-| Saldo del pasivo | Σ capital de planes con `fecha_inicio` ≤ fecha + Σ costos cargados al pasivo − Σ `PagoDeDeuda` | No depende de los aportes |
+| Saldo del pasivo | Σ capital de planes con `fecha_inicio` ≤ fecha + Σ costos cargados al pasivo − Σ `PagoDeDeuda` `abono` − Σ saldo a favor aplicado a cargos; **nunca negativo** | No depende de los aportes |
 
-Definiciones exactas, campos y firmas de las funciones: `docs/data-model.md` (entidades, campos, totales e
-invariantes I1–I17). Este documento no redefine nada: solo calcula con esas reglas.
+Definiciones exactas, campos, fórmulas e invariantes: [data-model.md](data-model.md) (entidades, campos, totales e
+invariantes I1–I22). Este documento no redefine nada: solo calcula con esas reglas.
 
 ### Convenciones de lectura
 
@@ -48,6 +60,11 @@ invariantes I1–I17). Este documento no redefine nada: solo calcula con esas re
 - Las columnas de sincronización (`seq`, `creado_en`, `eliminado_en`, `actualizado_por`) se omiten: no cambian
   ningún total.
 - `registrado_por` no afecta ningún total. En los ejemplos registra el miembro que aparece en la situación.
+- Toda `Compra` de los ejemplos a–e es `ambito='hogar'` con `miembro_id` nulo, salvo que el ejemplo diga otra
+  cosa; todo `PagoDeDeuda` es `tipo='abono'` y solo lleva `cuota_id` cuando cubre una cuota completa (**I20**).
+- El `iva` de una factura ya está dentro de `monto_total`: se muestra, nunca se suma aparte (**I2**, **I4**).
+- `incluir_personales` es preferencia **local** del dispositivo y `Hogar.mostrar_pct_ingreso` viene apagado: cada
+  tabla aclara qué vista muestra.
 - Cada tabla de registros indica si el registro entra en el mismo **lote atómico** (una intención, una
   transacción, una entrada de `outbox`).
 
@@ -92,13 +109,15 @@ fecha y en su propio lote.
 
 `PagoDeDeuda`
 
-| id | pasivo_id | medio_de_pago_id | monto | fecha | nota | registrado_por |
-| --- | --- | --- | --- | --- | --- | --- |
-| `pago-1` | `visa-ana` | `cuenta-ana` | $100.000 | 2026-12-10 | null | Ana |
-| `pago-2` | `visa-ana` | `cuenta-ana` | $100.000 | 2027-01-10 | null | Ana |
-| `pago-3` | `visa-ana` | `cuenta-ana` | $100.000 | 2027-02-10 | null | Ana |
+| id | pasivo_id | cuota_id | medio_de_pago_id | monto | fecha | nota | registrado_por |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `pago-1` | `visa-ana` | `cuota-1` | `cuenta-ana` | $100.000 | 2026-12-10 | null | Ana |
+| `pago-2` | `visa-ana` | `cuota-2` | `cuenta-ana` | $100.000 | 2027-01-10 | null | Ana |
+| `pago-3` | `visa-ana` | `cuota-3` | `cuenta-ana` | $100.000 | 2027-02-10 | null | Ana |
 
-`PagoDeDeuda` no apunta a cuotas: el estado de cada cuota se deriva por FIFO.
+Cada pago cubre una cuota completa y la declara en `cuota_id`. El enlace es **declarativo**: no asigna nada ni
+cambia el orden, y el estado de cada cuota se sigue derivando por FIFO (**I10**, **I20**). Un pago parcial no
+llevaría `cuota_id`.
 
 ### 3. Cómo se ven los totales
 
@@ -147,7 +166,27 @@ del bolsillo de Ana al pasivo; no agregan gasto. El total de la vida cierra: gas
 - **T-a1-3 (propiedad, fast-check).** Para cualquier `monto > 0` y cualquier `n` con `1 ≤ n ≤ min(24, monto)` —el
   tope garantiza que toda cuota tenga capital > 0—, el plan generado cumple Σ `cuota.capital` = `monto`, capitales
   positivos y números contiguos, y el gasto acumulado hasta cualquier fecha `d` **igual o posterior a la fecha de
-  la compra** es exactamente `monto`, sin importar cuántos pagos se hayan hecho (**I3** e **I16**).
+  la compra** es exactamente `monto`, sin importar cuántos pagos se hayan hecho (**I3** e **I16**). En este ejemplo
+  los tres términos extra de la conservación valen `0`: no hay plan `saldo_inicial` ni `desembolso`, y no hay
+  `saldo_a_favor`, así que `Σ gasto = Σ salidas externas + Σ saldo`.
+
+### 7. Variante canónica de fechas de cuota (22 nov, corte 15, pago 25)
+
+La decisión del 22 nov fija el caso de referencia: compra el 22 de noviembre, corte el 15 y pago el 25. La regla de
+[data-model.md](data-model.md) §9 da `corte_1 = 2026-12-15` (el día 22 ya pasó el corte de noviembre) y
+`pago_1 = 2026-12-25` (primer 25 posterior al corte), y de ahí las cuotas salen mes a mes.
+
+| cuota | fecha_vencimiento | capital |
+| --- | --- | --- |
+| 1 | 2026-12-25 | $100.000 |
+| 2 | 2027-01-25 | $100.000 |
+| 3 | 2027-02-25 | $100.000 |
+
+Los ejemplos a1, a2, c y e usan otra tarjeta (`visa-ana`, corte 25, pago 10) con sus propias fechas
+`2026-12-10`, `2027-01-10`, `2027-02-10`. Las dos son internamente consistentes y no se reemplazan: la variante
+solo fija cuál es el caso canónico de la decisión y sirve de fixture para el cálculo de fechas. Con la misma
+compra de `$300.000` en 3 cuotas, esta variante muestra que el gasto sigue siendo `$300.000` en noviembre y que
+solo cambian los vencimientos, no ningún total.
 
 ---
 
@@ -204,13 +243,15 @@ no el M.V. calculado.
 
 `PagoDeDeuda`
 
-| id | pasivo_id | medio_de_pago_id | monto | fecha | nota | registrado_por |
-| --- | --- | --- | --- | --- | --- | --- |
-| `pago-1` | `visa-ana` | `cuenta-ana` | $106.235 | 2026-12-10 | null | Ana |
-| `pago-2` | `visa-ana` | `cuenta-ana` | $104.157 | 2027-01-10 | null | Ana |
-| `pago-3` | `visa-ana` | `cuenta-ana` | $102.078 | 2027-02-10 | null | Ana |
+| id | pasivo_id | cuota_id | medio_de_pago_id | monto | fecha | nota | registrado_por |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `pago-1` | `visa-ana` | `cuota-1` | `cuenta-ana` | $106.235 | 2026-12-10 | null | Ana |
+| `pago-2` | `visa-ana` | `cuota-2` | `cuenta-ana` | $104.157 | 2027-01-10 | null | Ana |
+| `pago-3` | `visa-ana` | `cuota-3` | `cuenta-ana` | $102.078 | 2027-02-10 | null | Ana |
 
-El pago sigue sin apuntar a cuotas: el FIFO cubre primero la cuota 1 (capital + su costo) y así sucesivamente.
+Cada pago cubre el cargo completo de su cuota (capital + su interés) y lo declara en `cuota_id`; el FIFO sigue
+siendo el que reparte y el enlace no reasigna nada (**I10**, **I20**). Dos pagos completos enlazados a la misma
+cuota no pueden coexistir: ese es el caso del ejemplo h.
 
 ### 4. Cómo se ven los totales
 
@@ -259,7 +300,10 @@ gasto `$312.470` = aportes `$312.470`.
   cada mes.
 - **T-a2-3 (propiedad, conservación I16).** Para cualquier `monto > 0` y cualquier tasa en un rango razonable,
   Σ gasto hasta el último vencimiento es igual a Σ salidas externas más el saldo final del pasivo (que es `0`), y
-  es igual a Σ aportes; la identidad de conservación se cumple exactamente, sin tolerancia.
+  es igual a Σ aportes; la identidad de conservación se cumple exactamente, sin tolerancia. En un plan
+  `origen='compra'` los tres términos negativos de **I16** son `0` (sin `saldo_inicial`, sin `desembolso`, sin
+  `saldo_a_favor`), así que la igualdad anterior es la identidad completa; el ejemplo g es el que ejercita los
+  términos no nulos.
 
 ---
 
@@ -309,12 +353,15 @@ es el dueño del medio.
 
 `PagoDeDeuda`
 
-| id | pasivo_id | medio_de_pago_id | monto | fecha | nota | registrado_por |
-| --- | --- | --- | --- | --- | --- | --- |
-| `pago-dec-ana` | `deuda-1` | `cuenta-ana` | $120.000 | 2026-12-05 | null | Ana |
-| `pago-dec-beto` | `deuda-1` | `cuenta-beto` | $80.000 | 2026-12-05 | null | Beto |
-| `pago-ene-ana` | `deuda-1` | `cuenta-ana` | $50.000 | 2027-01-05 | null | Ana |
-| `pago-ene-beto` | `deuda-1` | `cuenta-beto` | $150.000 | 2027-01-05 | null | Beto |
+| id | pasivo_id | cuota_id | medio_de_pago_id | monto | fecha | nota | registrado_por |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `pago-dec-ana` | `deuda-1` | null | `cuenta-ana` | $120.000 | 2026-12-05 | null | Ana |
+| `pago-dec-beto` | `deuda-1` | null | `cuenta-beto` | $80.000 | 2026-12-05 | null | Beto |
+| `pago-ene-ana` | `deuda-1` | null | `cuenta-ana` | $50.000 | 2027-01-05 | null | Ana |
+| `pago-ene-beto` | `deuda-1` | null | `cuenta-beto` | $150.000 | 2027-01-05 | null | Beto |
+
+Ningún pago individual cubre una cuota completa (`$120.000` y `$80.000` son parciales), así que ninguno lleva
+`cuota_id`: la cuota 1 queda pagada recién con la suma de los dos, que es lo que ve el FIFO (**I10**).
 
 ### 3. Cómo se ven los totales
 
@@ -387,9 +434,9 @@ Beto. La tarjeta sigue siendo de Ana. Se compara contra a2 para ver qué cambia 
 
 **Un lote — `registrarPagoDeDeuda` (2027-01-10):** un solo `PagoDeDeuda`. No se crea ni se modifica nada más.
 
-| id | pasivo_id | medio_de_pago_id | monto | fecha | nota | registrado_por |
-| --- | --- | --- | --- | --- | --- | --- |
-| `pago-2` | `visa-ana` | `cuenta-beto` | $104.157 | 2027-01-10 | null | Beto |
+| id | pasivo_id | cuota_id | medio_de_pago_id | monto | fecha | nota | registrado_por |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `pago-2` | `visa-ana` | `cuota-2` | `cuenta-beto` | $104.157 | 2027-01-10 | null | Beto |
 
 Cambian `medio_de_pago_id` y `registrado_por` respecto de a2 (Ana → Beto), pero solo el medio decide a quién se le
 atribuye el aporte: `registrado_por` no lo afecta. El `pasivo_id` sigue siendo `visa-ana`, que es lo que determina
@@ -469,6 +516,18 @@ un ingreso es una intención independiente y no toca ninguna compra ni ningún a
 
 \* D10 no fija la fecha de vigencia del salario de Beto; se usa la misma de Ana para que esté vigente en noviembre.
 
+`RecepcionIngreso` (el recibo de noviembre de cada fijo; `monto_recibido` null = llegó el monto esperado)
+
+| id | ingreso_id | periodo | recibido | monto_recibido | fecha_recepcion | registrado_por |
+| --- | --- | --- | --- | --- | --- | --- |
+| `rec-ana-nov` | `ing-ana-fijo` | 2026-11 | true | null | 2026-11-30 | Ana |
+| `rec-beto-nov` | `ing-beto-fijo` | 2026-11 | true | null | 2026-11-15 | Beto |
+
+El recibo no crea un ingreso nuevo ni cambia `Ingreso.monto`: solo marca ese periodo como **recibido**. Sin la
+fila, el estado sería **esperado** y el balance usaría igual el monto declarado. Los dos recibos son del mismo mes
+del periodo (`periodo` `2026-11` con `fecha_recepcion` en noviembre); el `periodo` es el que manda, no la fecha de
+recepción (**I22**).
+
 `Obligacion`
 
 | id | nombre | categoria_id | monto_estimado | dia_vencimiento | periodicidad | mes_inicio | medio_sugerido_id | activa |
@@ -511,14 +570,20 @@ aportado `$3.000.000`; `1.700.000 / 3.000.000 = 56,7 %` y `1.300.000 / 3.000.000
 
 **Balance de pareja (noviembre 2026)**
 
-| miembro | aporte | % del total | ingreso del mes | % de su ingreso |
-| --- | --- | --- | --- | --- |
-| Ana | $1.700.000 | 56,7 % | $4.500.000 | 37,8 % |
-| Beto | $1.300.000 | 43,3 % | $3.500.000 | 37,1 % |
-| total | $3.000.000 | 100,0 % | $8.000.000 | 37,5 % |
+| miembro | aporte | % del total | ingreso del mes | estado del fijo | % de su ingreso |
+| --- | --- | --- | --- | --- | --- |
+| Ana | $1.700.000 | 56,7 % | $4.500.000 | recibido | 37,8 % |
+| Beto | $1.300.000 | 43,3 % | $3.500.000 ($2.000.000 fijo + $1.500.000 variable) | recibido | 37,1 % |
+| total | $3.000.000 | 100,0 % | $8.000.000 | — | 37,5 % |
 
 No existe fila "debe", "diferencia" ni "compensación". La tabla termina en el total y no produce ninguna
 obligación entre Ana y Beto.
+
+El estado sale de `RecepcionIngreso`: **recibido** si hay fila con `recibido=true`, **esperado** si no hay fila o
+`recibido=false`. La columna "% de su ingreso" es **opcional**: `Hogar.mostrar_pct_ingreso` viene apagado por
+defecto, así que el balance muestra pesos y % del total aportado, y solo con el interruptor prendido agrega el %
+sobre el ingreso individual. Nada de eso se guarda: `1.700.000 / 4.500.000 = 37,777… %` se muestra como `37,8 %` y
+se recalcula cada vez.
 
 **Salidas del fondo común (informativo, no es aporte de nadie):** `$900.000` del mercado pagado desde Cuenta
 común. Por eso el aporte total (`$3.000.000`) es mayor que el gasto (`$1.400.000`): parte de la plata que entró al
@@ -526,7 +591,8 @@ fondo todavía no se gastó.
 
 **Diciembre 2026 (nota):** sin freelance, el ingreso del mes de Beto es `$2.000.000`, no `$3.500.000`. El variable
 cuenta solo en el mes en que llegó; en diciembre no hay movimientos en este ejemplo, así que sus aportes y su % del
-ingreso son `$0` y `0,0 %`.
+ingreso son `$0` y `0,0 %`. Tampoco hay `RecepcionIngreso` de `2026-12`: el estado de los dos fijos es **esperado** y
+el ingreso del mes es el monto declarado (`$4.500.000` y `$2.000.000`).
 
 ### 4. Lo que NO pasa
 
@@ -536,6 +602,10 @@ ingreso son `$0` y `0,0 %`.
 - La Energía **no** se cuenta dos veces: es una `Compra` de `$300.000` (gasto y aporte de Beto) y la instancia de
   `Obligacion` solo aparece en la agenda como pagada.
 - El ingreso **no** entra al gasto ni a los aportes: solo es el denominador de "% de su ingreso".
+- El recibo **no** edita el salario: marcar un periodo como recibido es un hecho aparte (`RecepcionIngreso`) y
+  `Ingreso.monto` no cambia (**I22**).
+- El "% de su ingreso" **no** se muestra por defecto ni se guarda: depende de `mostrar_pct_ingreso` y se recalcula
+  a un decimal al mostrarse.
 - Los porcentajes **no** se guardan ni se convierten en deuda; 56,7 / 43,3 se redondea solo al mostrar.
 - El freelance de Beto **no** se arrastra a diciembre: el ingreso del mes es del mes.
 
@@ -547,6 +617,8 @@ ingreso son `$0` y `0,0 %`.
 - **I7** — El balance no tiene fila de deuda ni cálculo de diferencia.
 - **I11** — Una sola compra por `(obligacion_id, periodo)`: no se puede pagar Energía de noviembre dos veces.
 - **I17** — `Aporte` con origen de dueño miembro y destino de dueño hogar.
+- **I22** — Un `RecepcionIngreso` por `(ingreso_id, periodo)`; el balance usa `monto_recibido` si `recibido=true` y
+  el esperado si no.
 
 ### 6. Test de fase 2 (descripción)
 
@@ -555,11 +627,14 @@ ingreso son `$0` y `0,0 %`.
   gasto total `1400000`; aportes Ana `1700000` (56,7 %) y Beto `1300000` (43,3 %); obligaciones = Energía 2026-11
   pagada; saldo de pasivos `0`.
 - **T-d-2 (balance de pareja e ingreso).** *Given* el mismo escenario. *When* se pide el balance de 2026-11.
-  *Then* ingreso del mes Ana `4500000` y Beto `3500000`; % de su ingreso `37,8 %` y `37,1 %`; no existe ninguna
-  entrada de deuda; y para 2026-12 el ingreso de Beto es `2000000` sin el freelance.
+  *Then* ingreso del mes Ana `4500000` y Beto `3500000`; estado de los dos fijos "recibido"; % de su ingreso
+  `37,8 %` y `37,1 %`; no existe ninguna entrada de deuda; y para 2026-12 el ingreso de Beto es `2000000` sin el
+  freelance y el estado de los dos fijos es "esperado" (**I22**).
 - **T-d-3 (propiedad, identidad de aportes).** Para cualquier conjunto de movimientos del mes, Σ aportes de los
-  miembros = salidas externas desde medios de miembros + Σ `Aporte`, y las salidas desde medios del hogar quedan
-  fuera de la suma (**I16**, segunda identidad de D8).
+  miembros = salidas externas desde medios de miembros que cubren cargos del hogar + Σ `Aporte`, y las salidas desde
+  medios del hogar quedan fuera de la suma (**I16**, segunda identidad de §8 de [data-model.md](data-model.md)). En
+  este ejemplo los tres términos extra de la conservación valen `0`: sin `saldo_inicial`, sin `desembolso` y sin
+  `saldo_a_favor`, así que `Σ gasto = Σ salidas externas + Σ saldo` y Σ saldo es `0`.
 
 ---
 
@@ -583,9 +658,9 @@ noviembre desde la Cuenta Beto.
 
 `ItemDespensa`
 
-| id | mascota_id | nombre | categoria_id | frecuencia_dias | monto_habitual | activo |
-| --- | --- | --- | --- | --- | --- | --- |
-| `item-concentrado` | `luna` | Concentrado 15 kg | Mascotas | 30 | $180.000 | true |
+| id | mascota_id | nombre | tipo | categoria_id | frecuencia_dias | umbral_alerta_pct | monto_habitual | activo |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `item-concentrado` | `luna` | Concentrado 15 kg | comida | Mascotas | 30 | 20 | $180.000 | true |
 
 **Lotes — `registrarCompra`, una por compra real:** cada una apunta al ítem y a la mascota.
 
@@ -596,8 +671,29 @@ noviembre desde la Cuenta Beto.
 | `compra-conc-oct` | 2026-10-05 | Concentrado 15 kg | $180.000 | Mascotas | contado | `cuenta-comun` | `luna` | `item-concentrado` | Beto |
 | `compra-conc-nov` | 2026-11-04 | Concentrado 15 kg | $185.000 | Mascotas | contado | `cuenta-beto` | `luna` | `item-concentrado` | Beto |
 
-**Derivado, no guardado:** la próxima compra estimada es `2026-11-04 + 30 días = 2026-12-04`. Es un recordatorio:
-no es gasto, no es obligación y no tiene entidad propia.
+`NivelDespensa` (hechos observados; cada compra del ítem registra nivel 100 en el mismo lote atómico)
+
+| id | item_despensa_id | fecha | nivel_pct | origen | lote |
+| --- | --- | --- | --- | --- | --- |
+| `nivel-oct` | `item-concentrado` | 2026-10-05 | 100 | compra | con `compra-conc-oct` |
+| `nivel-nov` | `item-concentrado` | 2026-11-04 | 100 | compra | con `compra-conc-nov` |
+| `nivel-ajuste-1` | `item-concentrado` | 2026-11-20 | 54 | ajuste | propio |
+| `nivel-ajuste-2` | `item-concentrado` | 2026-11-28 | 15 | ajuste | propio |
+
+**Derivado, no guardado**, con `frecuencia_dias = 30` y `umbral_alerta_pct = 20`:
+
+| consulta al | nivel_actual | días restantes | próxima compra estimada | alerta |
+| --- | --- | --- | --- | --- |
+| antes de `nivel-oct` | desconocido | — | — | no |
+| 2026-10-05 | 100 | `floor(100 × 30 / 100) = 30` | `2026-10-05 + 30 = 2026-11-04` | no |
+| 2026-11-04 | 100 | `floor(100 × 30 / 100) = 30` | `2026-11-04 + 30 = 2026-12-04` | no |
+| 2026-11-20 | 54 | `floor(54 × 30 / 100) = 16` | `2026-11-20 + 16 = 2026-12-06` | no (54 > 20) |
+| 2026-11-28 | 15 | `floor(15 × 30 / 100) = 4` | `2026-11-28 + 4 = 2026-12-02` | **sí** (15 ≤ 20) |
+
+Cada compra **resetea** el nivel a 100 con un hecho nuevo, no con una columna: un ajuste posterior lo baja y la
+compra siguiente lo vuelve a subir. El nivel actual, los días restantes, la próxima compra estimada y la alerta se
+calculan en cada consulta a partir del último hecho por `(fecha, id)`; el ítem no guarda ninguno de los cuatro
+(**I21**). La próxima compra estimada es un recordatorio: no es gasto, no es obligación y no tiene entidad propia.
 
 ### 3. Cómo se ven los totales
 
@@ -639,7 +735,9 @@ El 2026-12-03 se compra el concentrado por `$182.000` con la Visa Ana, a 1 cuota
 | 2026-12 (variante) | Mascotas $182.000 | — | $182.000 | — | — | $182.000 |
 | 2027-01 (variante) | — | — | $0 | quien pague, $182.000 | cuota $182.000, pagada | $0 |
 
-La próxima compra estimada pasa a ser `2026-12-03 + 30 días = 2027-01-02`.
+Esa compra agrega `NivelDespensa(origen='compra', nivel_pct=100, fecha=2026-12-03)` en el mismo lote, así que el
+nivel vuelve a 100, los días restantes a `floor(100 × 30 / 100) = 30` y la próxima compra estimada pasa a ser
+`2026-12-03 + 30 días = 2027-01-02`, con la alerta apagada porque 100 > 20.
 
 ### 4. Lo que NO pasa
 
@@ -649,29 +747,464 @@ La próxima compra estimada pasa a ser `2026-12-03 + 30 días = 2027-01-02`.
 - La próxima compra estimada **no** es un gasto proyectado ni una obligación del mes.
 - La compra de octubre desde la Cuenta común **no** es aporte de nadie: salió del fondo del hogar.
 - Comprar con tarjeta **no** adelanta el gasto a enero: el consumo es de diciembre y el pago es de enero.
+- El nivel de despensa **no** es una columna del ítem: la compra solo deja un hecho `NivelDespensa` con
+  `nivel_pct = 100`; el nivel actual, los días, la próxima compra y la alerta se derivan (**I21**).
+- Una alerta **no** crea compra, obligación ni gasto: es un aviso sobre el nivel derivado.
+- Un ajuste **no** crea ni modifica compras: es un lote propio con su `nivel_pct` y su fecha.
 
 ### 5. Invariantes que lo protegen
 
 - **I2** — La compra suma una vez, en su fecha, por `monto_total`, sea de contado o financiada.
 - **I3** — 1 cuota con capital `$182.000`; `plan.capital = monto_total`; Σ cuotas = `$182.000`.
 - **I6** — Financiar no es aportar; el aporte aparece con el pago, desde el medio de quien paga.
-- **I10** — Estado de la cuota y próxima compra derivados, nunca guardados.
+- **I10** — Estado de la cuota y saldo derivados, nunca guardados.
 - **I15** — Si una compra se corrige, se marca `eliminado_en` y deja de contar; el ítem de despensa no se borra.
+- **I21** — Nivel de despensa derivado (nunca guardado), determinista con nivel desconocido o `frecuencia_dias`
+  nula; la compra del ítem guarda `NivelDespensa(100)` en el mismo lote atómico.
 
 ### 6. Test de fase 2 (descripción)
 
 - **T-e-1 (dos contados).** *Given* Luna y su ítem. *When* se registran las compras de octubre y noviembre.
   *Then* `totalesDelMes(2026-10)` da gasto Mascotas `180000` y aportes `0`; `totalesDelMes(2026-11)` da
-  `185000` y aporte de Beto `185000`; el filtro por Luna devuelve `185000` en noviembre; y la próxima compra
-  estimada es `2026-12-04` sin aparecer en gasto ni en obligaciones.
+  `185000` y aporte de Beto `185000`; el filtro por Luna devuelve `185000` en noviembre; cada compra creó su
+  `NivelDespensa` con `nivel_pct = 100` y `origen='compra'` en el mismo lote; el nivel derivado es `100`, no hay
+  alerta y la próxima compra estimada es `2026-12-04`, sin aparecer en gasto ni en obligaciones.
 - **T-e-2 (variante financiada).** *Given* el hogar con Luna y su ítem. *When* se registra la compra del
   2026-12-03 por `$182.000` con Visa Ana a 1 cuota. *Then* existe 1 `PlanDeCuotas` y 1 `Cuota` con vencimiento
   `2027-01-10`; el gasto de diciembre es `182000` (una sola vez) y los aportes de diciembre son `0`; el saldo de
-  Visa Ana es `182000`; y al registrar el pago del 2027-01-10 el aporte del mes es de quien pagó y el saldo vuelve
-  a `0`.
-- **T-e-3 (propiedad).** Para cualquier secuencia de compras con `frecuencia_dias = f`, la próxima compra estimada
-  es la última `fecha` + `f` días, y ninguna función de totales incluye esa fecha estimada; el gasto acumulado
-  sigue siendo Σ de los `monto_total` de las compras no eliminadas (**I16**).
+  Visa Ana es `182000`; la compra resetea el nivel a `100` y la próxima compra estimada es `2027-01-02`; y al
+  registrar el pago del 2027-01-10 el aporte del mes es de quien pagó y el saldo vuelve a `0`.
+- **T-e-3 (propiedad, nivel derivado).** Para cualquier `nivel_pct` en `0..100` y cualquier `frecuencia_dias = f`
+  positivo: `dias_restantes = floor(nivel_pct × f / 100)`, `proxima_compra_estimada = fecha_observacion +
+  dias_restantes` y `alerta` es verdadera si y solo si `nivel_pct ≤ umbral_alerta_pct`; sin observación el nivel es
+  desconocido, sin alerta y sin fecha; con `frecuencia_dias` nula el nivel y la alerta existen pero los días y la
+  próxima compra son `null`. Ninguna función de totales incluye la fecha estimada y el gasto acumulado sigue siendo
+  Σ de los `monto_total` de las compras no eliminadas (**I16**, **I21**).
+- **T-e-4 (ajuste y reset).** *Given* el ítem con nivel 100 al 2026-11-04. *When* se registra un ajuste a `54` el
+  2026-11-20 y otro a `15` el 2026-11-28. *Then* el nivel derivado es `54` (16 días, próxima `2026-12-06`, sin
+  alerta) y después `15` (4 días, próxima `2026-12-02`, con alerta); ninguna de las dos compras del ítem se crea ni
+  se modifica; y la compra siguiente vuelve a dejar el nivel en `100`.
+
+---
+
+## Ejemplo f — compra personal vs compra del hogar
+
+### 1. Situación
+
+Noviembre de 2026. Ana paga el mercado del hogar (`$300.000`, Cuenta Ana) y una farmacia personal (`$85.000` con
+factura electrónica, IVA del 19 % incluido, Cuenta Ana). Beto paga un cine personal (`$60.000`, Cuenta Beto). Nadie
+prendió `incluir_personales` y el hogar no prendió `mostrar_pct_ingreso`.
+
+### 2. Registros creados
+
+**Configuración:** `Hogar.mostrar_pct_ingreso = false`. `incluir_personales` no es una columna: es preferencia
+**local** del dispositivo de cada miembro, no viaja en el lote y no altera ningún cálculo.
+
+`Compra`
+
+| id | fecha | descripcion | monto_total | categoria_id | ambito | miembro_id | pago_tipo | medio_de_pago_id | cufe | nit_comercio | iva | registrado_por |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `compra-mercado-nov` | 2026-11-05 | Mercado | $300.000 | Mercado | hogar | null | contado | `cuenta-ana` | null | null | null | Ana |
+| `compra-farmacia-ana` | 2026-11-08 | Farmacia | $85.000 | Salud | personal | `ana` | contado | `cuenta-ana` | `cufe-1` | 900123456 | $13.571 | Ana |
+| `compra-cine-beto` | 2026-11-12 | Cine | $60.000 | Entretenimiento | personal | `beto` | contado | `cuenta-beto` | null | null | null | Beto |
+
+**El IVA incluido se muestra, no se suma.** `$85.000` con IVA del 19 % incluido son `85.000 × 19 / 119 =
+13.571,43…`, es decir `iva = $13.571` sobre una base de `$71.429`; `71.429 + 13.571 = 85.000`. El campo `iva` es
+informativo y nunca se agrega a `monto_total` (**I2**, **I4**): el gasto de esa compra es `$85.000`, no `$98.571`.
+
+**Visibilidad.** Cada compra personal la ve por defecto solo su dueño (`Compra.miembro_id`, **I18**). Ana ve la
+suya y la del hogar; Beto ve la suya y la del hogar; ninguno ve la personal del otro.
+
+### 3. Cómo se ven los totales — noviembre 2026
+
+| vista | gasto del hogar | gasto personal visible | gasto mostrado | aportes del mes |
+| --- | --- | --- | --- | --- |
+| Canónica (interruptor apagado) | Mercado $300.000 | — | $300.000 | Ana $300.000 (100,0 %) · Beto $0 (0,0 %) |
+| Dispositivo de Ana, `incluir_personales` prendido | Mercado $300.000 | Ana $85.000 | $385.000 | **igual**: Ana $300.000 · Beto $0 |
+| Dispositivo de Beto, `incluir_personales` prendido | Mercado $300.000 | Beto $60.000 | $360.000 | **igual**: Ana $300.000 · Beto $0 |
+
+El interruptor cambia lo que se **muestra**, no lo que se calcula: el gasto del hogar sigue siendo `$300.000` y los
+aportes siguen siendo `$300.000` de Ana y `$0` de Beto en las tres vistas.
+
+**Conservación de todos los ámbitos al 2026-11-30** (suma hogar y personales):
+
+```
+Σ gasto                     = 300.000 + 85.000 + 60.000 = 445.000
+Σ salidas externas          = 300.000 + 85.000 + 60.000 = 445.000   (tres compras de contado desde medios)
+Σ saldo de pasivos          = 0
+Σ capital saldo_inicial     = 0
+Σ saldo_no_usado_desembolso = 0
+Σ saldo_a_favor_no_aplicado = 0
+445.000 = 445.000 + 0 − 0 − 0 − 0   ✓   (I16)
+```
+
+### 4. Lo que NO pasa
+
+- La farmacia de Ana **no** entra al gasto del hogar ni al de Beto: es gasto personal de Ana.
+- Ninguna de las dos compras personales es aporte, aunque salgan de medios de miembros: no cubren cargos del hogar
+  (**I6**, **I18**).
+- `incluir_personales` **no** es una columna sincronizada ni un cambio de datos: es una preferencia del teléfono y
+  no altera aportes, gasto del hogar ni saldos.
+- Ana **no** ve el cine de Beto ni con el interruptor prendido: la visibilidad por dueño la impone RLS, no la vista.
+- El IVA **no** se suma: `$85.000`, nunca `$98.571`.
+- Que Ana haya puesto el 100 % del aporte **no** crea ninguna fila "Beto le debe": el aporte es libre (**I7**).
+
+### 5. Invariantes que lo protegen
+
+- **I1** — Todos los montos son enteros: `iva = 13.571` es el redondeo al peso de `13.571,43…`.
+- **I2** — Cada compra suma una vez, en su ámbito y su fecha, por `monto_total`; el `iva` no se agrega.
+- **I6 / I18** — Una compra personal no es aporte del hogar, ni con `incluir_personales` prendido;
+  `ambito='personal'` ⇔ `miembro_id` no nulo.
+- **I14** — Todo registro y toda FK quedan dentro del hogar; RLS oculta la compra personal al otro miembro.
+- **I16** — La conservación suma hogar y personales y cierra con los tres términos extra en `0`.
+
+### 6. Test de fase 2 (descripción)
+
+- **T-f-1 (gasto por ámbito).** *Given* el hogar base. *When* se registran las tres compras. *Then*
+  `totalesDelMes(2026-11)` devuelve `gastoHogar = 300000`, `gastoPersonal(ana) = 85000` y
+  `gastoPersonal(beto) = 60000`; y la compra de Ana guarda `iva = 13571` sin alterar `monto_total`.
+- **T-f-2 (interruptor de vista).** *Given* el mismo escenario. *When* se prende `incluir_personales` en el
+  dispositivo de Ana. *Then* el gasto mostrado es `385000` y los aportes no cambian: Ana `300000`, Beto `0`.
+- **T-f-3 (propiedad).** Para cualquier conjunto de compras con ámbitos mezclados, `gasto_hogar` es Σ de las
+  `ambito='hogar'`, `gasto_personal(M)` es Σ de las `ambito='personal'` de `M`, `aportes(M)` no depende de
+  `incluir_personales` y la conservación de **I16** cierra con los tres términos extra en `0`.
+
+---
+
+## Ejemplo g — préstamo en efectivo gastado en compras del hogar
+
+### 1. Situación
+
+El 2026-11-02 el Banco Andino desembolsa un crédito de consumo de `$2.000.000` a nombre de Ana, a 4 cuotas de
+capital de `$500.000`, sin tasa ("Sin tasa" es el default del formulario). Con esa plata se compra una lavadora de
+`$1.200.000` el 2026-11-05 y un mercado mayorista de `$300.000` el 2026-11-10; quedan `$500.000` sin gastar. Cada
+cuota la paga alguien desde su cuenta: Ana la 1 y la 3, Beto la 2 y la 4, cada una el día de su vencimiento.
+
+### 2. Registros creados
+
+**Lote 1 — alta del préstamo (2026-11-02):** `Pasivo` + `Credito` + `PlanDeCuotas` `desembolso` + 4 `Cuota`.
+
+`Pasivo` / `Credito`
+
+| id | tipo | nombre | owner_tipo | owner_miembro_id | tasa_tipo | tasa_ppm | entidad | referencia |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `credito-ana` | credito | Crédito Andino | miembro | `ana` | null | null | Banco Andino | 001-2026 |
+
+`PlanDeCuotas` (el desembolso se registra **una sola vez**, en la fecha del giro)
+
+| id | pasivo_id | origen | compra_id | fecha_inicio | capital | sistema | n_cuotas | fecha_primera_cuota | tasa_tipo | tasa_ppm |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `plan-credito` | `credito-ana` | desembolso | null | 2026-11-02 | $2.000.000 | capital_fijo | 4 | 2026-12-02 | null | null |
+
+`Cuota`
+
+| id | plan_id | numero | fecha_vencimiento | capital |
+| --- | --- | --- | --- | --- |
+| `cuota-c1` | `plan-credito` | 1 | 2026-12-02 | $500.000 |
+| `cuota-c2` | `plan-credito` | 2 | 2027-01-02 | $500.000 |
+| `cuota-c3` | `plan-credito` | 3 | 2027-02-02 | $500.000 |
+| `cuota-c4` | `plan-credito` | 4 | 2027-03-02 | $500.000 |
+
+Ni el desembolso ni su capital son compra, gasto, aporte ni `RecepcionIngreso`: son saldo del pasivo desde el día
+del giro. Por eso en noviembre el saldo de `credito-ana` ya es `$2.000.000`, antes de que exista cualquier compra.
+
+**Lotes 2 y 3 — `registrarCompra` (2026-11-05 y 2026-11-10):** `Compra`, sin `PlanDeCuotas`.
+
+| id | fecha | descripcion | monto_total | categoria_id | ambito | pago_tipo | medio_de_pago_id | financiada_por_pasivo_id | registrado_por |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `compra-lavadora` | 2026-11-05 | Lavadora | $1.200.000 | Hogar y electrodomésticos | hogar | contado | null | `credito-ana` | Ana |
+| `compra-mercado-may` | 2026-11-10 | Mercado mayorista | $300.000 | Mercado | hogar | contado | null | `credito-ana` | Ana |
+
+Ninguna de las dos crea plan ni suma capital: la plata ya estaba en el plan `desembolso`. La compra solo declara de
+dónde salió (**I19**) y su ámbito fija el del plan: `hogar`.
+
+**Lotes 4 a 7 — `registrarPagoDeDeuda`, uno por cuota** (`tipo='abono'`, capital sin intereses porque no hay tasa):
+
+| id | pasivo_id | cuota_id | medio_de_pago_id | monto | fecha | nota | registrado_por |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `pago-c1` | `credito-ana` | `cuota-c1` | `cuenta-ana` | $500.000 | 2026-12-02 | null | Ana |
+| `pago-c2` | `credito-ana` | `cuota-c2` | `cuenta-beto` | $500.000 | 2027-01-02 | null | Beto |
+| `pago-c3` | `credito-ana` | `cuota-c3` | `cuenta-ana` | $500.000 | 2027-02-02 | null | Ana |
+| `pago-c4` | `credito-ana` | `cuota-c4` | `cuenta-beto` | $500.000 | 2027-03-02 | null | Beto |
+
+### 3. Cómo se ven los totales
+
+| mes | gasto por categoría | costo financiero | gasto total | aportes por miembro | obligaciones del mes y estado | saldo del pasivo |
+| --- | --- | --- | --- | --- | --- | --- |
+| 2026-11 | Hogar y electrodomésticos $1.200.000 · Mercado $300.000 | — | $1.500.000 | — | — | $2.000.000 |
+| 2026-12 | — | — | $0 | Ana $500.000 | cuota 1 $500.000, pagada | $1.500.000 |
+| 2027-01 | — | — | $0 | Beto $500.000 | cuota 2 $500.000, pagada | $1.000.000 |
+| 2027-02 | — | — | $0 | Ana $500.000 | cuota 3 $500.000, pagada | $500.000 |
+| 2027-03 | — | — | $0 | Beto $500.000 | cuota 4 $500.000, pagada | $0 |
+| total de la vida | Hogar y electrodomésticos $1.200.000 · Mercado $300.000 | — | $1.500.000 | Ana $1.000.000 (50,0 %) · Beto $1.000.000 (50,0 %) | 4 cuotas pagadas | $0 |
+
+Lectura: el gasto ocurre completo cuando se compra (`$1.500.000`), no cuando se paga el préstamo; los meses
+siguientes solo mueven caja. Acá **Σ gasto ≠ Σ aportes**: se devuelven `$2.000.000` porque `$500.000` del
+desembolso nunca se gastaron. Lo que cierra es la identidad de conservación.
+
+**Conservación al 2027-03-02** (el préstamo terminó de pagarse):
+
+```
+Σ gasto                     = 1.200.000 + 300.000 = 1.500.000
+Σ salidas externas          = 500.000 + 500.000 + 500.000 + 500.000 = 2.000.000   (los cuatro pagos)
+Σ saldo de pasivos(d)       = 0
+Σ capital saldo_inicial     = 0
+Σ saldo_no_usado_desembolso = 2.000.000 − 1.500.000 = 500.000
+Σ saldo_a_favor_no_aplicado = 0
+1.500.000 = 2.000.000 + 0 − 0 − 500.000 − 0   ✓   (I16)
+```
+
+El término `saldo_no_usado_desembolso` es exactamente la plata del préstamo que no se gastó: sin él la identidad no
+cerraría y el préstamo parecería haber generado gasto.
+
+### 4. Lo que NO pasa
+
+- El desembolso **no** es ingreso, gasto ni aporte: es capital del pasivo y se registra una vez, en la fecha del
+  giro.
+- La lavadora **no** suma capital otra vez: no tiene plan propio aunque se haya pagado con el préstamo; su
+  `pago_tipo` es `contado` con `medio_de_pago_id` nulo y `financiada_por_pasivo_id` seteado (**I3**, **I19**).
+- Las compras vinculadas **no** son aporte: la plata no salió de un medio de un miembro (**I6**).
+- No se puede gastar más de lo desembolsado: una tercera compra de `$600.000` (acumulado `2.100.000 > 2.000.000`)
+  se rechaza, y una compra del 2026-11-01 (anterior al giro) también (**I19**).
+- El préstamo **no** mezcla ámbitos: una compra personal vinculada al mismo pasivo se rechaza; si financiara
+  compras de ambos ámbitos, se modela como dos pasivos.
+- Los pagos **no** son gasto: mueven caja del bolsillo al pasivo y bajan el saldo (**I2**, **I10**).
+- El saldo **no** depende de quién pagó: baja igual con el pago de Ana o de Beto (**I10**).
+
+### 5. Invariantes que lo protegen
+
+- **I1** — Capital, cuotas y compras son enteros: `$2.000.000` se reparte en 4 cuotas exactas de `$500.000`.
+- **I2** — Las dos compras suman una vez cada una, en su fecha, por `monto_total`.
+- **I3** — Las compras son `contado` con exactamente uno de `medio_de_pago_id` / `financiada_por_pasivo_id` y sin
+  plan con su `compra_id`; Σ capital de las 4 cuotas = `plan.capital` = `$2.000.000`.
+- **I6** — Financiar con el desembolso no es aportar; el aporte aparece cuando Ana o Beto pagan desde su medio.
+- **I8** — Un `Credito` es de un miembro (`owner_tipo='miembro'`, `owner_miembro_id='ana'`).
+- **I10** — Saldo y estado de cuotas derivados; el enlace `cuota_id` no reasigna.
+- **I19** — `financiada_por_pasivo_id` no crea plan ni capital, exige el desembolso previo y que el acumulado no
+  supere lo desembolsado; un solo ámbito por plan.
+- **I16** — Conservación con el término `saldo_no_usado_desembolso`.
+- **I20** — Ningún pago deja el saldo negativo en ninguna fecha histórica.
+
+### 6. Test de fase 2 (descripción)
+
+- **T-g-1 (alta del préstamo).** *Given* el hogar base. *When* se registra el préstamo en efectivo del 2026-11-02
+  por `$2.000.000` a 4 cuotas sin tasa. *Then* existe 1 `Pasivo` con su `Credito`, 1 `PlanDeCuotas` con
+  `origen='desembolso'`, `capital = 2000000` y `fecha_inicio = 2026-11-02`, y 4 `Cuota` cuyo capital suma
+  `2000000`; `totalesDelMes(2026-11)` da gasto `0`, aportes `0` y saldo de `credito-ana` `2000000`; y el alta no
+  crea ninguna `Compra`, `Aporte` ni `RecepcionIngreso`.
+- **T-g-2 (compras vinculadas).** *Given* el préstamo. *When* se registran las compras de `$1.200.000` y
+  `$300.000`. *Then* el gasto de noviembre es `1500000` repartido en las dos categorías, los aportes son `0`, no
+  existe ningún `PlanDeCuotas` con esas `compra_id`, el saldo sigue en `2000000` y
+  `saldo_no_usado_desembolso(2026-11-30)` = `500000`; una compra de `$600.000` se rechaza (**I19**), una compra del
+  2026-11-01 se rechaza y una compra personal vinculada al mismo pasivo se rechaza.
+- **T-g-3 (los pagos son el aporte).** *Given* el escenario con las dos compras. *When* se registran los cuatro
+  pagos. *Then* diciembre da aporte de Ana `500000`, gasto `0` y saldo `1500000`; enero da aporte de Beto `500000`
+  y saldo `1000000`; al final los aportes son Ana `1000000` (50,0 %) y Beto `1000000` (50,0 %) con saldo `0`.
+- **T-g-4 (propiedad, I16 con desembolso parcial).** Para cualquier capital desembolsado `L` y cualquier conjunto de
+  compras vinculadas con Σ ≤ `L`, en cualquier fecha `d` se cumple `Σ gasto = Σ salidas externas + Σ saldo −
+  Σ capital saldo_inicial − Σ saldo_no_usado_desembolso − Σ saldo_a_favor_no_aplicado`, exacto y sin tolerancia,
+  incluso antes de terminar de pagar y con `L` gastado en parte.
+
+---
+
+## Ejemplo h — pago duplicado de cuota rechazado
+
+### 1. Situación
+
+Sobre a2. El 2026-12-10 Ana pagó la cuota 1 de la Visa Ana (`$106.235`, Cuenta Ana) y el pago quedó enlazado a
+`cuota-1`. A partir de ahí pasan tres cosas distintas:
+
+1. Un **segundo registro de pago**, con otro `id` y otro lote, mismo monto y mismo día, que intenta cubrir la misma
+   `cuota-1`.
+2. El 2027-01-25, ya pagada la cuota 2, un **pago nuevo** de `$104.157` sin `cuota_id` que dejaría el saldo
+   negativo.
+3. El **mismo lote** del primer pago, reenviado porque se perdió la respuesta.
+
+### 2. El pago aceptado y el saldo
+
+`PagoDeDeuda` (lote 2 de a2, aceptado)
+
+| id | pasivo_id | cuota_id | medio_de_pago_id | monto | fecha | nota | registrado_por |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `pago-1` | `visa-ana` | `cuota-1` | `cuenta-ana` | $106.235 | 2026-12-10 | null | Ana |
+
+`saldo(2026-12-10) = 300.000 (capital) + 6.235 (interés causado) − 106.235 = $200.000`.
+
+### 3. Caso 1 — lo rechaza el único de `cuota_id`, no el saldo
+
+| campo | valor |
+| --- | --- |
+| id | `pago-1-bis` (registro distinto) |
+| pasivo_id | `visa-ana` |
+| cuota_id | `cuota-1` |
+| medio_de_pago_id | `cuenta-ana` |
+| monto | $106.235 |
+| fecha | 2026-12-10 |
+| saldo si entrara | `200.000 − 106.235 = $93.765` (no negativo) |
+| resultado | **rechazado**: "posible pago duplicado" |
+
+El saldo hipotético no sería negativo, así que el guardián de saldo **no** lo habría detenido: lo rechaza el único
+parcial `(cuota_id)` de **I20**, porque `cuota-1` ya tiene un pago completo enlazado y dos enlaces completos a la
+misma cuota no pueden coexistir. La validación FIFO del mismo lote también falla, porque la cuota declarada ya
+estaba cubierta.
+
+Sin `cuota_id`, el mismo registro no es imposible: el FIFO lo aplicaría a la cuota 2 (`$104.157`) y a `$2.078` de la
+cuota 3, y el saldo quedaría en `$93.765`. Eso es un adelanto de cuotas, no un dato inválido, así que el modelo lo
+acepta; el aviso de posible duplicado de [data-model.md](data-model.md) §3.7.1 es una ayuda, no un rechazo duro. Lo
+que sí es duro es el saldo negativo, que aparece en el caso siguiente.
+
+### 4. Caso 2 — lo rechaza el guardián de saldo no negativo
+
+Después de `pago-2` (2027-01-10, `$104.157`) el saldo es `300.000 + 10.392 − 210.392 = $100.000`.
+
+| campo | valor |
+| --- | --- |
+| id | `pago-dup-ene` (registro distinto) |
+| pasivo_id | `visa-ana` |
+| cuota_id | null |
+| medio_de_pago_id | `cuenta-ana` |
+| monto | $104.157 |
+| fecha | 2027-01-25 |
+| saldo si entrara | `100.000 − 104.157 = −$4.157` |
+| resultado | **rechazado**: "posible pago duplicado o sobrepago" |
+
+Ningún enlace de cuota y ningún índice único: lo que lo frena es el saldo negativo (**I20**). La app ofrece
+dividirlo en dos filas del mismo lote: `abono $100.000` (deja el saldo en `$0`) y `saldo_a_favor $4.157` (crédito
+explícito, ni capital ni costo financiero).
+
+El saldo a favor no aplicado **no es aporte**. El 2027-02-10 se causa el interés de la cuota 3 (`$2.078`), que sí cae
+sobre ese crédito: ese `$2.078` es aporte del dueño del medio en febrero y quedan `$2.079` sin aplicar.
+
+**Conservación al 2027-02-10, con el saldo a favor:**
+
+```
+Σ gasto                     = 300.000 + 6.235 + 4.157 + 2.078 = 312.470
+Σ salidas externas          = 106.235 + 104.157 + 100.000 + 4.157 = 314.549
+Σ saldo de pasivos          = 300.000 + 12.470 − 210.392 − 100.000 − 2.078 = 0
+Σ capital saldo_inicial     = 0
+Σ saldo_no_usado_desembolso = 0
+Σ saldo_a_favor_no_aplicado = 4.157 − 2.078 = 2.079
+312.470 = 314.549 + 0 − 0 − 0 − 2.079   ✓   (I16)
+```
+
+### 5. Caso 3 — el reintento idempotente no es un pago nuevo
+
+Reenviar el lote del primer pago (mismo `lote_id`, mismo `id`, mismo `base_seq`) devuelve el resultado guardado en
+`lote_aplicado` sin volver a evaluar `base_seq` (**I13**): queda un solo `PagoDeDeuda`, el saldo no se mueve y no
+aparece ningún aviso de duplicado. La diferencia está en la identidad del registro: mismo `id` + mismo `lote_id` es
+un reintento; un `id` nuevo es un pago nuevo, y ahí sí actúan el único de `cuota_id` y el guardián de saldo.
+
+Dos pagos offline de la misma cuota se serializan igual: `sync_push` bloquea el pasivo, recalcula con las filas del
+lote y las ya confirmadas, y rechaza el segundo o lo convierte en `saldo_a_favor` (**I20**).
+
+### 6. Invariantes que lo protegen
+
+- **I10** — Estado de cuota y saldo derivados; el enlace `cuota_id` no reasigna pagos.
+- **I13** — Reenviar el mismo lote no duplica: la idempotencia es por `lote_id`, no por monto ni por fecha.
+- **I16** — La conservación resta el saldo a favor no aplicado.
+- **I6** — El saldo a favor no aplicado no es aporte; cuando cubre un cargo del hogar, el monto aplicado sí lo es.
+- **I20** — Saldo nunca negativo; `cuota_id` solo en pago completo y único por cuota; el exceso va como
+  `saldo_a_favor`.
+
+### 7. Test de fase 2 (descripción)
+
+- **T-h-1 (doble enlace).** *Given* a2 con `pago-1` enlazado a `cuota-1`. *When* llega `pago-1-bis` por `106235`
+  con `cuota_id='cuota-1'`. *Then* la escritura se rechaza con aviso de posible duplicado, no se crea ningún
+  `PagoDeDeuda` y el saldo sigue en `200000`.
+- **T-h-2 (sobrepago).** *Given* a2 con las cuotas 1 y 2 pagadas (saldo `100000`). *When* se intenta un `abono` de
+  `104157`. *Then* se rechaza con aviso de posible duplicado o sobrepago; al aceptar la división en el mismo lote
+  existe un `abono` de `100000` y un `saldo_a_favor` de `4157`, el saldo es `0` y el aporte del mes no incluye el
+  saldo a favor no aplicado.
+- **T-h-3 (idempotencia).** *Given* el lote del primer pago. *When* se reenvía dos veces con el mismo `lote_id`.
+  *Then* existe exactamente un `PagoDeDeuda`, la respuesta es la misma y no aparece aviso de duplicado.
+- **T-h-4 (propiedad).** Para cualquier secuencia de pagos sobre un pasivo, ningún saldo histórico es negativo, la
+  suma de `abono` aceptados nunca supera capital más costos y nunca coexisten dos enlaces completos a la misma
+  cuota.
+
+---
+
+## Ejemplo i — ingreso fijo recibido por un monto distinto
+
+### 1. Situación
+
+Sobre d. El 2026-11-30 Ana recibe su salario de noviembre, pero llega `$4.300.000` en lugar de los `$4.500.000`
+declarados. Beto recibe el suyo completo el 2026-11-15. Los dos recibos son del mismo mes del periodo
+(`periodo = '2026-11'` con `fecha_recepcion` en noviembre). Diciembre no tiene ningún recibo registrado.
+
+### 2. Registros creados
+
+`RecepcionIngreso`
+
+| id | ingreso_id | periodo | recibido | monto_recibido | fecha_recepcion | registrado_por |
+| --- | --- | --- | --- | --- | --- | --- |
+| `rec-ana-nov` | `ing-ana-fijo` | 2026-11 | true | $4.300.000 | 2026-11-30 | Ana |
+| `rec-beto-nov` | `ing-beto-fijo` | 2026-11 | true | null | 2026-11-15 | Beto |
+
+`monto_recibido = null` con `recibido = true` significa "llegó el monto esperado". `Ingreso.monto` **no** cambia:
+Ana sigue declarando `$4.500.000`. El recibo del periodo es un hecho aparte, no una edición del salario (**I22**).
+
+### 3. Cómo se ven los totales — noviembre 2026
+
+El gasto y los aportes son los mismos de d: el recibo no toca ninguno de los dos.
+
+| miembro | aporte | % del total | ingreso del mes | estado del fijo | % de su ingreso |
+| --- | --- | --- | --- | --- | --- |
+| Ana | $1.700.000 | 56,7 % | $4.300.000 | recibido | 39,5 % |
+| Beto | $1.300.000 | 43,3 % | $3.500.000 ($2.000.000 fijo + $1.500.000 variable) | recibido | 37,1 % |
+| total | $3.000.000 | 100,0 % | $7.800.000 | — | 38,5 % |
+
+Comparado con d, donde los dos fijos llegaron completos: el ingreso de Ana pasa de `$4.500.000` a `$4.300.000` y su
+"% de su ingreso" de `37,8 %` a `39,5 %`; el de Beto no cambia (`37,1 %`); el total pasa de `37,5 %` a `38,5 %`. El
+aporte de cada uno y el gasto del mes quedan idénticos.
+
+`1.700.000 / 4.300.000 = 39,5348… %` se muestra como `39,5 %`: un decimal, y solo al mostrarse. La columna "% de su
+ingreso" es además **opcional**: `Hogar.mostrar_pct_ingreso` viene apagado por defecto, así que el balance muestra
+pesos y % del total aportado, y recién con el interruptor prendido agrega el % sobre el ingreso individual. El "% del
+total" no depende del interruptor.
+
+### 4. Diciembre 2026
+
+Sin `RecepcionIngreso` de `2026-12`, el estado de los dos fijos es **esperado** y el ingreso del mes vuelve a los
+montos declarados: Ana `$4.500.000` y Beto `$2.000.000` (sin freelance). Un periodo puede pasar de "esperado" a
+"recibido" más tarde sin reescribir nada: se agrega la fila del periodo.
+
+Si el recibo de Ana llegara el 2026-12-02 con `periodo = '2026-11'`, el ingreso de **noviembre** sería `$4.300.000` y
+el de diciembre no cambiaría: manda el `periodo`, igual que en la agenda de obligaciones (§8 de
+[data-model.md](data-model.md)). La `fecha_recepcion` es informativa.
+
+### 5. Lo que NO pasa
+
+- El recibo **no** crea un `Ingreso` nuevo ni cambia `Ingreso.monto`.
+- El monto recibido **no** entra al gasto ni a los aportes: solo es el denominador de "% de su ingreso".
+- El "% de su ingreso" **no** se guarda: `39,5 %` se recalcula de `1.700.000 / 4.300.000` cada vez.
+- La ausencia de fila **no** es un error: es el estado "esperado".
+- Un segundo recibo del mismo `(ingreso_id, periodo)` **no** puede existir (**I22**).
+- Un recibo **no** se admite sobre un ingreso `tipo='variable'`: el freelance ya trae su `fecha` en el `Ingreso`.
+- `recibido = false` con `monto_recibido` cargado **no** es válido: los dos campos van juntos o ninguno (CHECK de
+  [data-model.md](data-model.md) §3.3.1).
+
+### 6. Invariantes que lo protegen
+
+- **I1** — `$4.300.000` es entero; ningún porcentaje se guarda como monto.
+- **I6** — Los aportes no cambian por un recibo: el ingreso nunca es aporte.
+- **I7** — El balance sigue sin fila de deuda: el recibo no crea obligaciones entre miembros.
+- **I12** — `periodo` es `'YYYY-MM'` de fecha civil: el mes del recibo no depende de un `timestamptz`.
+- **I22** — Único `(ingreso_id, periodo)`; el balance usa `monto_recibido` si `recibido = true` y el monto declarado
+  si no.
+
+### 7. Test de fase 2 (descripción)
+
+- **T-i-1 (recibido distinto).** *Given* d con el recibo de Ana del periodo `2026-11` por `4300000`. *Then* el
+  ingreso del mes de Ana es `4300000`, el estado de su fijo muestra "recibido", el % de su ingreso es `39,5 %` y
+  `Ingreso.monto` sigue en `4500000`.
+- **T-i-2 (esperado).** *Given* el mismo escenario sin la fila de Ana. *Then* el ingreso del mes de Ana es
+  `4500000`, el estado es "esperado" y el % es `37,8 %`; para `2026-12` los dos fijos están "esperado" con
+  `4500000` y `2000000`.
+- **T-i-3 (rechazos).** *When* se intenta un segundo recibo del mismo `(ingreso_id, periodo)`, un recibo sobre un
+  ingreso variable o un `recibido = false` con `monto_recibido` cargado. *Then* los tres se rechazan.
+- **T-i-4 (propiedad).** Para cualquier ingreso fijo y cualquier `monto_recibido > 0`: el ingreso del mes es
+  `monto_recibido` cuando `recibido = true` y el monto declarado cuando no hay fila o `recibido = false`; los aportes
+  del mes no cambian; y el % se calcula a un decimal solo si `mostrar_pct_ingreso` está prendido.
 
 ---
 
@@ -684,8 +1217,14 @@ La próxima compra estimada pasa a ser `2026-12-03 + 30 días = 2027-01-02`.
 | b | deuda del hogar pagada por ambos, sin deuda entre miembros | I2, I3, I6, I7, I8, I10, I14 | T-b-1, T-b-2, T-b-3 |
 | c | un miembro paga la tarjeta del otro: cambia el aporte, no el gasto | I2, I4, I6, I7, I9, I10 | T-c-1, T-c-2 (propiedad) |
 | d | ingresos fijos vs variables, balance de pareja sin "debe" | I1, I2, I6, I7, I11, I17 | T-d-1, T-d-2, T-d-3 (identidad de aportes) |
-| e | despensa recurrente, recordatorio derivado y variante con tarjeta | I2, I3, I6, I10, I15 | T-e-1, T-e-2, T-e-3 (propiedad) |
+| e | despensa recurrente, nivel observado y derivado, variante con tarjeta | I2, I3, I6, I10, I15, I21 | T-e-1, T-e-2, T-e-3, T-e-4 (propiedad y reset) |
+| f | compra personal vs del hogar: el gasto se separa por ámbito y el aporte no cambia | I1, I2, I6, I7, I14, I16, I18 | T-f-1, T-f-2, T-f-3 (propiedad) |
+| g | préstamo en efectivo: desembolso una vez en el giro, compras vinculadas sin capital y aporte al pagar | I1, I2, I3, I6, I8, I10, I16, I19, I20 | T-g-1, T-g-2, T-g-3, T-g-4 (conservación) |
+| h | pago duplicado rechazado: único de cuota, saldo no negativo y reintento idempotente | I6, I10, I13, I16, I20 | T-h-1, T-h-2, T-h-3, T-h-4 (propiedad) |
+| i | ingreso fijo recibido por un monto distinto: cambia el denominador, no los aportes | I1, I6, I7, I12, I22 | T-i-1, T-i-2, T-i-3, T-i-4 (propiedad) |
 
-Los property-based tests de a1, a2, c, d y e cubren la identidad de conservación **I16** desde ángulos distintos:
-sin tasa, con tasa, con pagos parciales y con salidas del fondo común. Todos se prueban a través de la interfaz
-pública del dominio (casos de uso + funciones de totales), nunca leyendo la base de datos.
+Los property-based tests de a1, a2, c, d, e, f, g, h e i cubren la identidad de conservación **I16** desde ángulos
+distintos: sin tasa, con tasa, con pagos parciales, con salidas del fondo común, con compras personales, con un
+préstamo gastado solo en parte y con un saldo a favor no aplicado; h agrega la propiedad de que ningún saldo
+histórico es negativo. Todos se prueban a través de la interfaz pública del dominio (casos de uso + funciones de
+totales), nunca leyendo la base de datos.
