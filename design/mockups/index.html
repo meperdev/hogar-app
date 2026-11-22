@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>hogar-app — Índice de mockups (Fase 1)</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido principal</a>
+
+  <main id="contenido" class="index-page">
+    <header class="index-hero">
+      <div class="badge-row" style="margin-bottom: 10px;">
+        <span class="badge badge--primary">Fase 1 · Diseño UX/UI</span>
+        <span class="badge badge--neutral">Mobile-first · 390px</span>
+        <span class="badge badge--neutral">COP enteros · $300.000</span>
+        <span class="badge badge--indigo">WCAG AA</span>
+      </div>
+      <h1>hogar-app — Mockups interactivos de los 4 núcleos</h1>
+      <p>Prototipo HTML estático clickeable sin frameworks ni CDNs. Todos los números de ejemplo corresponden a <strong>noviembre 2026</strong> del hogar de <strong>Santiago y Camila</strong> (con sus mascotas Luna y Milo) y cuadran entre pantallas.</p>
+      <div class="btn-row" style="margin-top: 14px;">
+        <a class="btn btn--primary" href="compra-rapida.html">Abrir app (Compra rápida)</a>
+        <a class="btn btn--secondary" href="obligaciones-del-mes.html">Ver Obligaciones del mes</a>
+      </div>
+    </header>
+
+    <section aria-labelledby="nucleos-heading">
+      <h2 id="nucleos-heading" class="section-title" style="font-size: 1.125rem; margin-bottom: 12px;">Pantallas por núcleo</h2>
+      <div class="index-grid">
+        <article class="index-card">
+          <span class="badge badge--primary">Núcleo 1</span>
+          <h3>Compra rápida</h3>
+          <p class="app-subtitle">Meta: registrar "mercado $85.000 con Visa" en 3 acciones desde abrir la app.</p>
+          <ul class="index-links">
+            <li><a href="compra-rapida.html"><span>Compra rápida (inicio · $85.000)</span><span aria-hidden="true">→</span></a></li>
+            <li><a href="compra-cuotas.html"><span>Compra a cuotas ($300.000 · 3 cuotas)</span><span aria-hidden="true">→</span></a></li>
+          </ul>
+        </article>
+
+        <article class="index-card">
+          <span class="badge badge--indigo">Núcleo 2</span>
+          <h3>Obligaciones del mes</h3>
+          <p class="app-subtitle">Consumo vs pago de deuda vs costo financiero separados. Tasas E.A./M.V. opcionales.</p>
+          <ul class="index-links">
+            <li><a href="obligaciones-del-mes.html"><span>Obligaciones de noviembre</span><span aria-hidden="true">→</span></a></li>
+            <li><a href="registrar-pago-obligacion.html"><span>Registrar pago (incl. pago por pareja)</span><span aria-hidden="true">→</span></a></li>
+            <li><a href="nueva-tarjeta-credito.html"><span>Nueva tarjeta o crédito</span><span aria-hidden="true">→</span></a></li>
+          </ul>
+        </article>
+
+        <article class="index-card">
+          <span class="badge badge--primary">Núcleo 3</span>
+          <h3>Balance de pareja</h3>
+          <p class="app-subtitle">Aporte libre en pesos y %. Ingresos fijos vs variables. Sin deudas entre miembros.</p>
+          <ul class="index-links">
+            <li><a href="balance-de-pareja.html"><span>Balance de noviembre (Aporte libre)</span><span aria-hidden="true">→</span></a></li>
+            <li><a href="registrar-ingreso.html"><span>Registrar ingreso fijo o variable</span><span aria-hidden="true">→</span></a></li>
+          </ul>
+        </article>
+
+        <article class="index-card">
+          <span class="badge badge--amber">Núcleo 4</span>
+          <h3>Despensa de mascotas</h3>
+          <p class="app-subtitle">Control de comida, insumos y recurrentes de Luna y Milo con recompra en 1 toque.</p>
+          <ul class="index-links">
+            <li><a href="despensa-mascotas.html"><span>Despensa de Luna y Milo</span><span aria-hidden="true">→</span></a></li>
+            <li><a href="nuevo-insumo-mascota.html"><span>Nuevo insumo o recurrente</span><span aria-hidden="true">→</span></a></li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="reglas-heading">
+      <h2 id="reglas-heading" class="section-title" style="margin-bottom: 10px;">Reglas de dominio y accesibilidad verificadas</h2>
+      <dl class="kv-list">
+        <div class="kv-row">
+          <dt>Sin doble conteo en cuotas</dt>
+          <dd>Mercado $300.000 = 1 consumo + 3 cuotas de $100.000 (deuda)</dd>
+        </div>
+        <div class="kv-row">
+          <dt>Aporte libre</dt>
+          <dd>Santiago 58% ($2.088.000) · Camila 42% ($1.512.000)</dd>
+        </div>
+        <div class="kv-row">
+          <dt>Propiedad fase 1</dt>
+          <dd>Tarjetas/créditos de un miembro · Deudas de miembro u hogar</dd>
+        </div>
+        <div class="kv-row">
+          <dt>Accesibilidad WCAG AA</dt>
+          <dd>Contraste &gt;= 4.5:1 · Toques &gt;= 44×44px · Foco visible</dd>
+        </div>
+      </dl>
+    </section>
+  </main>
+</body>
+</html>

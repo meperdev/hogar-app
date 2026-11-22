@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nueva tarjeta o crédito — hogar-app</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido principal</a>
+
+  <div class="review-bar">
+    <a href="index.html">← Índice de mockups</a>
+    <span>Núcleo 2 · Alta con tasa E.A./M.V. opcional</span>
+  </div>
+
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-left">
+        <a class="icon-btn" href="obligaciones-del-mes.html" aria-label="Volver a Obligaciones del mes">←</a>
+        <div>
+          <h1 class="app-title">Nueva tarjeta o crédito</h1>
+          <p class="app-subtitle">Configuración rápida en COP</p>
+        </div>
+      </div>
+    </header>
+
+    <main id="contenido" class="app-main app-main--no-nav">
+      <div id="tarjeta-guardada" class="toast-target" role="status" aria-live="polite">
+        <span>✓ Guardada: Visa ••4521 (Santiago)</span>
+        <a href="obligaciones-del-mes.html">Ver lista</a>
+      </div>
+
+      <form class="form-stack" action="#tarjeta-guardada">
+        <fieldset class="radio-group">
+          <legend class="fieldset-legend">Tipo de instrumento</legend>
+          <div class="radio-options">
+            <label class="radio-card" for="tipo-tc">
+              <input id="tipo-tc" type="radio" name="tipo-instrumento" value="tarjeta" checked>
+              <span>Tarjeta de crédito</span>
+            </label>
+            <label class="radio-card" for="tipo-credito">
+              <input id="tipo-credito" type="radio" name="tipo-instrumento" value="credito">
+              <span>Crédito / préstamo</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <div class="field">
+          <label for="nombre-tarjeta">Nombre o alias</label>
+          <input id="nombre-tarjeta" class="input" type="text" value="Visa ••4521" placeholder="Ej. Visa ••4521 o Crédito vehículo">
+        </div>
+
+        <!-- Fase 1: titular siempre un miembro (modelo extensible a hogar) -->
+        <fieldset class="radio-group">
+          <legend class="fieldset-legend">Titular (un miembro)</legend>
+          <div class="radio-options">
+            <label class="radio-card" for="titular-santiago">
+              <input id="titular-santiago" type="radio" name="titular" value="santiago" checked>
+              <span>Santiago</span>
+            </label>
+            <label class="radio-card" for="titular-camila">
+              <input id="titular-camila" type="radio" name="titular" value="camila">
+              <span>Camila</span>
+            </label>
+          </div>
+          <p class="field-help">Por ahora cada tarjeta o crédito pertenece a un solo miembro. Igual podrá pagarla cualquiera de los dos sin crear deuda entre ustedes.</p>
+        </fieldset>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="dia-corte">Día de corte</label>
+            <input id="dia-corte" class="input" type="number" min="1" max="31" value="15">
+          </div>
+          <div class="field">
+            <label for="dia-pago">Día límite de pago</label>
+            <input id="dia-pago" class="input" type="number" min="1" max="31" value="25">
+          </div>
+        </div>
+
+        <!-- Tasas colombianas E.A. / M.V. OPCIONALES -->
+        <section class="card form-stack" aria-labelledby="tasa-heading">
+          <div class="section-header" style="margin-bottom: 0;">
+            <h2 id="tasa-heading" class="section-title">Tasa de interés (opcional)</h2>
+            <span class="badge badge--neutral">Opcional</span>
+          </div>
+
+          <fieldset class="radio-group">
+            <legend class="visually-hidden">Modalidad de tasa de interés</legend>
+            <div class="radio-options radio-options--3">
+              <label class="radio-card" for="tasa-ninguna">
+                <input id="tasa-ninguna" type="radio" name="tipo-tasa" value="ninguna">
+                <span>Sin tasa</span>
+              </label>
+              <label class="radio-card" for="tasa-ea">
+                <input id="tasa-ea" type="radio" name="tipo-tasa" value="ea" checked>
+                <span>% E.A.</span>
+              </label>
+              <label class="radio-card" for="tasa-mv">
+                <input id="tasa-mv" type="radio" name="tipo-tasa" value="mv">
+                <span>% M.V.</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <div class="field">
+            <label for="valor-tasa">Valor de tasa E.A. (%)</label>
+            <input id="valor-tasa" class="input" type="text" inputmode="decimal" value="28,32" aria-describedby="conversion-tasa">
+            <p id="conversion-tasa" class="field-help">
+              Equivalencia automática: <strong>28,32% E.A. ⇄ 2,10% M.V.</strong> (fórmula: MV = (1 + EA)^(1/12) − 1).
+            </p>
+          </div>
+
+          <div class="callout callout--amber">
+            <span class="callout__icon" aria-hidden="true">ℹ</span>
+            <p>Si eliges <strong>Sin tasa</strong>, la app no calcula intereses automáticamente y podrás registrarlos a mano como <em>Costo financiero</em> al pagar tu extracto.</p>
+          </div>
+        </section>
+
+        <div class="field">
+          <label for="cupo-cop">Cupo total o monto inicial en COP (opcional)</label>
+          <input id="cupo-cop" class="input input--cop" type="text" inputmode="numeric" value="$6.000.000">
+        </div>
+
+        <div class="btn-row">
+          <a class="btn btn--primary btn--full" href="#tarjeta-guardada">Guardar tarjeta</a>
+          <a class="btn btn--secondary btn--full" href="obligaciones-del-mes.html">Cancelar</a>
+        </div>
+      </form>
+    </main>
+  </div>
+</body>
+</html>

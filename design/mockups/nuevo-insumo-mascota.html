@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nuevo insumo de mascota — hogar-app</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido principal</a>
+
+  <div class="review-bar">
+    <a href="index.html">← Índice de mockups</a>
+    <span>Núcleo 4 · Nuevo insumo</span>
+  </div>
+
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-left">
+        <a class="icon-btn" href="despensa-mascotas.html" aria-label="Volver a Despensa de mascotas">←</a>
+        <div>
+          <h1 class="app-title">Nuevo insumo</h1>
+          <p class="app-subtitle">Comida, higiene o salud recurrente</p>
+        </div>
+      </div>
+    </header>
+
+    <main id="contenido" class="app-main app-main--no-nav">
+      <div id="insumo-guardado" class="toast-target" role="status" aria-live="polite">
+        <span>✓ Insumo agregado a la despensa</span>
+        <a href="despensa-mascotas.html">Ver despensa</a>
+      </div>
+
+      <form class="form-stack" action="#insumo-guardado">
+        <div class="field">
+          <label for="nombre-insumo">Nombre del producto o gasto</label>
+          <input id="nombre-insumo" class="input" type="text" value="Concentrado adulto 12 kg" placeholder="Ej. Arena sanitaria 10 kg">
+        </div>
+
+        <fieldset class="radio-group">
+          <legend class="fieldset-legend">¿Para qué mascota es?</legend>
+          <div class="radio-options radio-options--3">
+            <label class="radio-card" for="mascota-luna">
+              <input id="mascota-luna" type="radio" name="mascota" value="luna" checked>
+              <span>Luna</span>
+            </label>
+            <label class="radio-card" for="mascota-milo">
+              <input id="mascota-milo" type="radio" name="mascota" value="milo">
+              <span>Milo</span>
+            </label>
+            <label class="radio-card" for="mascota-ambas">
+              <input id="mascota-ambas" type="radio" name="mascota" value="compartido">
+              <span>Ambas</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="radio-group">
+          <legend class="fieldset-legend">Tipo de insumo</legend>
+          <div class="radio-options radio-options--3">
+            <label class="radio-card" for="cat-comida">
+              <input id="cat-comida" type="radio" name="tipo-insumo" value="comida" checked>
+              <span>Comida</span>
+            </label>
+            <label class="radio-card" for="cat-higiene">
+              <input id="cat-higiene" type="radio" name="tipo-insumo" value="higiene">
+              <span>Higiene</span>
+            </label>
+            <label class="radio-card" for="cat-salud">
+              <input id="cat-salud" type="radio" name="tipo-insumo" value="salud">
+              <span>Salud</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="duracion-dias">Duración estimada (días)</label>
+            <input id="duracion-dias" class="input" type="number" min="1" max="365" value="35">
+          </div>
+          <div class="field">
+            <label for="alerta-dias">Avisar cuando falten (días)</label>
+            <input id="alerta-dias" class="input" type="number" min="1" max="60" value="5">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="precio-insumo">Último precio en COP (opcional)</label>
+          <input id="precio-insumo" class="input input--cop" type="text" inputmode="numeric" value="$165.000" aria-describedby="ayuda-precio-insumo">
+          <p id="ayuda-precio-insumo" class="field-help">Se usa para prellenar Compra rápida al tocar Recomprar.</p>
+        </div>
+
+        <div class="btn-row">
+          <a class="btn btn--primary btn--full" href="#insumo-guardado">Guardar insumo</a>
+          <a class="btn btn--secondary btn--full" href="despensa-mascotas.html">Cancelar</a>
+        </div>
+      </form>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Registrar pago de obligación — hogar-app</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido principal</a>
+
+  <div class="review-bar">
+    <a href="index.html">← Índice de mockups</a>
+    <span>Núcleo 2 · Pago de obligación</span>
+  </div>
+
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-left">
+        <a class="icon-btn" href="obligaciones-del-mes.html" aria-label="Volver a Obligaciones del mes">←</a>
+        <div>
+          <h1 class="app-title">Registrar pago</h1>
+          <p class="app-subtitle">Cuota 1/3 · Mercado Éxito</p>
+        </div>
+      </div>
+      <span class="badge badge--indigo">Deuda</span>
+    </header>
+
+    <main id="contenido" class="app-main app-main--no-nav">
+      <div id="pago-registrado" class="toast-target" role="status" aria-live="polite">
+        <span>✓ Pago registrado por Camila ($106.300)</span>
+        <a href="obligaciones-del-mes.html">Volver</a>
+      </div>
+
+      <!-- Contexto de la obligación -->
+      <section class="card card--accent-indigo" aria-labelledby="detalle-obligacion-heading">
+        <div class="section-header">
+          <h2 id="detalle-obligacion-heading" class="section-title">Visa ••4521 · Vence 25 nov</h2>
+          <span class="badge badge--neutral">Deuda de Santiago</span>
+        </div>
+        <p class="field-help">Compra original: Mercado $300.000 (ya registrada una vez como consumo el 22 nov). Este pago abona la deuda y no suma al consumo.</p>
+      </section>
+
+      <form class="form-stack" action="#pago-registrado">
+        <!-- Quién realiza el pago -->
+        <fieldset class="radio-group">
+          <legend class="fieldset-legend">¿Quién realiza este pago?</legend>
+          <div class="radio-options">
+            <label class="radio-card" for="pagador-santiago">
+              <input id="pagador-santiago" type="radio" name="pagador" value="santiago">
+              <span>Santiago</span>
+            </label>
+            <label class="radio-card" for="pagador-camila">
+              <input id="pagador-camila" type="radio" name="pagador" value="camila" checked>
+              <span>Camila</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <!-- Regla de dominio: pagar deuda de otro miembro -->
+        <div class="callout callout--primary">
+          <span class="callout__icon" aria-hidden="true">✓</span>
+          <p><strong>Aporte libre:</strong> esta deuda es de Santiago. Al pagarla <strong>Camila</strong>, los $106.300 cuentan como aporte de Camila al hogar y <strong>no generan deuda entre ustedes</strong>.</p>
+        </div>
+
+        <!-- Desglose editable: Capital (Pago de deuda) vs Intereses (Costo financiero) -->
+        <div class="card form-stack">
+          <h2 class="section-title">Desglose del pago (COP enteros)</h2>
+
+          <div class="field">
+            <label for="pago-capital">Capital · Pago de deuda (no suma al consumo)</label>
+            <input id="pago-capital" class="input input--cop" type="text" inputmode="numeric" value="$100.000" aria-describedby="ayuda-capital">
+            <p id="ayuda-capital" class="field-help">Editable si haces un pago parcial o abono extra a capital.</p>
+          </div>
+
+          <div class="field">
+            <label for="pago-intereses">Intereses / seguros · Costo financiero (opcional)</label>
+            <input id="pago-intereses" class="input input--cop" type="text" inputmode="numeric" value="$6.300" aria-describedby="ayuda-intereses">
+            <p id="ayuda-intereses" class="field-help">Estimado con tasa 2,10% M.V. de Visa ••4521. Ajusta al valor exacto del extracto o deja en $0 si no hubo intereses.</p>
+          </div>
+
+          <dl class="kv-list">
+            <div class="kv-row kv-row--total">
+              <dt>Total que sale hoy</dt>
+              <dd class="cop">$106.300</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="cuenta-origen">Cuenta de origen</label>
+            <select id="cuenta-origen" class="select">
+              <option value="nequi" selected>Nequi · Camila</option>
+              <option value="bancolombia">Bancolombia · Santiago</option>
+              <option value="efectivo">Efectivo</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="fecha-pago">Fecha de pago</label>
+            <input id="fecha-pago" class="input" type="date" value="2026-11-22">
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <a class="btn btn--primary btn--full" href="#pago-registrado">Confirmar pago ($106.300)</a>
+          <a class="btn btn--secondary btn--full" href="obligaciones-del-mes.html">Cancelar</a>
+        </div>
+      </form>
+    </main>
+  </div>
+</body>
+</html>
