@@ -31,8 +31,8 @@ Controlar comida, higiene, salud y otros insumos recurrentes de cada `Mascota` d
 4. La lista prioriza automáticamente los `ItemDespensa` donde **`nivel_derivado <= umbral_alerta_pct`** arriba (alerta), seguidos por nivel medio y bien.
 5. Cada tarjeta de `ItemDespensa` comunica el estado sin depender solo del color:
    - Nombre, `Mascota` (o `Compartido · todas las mascotas`), `tipo` (`Comida`, `Higiene`, `Salud`, `Otro`) y `monto_habitual` + fecha de última compra.
-   - **Nivel restante derivado** (barra accesible con porcentaje y patrón), **días restantes derivados**, **próxima compra estimada** y **umbral de alerta** (ej. `Alerta <= 20 %`).
-   - Etiqueta con icono + texto: `▲ Por acabarse` (cuando `nivel_derivado <= umbral_alerta_pct`), `◷ Próximo`, `● Media` o `✓ Bien`.
+   - **Nivel restante derivado** (barra accesible con porcentaje y patrón), **días restantes derivados** con la fórmula `dias_restantes = floor(nivel_pct / 100 × frecuencia_dias)`, **próxima compra estimada** (`fecha_observacion + dias_restantes`) y **umbral de alerta** (ej. `Alerta <= 20 %`). Con observaciones del `22 nov`: `15 %` de `35` días = `5` días (`27 nov`), `20 %` de `30` días = `6` días (`28 nov`), `45 %` de `25` días = `11` días (`3 dic`) y `75 %` de `30` días = `22` días (`14 dic`).
+   - Etiqueta con icono + texto: **`▲ Por acabarse`** **siempre** que `nivel_derivado <= umbral_alerta_pct` (incluido cuando iguala el umbral, ej. `20 % <= 20 %`), `● Media` (por encima del umbral hasta `60 %`) o `✓ Bien` (`> 60 %`).
    - Dos acciones directas: **`Recomprar`** y **`Ajustar nivel`**.
 
 ### 2. Ajustar nivel observado (`NivelDespensa` con `origen = 'ajuste'`)

@@ -28,17 +28,17 @@
     <main id="contenido" class="app-main">
       <!-- 3 conceptos separados: TODOS DERIVADOS, NUNCA se suman entre sí -->
       <section aria-labelledby="resumen-contable-heading">
-        <h2 id="resumen-contable-heading" class="visually-hidden">Resumen separado de consumo, capital de cuotas y costo financiero</h2>
+        <h2 id="resumen-contable-heading" class="visually-hidden">Resumen separado de consumo real del hogar, capital pagado de cuotas y costo financiero</h2>
         <div class="metric-grid-3">
           <article class="metric-card metric-card--consumo">
-            <span class="metric-card__label">Consumo real</span>
-            <span class="metric-card__value">$3.145.000</span>
-            <span class="metric-card__note">Compras del mes una sola vez</span>
+            <span class="metric-card__label">Consumo real (hogar)</span>
+            <span class="metric-card__value">$3.112.000</span>
+            <span class="metric-card__note">Solo hogar · 1 vez por compra</span>
           </article>
           <article class="metric-card metric-card--deuda">
-            <span class="metric-card__label">Capital cuotas</span>
+            <span class="metric-card__label">Capital pagado (cuotas)</span>
             <span class="metric-card__value">$220.000</span>
-            <span class="metric-card__note">Pagado (deuda) · $450.000 pend.</span>
+            <span class="metric-card__note">Pagado · $450.000 pend.</span>
           </article>
           <article class="metric-card metric-card--costo">
             <span class="metric-card__label">Costo financ.</span>
@@ -50,8 +50,45 @@
 
       <div class="callout callout--indigo">
         <span class="callout__icon" aria-hidden="true">ℹ</span>
-        <p><strong>Sin doble conteo:</strong> el capital de cuotas del mes ($670.000) se divide en <strong>$220.000 pagados</strong> (único <em>Pago de deuda</em> real) y <strong>$450.000 pendientes</strong>. Ninguno se suma al consumo ($3.145.000), y <em>Costo financiero</em> es un balde aparte.</p>
+        <p><strong>Sin doble conteo:</strong> el capital de cuotas del mes ($670.000) se divide en <strong>$220.000 pagados</strong> (único <em>Pago de deuda</em> real) y <strong>$450.000 pendientes</strong>. Ninguno se suma al consumo real del hogar ($3.112.000), y <em>Costo financiero</em> es un balde aparte.</p>
       </div>
+
+      <!-- Desglose verificable de Consumo real (Compra.ambito = 'hogar') -->
+      <details class="inline-picker">
+        <summary>
+          <span>Ver desglose verificable de Consumo real ($3.112.000)</span>
+          <span aria-hidden="true">▾</span>
+        </summary>
+        <div class="inline-picker__body">
+          <dl class="kv-list">
+            <div class="kv-row">
+              <dt>05 nov · Arriendo apartamento (Santiago)</dt>
+              <dd class="cop">$1.800.000</dd>
+            </div>
+            <div class="kv-row">
+              <dt>10 nov · Mercado Éxito (guardada · Visa 3 cuotas)</dt>
+              <dd class="cop">$300.000</dd>
+            </div>
+            <div class="kv-row">
+              <dt>18 nov · Servicios públicos EPM (Camila)</dt>
+              <dd class="cop">$285.000</dd>
+            </div>
+            <div class="kv-row">
+              <dt>08–15 nov · Mascotas (3 compras · Camila)</dt>
+              <dd class="cop">$245.000</dd>
+            </div>
+            <div class="kv-row">
+              <dt>Nov · Compras diarias del hogar (Camila)</dt>
+              <dd class="cop">$482.000</dd>
+            </div>
+            <div class="kv-row kv-row--total">
+              <dt>Total Consumo real hogar (noviembre)</dt>
+              <dd class="cop">$3.112.000</dd>
+            </div>
+          </dl>
+          <p class="field-help">Filtra <code>Compra.ambito = 'hogar'</code> (excluye compras personales de $140.000 salvo <code>incluir_personales</code>). No incluye borradores sin guardar (como la simulación de $300.000 del 22 nov en <em>Compra a cuotas</em>) ni pagos de deuda.</p>
+        </div>
+      </details>
 
       <!-- Pendientes por pagar -->
       <section aria-labelledby="pendientes-heading">
@@ -64,7 +101,7 @@
           <li class="item-card card--accent-amber">
             <div class="item-card__top">
               <div>
-                <h3 class="item-card__title">Cuota 1/3 · Mercado Éxito (10 nov)</h3>
+                <h3 class="item-card__title">Cuota 1/3 · Mercado Éxito (guardada 10 nov)</h3>
                 <p class="item-card__meta">Visa ••4521 · Corte 15 nov · Vence 25 nov (en 3 días)</p>
               </div>
               <div class="item-card__amount">

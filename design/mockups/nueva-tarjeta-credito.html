@@ -130,16 +130,24 @@
           <input id="cupo-cop" class="input input--cop" type="text" inputmode="numeric" value="$6.000.000">
         </div>
 
-        <!-- Alta de crédito / saldo inicial (PlanDeCuotas origen='saldo_inicial') -->
+        <!-- Alta de crédito / plan de capital (PlanDeCuotas origen='saldo_inicial' o 'desembolso') -->
         <section class="card card--accent-indigo form-stack" aria-labelledby="saldo-inicial-heading">
           <div class="section-header" style="margin-bottom: 0;">
-            <h2 id="saldo-inicial-heading" class="section-title">Saldo inicial y cuotas (alta de crédito)</h2>
-            <span class="badge badge--indigo">Plan inicial</span>
+            <h2 id="saldo-inicial-heading" class="section-title">Capital inicial o desembolso</h2>
+            <span class="badge badge--indigo">Plan de cuotas</span>
           </div>
-          <p class="field-help">Si estás registrando un crédito o deuda que ya tiene saldo pendiente, indica el saldo inicial, número de cuotas y primera cuota. Esto crea un plan inicial sin duplicar consumos pasados.</p>
+          <p class="field-help">Para una deuda previa elige <strong>Saldo inicial</strong> (no financia compras nuevas). Para un préstamo en efectivo (Crédito o Deuda, nunca Tarjeta) elige <strong>Desembolso</strong> y luego vincula las compras con <em>Financiada con préstamo</em> sin crear otro plan.</p>
 
           <div class="field">
-            <label for="saldo-inicial-cop">Saldo inicial pendiente en COP</label>
+            <label for="origen-plan">Origen del capital</label>
+            <select id="origen-plan" class="select">
+              <option value="saldo_inicial" selected>Saldo inicial (deuda previa existente)</option>
+              <option value="desembolso">Desembolso (préstamo en efectivo · solo Crédito o Deuda)</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="saldo-inicial-cop">Capital inicial o desembolso en COP</label>
             <input id="saldo-inicial-cop" class="input input--cop" type="text" inputmode="numeric" placeholder="Ej. $8.400.000">
           </div>
 

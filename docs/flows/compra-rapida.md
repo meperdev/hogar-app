@@ -80,23 +80,26 @@ Meta: **abrir → escanear → confirmar categoría → guardar** (sin escribir 
 
 1. El usuario cambia el selector superior de `Hogar` a **`Personal`** (`+1 toque`).
 2. La pantalla muestra una etiqueta clara (`Solo visible para Santiago · Excluida del balance del hogar`) y guarda `Compra.ambito = 'personal'` con `Compra.miembro_id = miembro_activo`.
-3. Reglas de visibilidad y balance:
-   - Por defecto, una compra personal solo la ve su `miembro_id` dueño.
-   - Los reportes y el *Balance de pareja* del hogar la excluyen por defecto, salvo que el miembro active el interruptor local `incluir_personales` (apagado por defecto).
+3. Reglas de visibilidad, privacidad y balance:
+   - Una compra personal solo la ve su `miembro_id` dueño.
+   - Los reportes y el *Balance de pareja* del hogar la excluyen por defecto, salvo que el propio miembro active el interruptor local `incluir_personales` (apagado por defecto, que solo muestra **sus propias** compras personales).
    - **Nunca cuenta como aporte al hogar**, incluso si se pagó con un `MedioDePago` del miembro.
+   - **Deduplicación de CUFE sin exponer datos ajenos:** el índice único `(hogar_id, cufe)` sigue bloqueando duplicados en todo el hogar, pero si otro miembro escanea una factura ya registrada como compra personal ajena, solo ve el aviso `"Esta factura ya está registrada en el hogar"` **sin mostrar ningún detalle** (ni comercio, ni monto, ni categoría, ni dueño).
+   - **Exportación por miembro:** en los respaldos y descargas de *Ajustes*, cada miembro descarga los hechos del hogar más **sus propias** compras personales, nunca las personales del otro miembro.
 
 ### Variante: compra financiada con préstamo en efectivo (`Compra.financiada_por_pasivo_id`)
 
-1. En el selector de medio de pago, el usuario elige **`Financiada con préstamo`** y selecciona el `Pasivo` existente que fondeó el efectivo (ej. `Préstamo remodelación cocina`, tipo `deuda` del hogar, o un `Credito` de un miembro).
-2. La app muestra un aviso breve: *"Esta compra registra el consumo hoy, pero no suma aporte de nadie todavía; el aporte aparecerá cuando se registre cada `PagoDeDeuda` del préstamo."*
-3. Al guardar, persiste la `Compra` con `financiada_por_pasivo_id = pasivo.id` sin crear un segundo `PlanDeCuotas` ni sumar al aporte del mes.
+1. El capital del préstamo en efectivo ya se registró una única vez en un `Pasivo` tipo `Credito` o `Deuda` (en fase 1 nunca `Tarjeta`) mediante un **`PlanDeCuotas` con `origen = 'desembolso'`** y su fecha de giro `fecha_inicio`. Un pasivo que solo tiene `PlanDeCuotas(origen = 'saldo_inicial')` corresponde a deuda previa y **no** sirve para vincular compras nuevas.
+2. En el selector de medio de pago, el usuario elige **`Financiada con préstamo`** y selecciona ese `Pasivo` con desembolso disponible (`Compra.fecha >= fecha_inicio` del desembolso y suma acumulada de compras vinculadas `<=` capital desembolsado a esa fecha; todas las compras vinculadas a un mismo pasivo deben compartir un único `ambito`).
+3. La app muestra un aviso breve: *"Esta compra registra el consumo hoy usando el capital del desembolso, sin crear otro plan de cuotas ni sumar aporte todavía; el aporte aparecerá cuando se registre cada `PagoDeDeuda(tipo = 'abono')` aplicado FIFO a cargos del hogar."*
+4. Al guardar, persiste la `Compra` con `pago_tipo = 'contado'`, `medio_de_pago_id = null` y `financiada_por_pasivo_id = pasivo.id`, **sin crear un segundo `PlanDeCuotas`**, sin aumentar el saldo del pasivo y sin sumar al aporte del mes.
 
 ### Variante: compra a cuotas con tarjeta de crédito
 
-1. Con un monto ingresado (ej. `$300.000` el **22 nov 2026**) y una `Tarjeta` seleccionada (`Visa ••4521`, corte día `15`, pago día `25`), el usuario toca `3` en los chips **`1 / 3 / 6 / 12 / Otro`** (si toca `Otro`, aparece un campo numérico entero para ingresar cualquier número de cuotas `>= 2`).
+1. *(Ejemplo de simulación en el mockup [compra-cuotas.html](../../design/mockups/compra-cuotas.html), borrador aún sin guardar, distinto de la compra ya guardada del `10 nov` que aparece en Obligaciones del mes).* Con un monto ingresado (ej. `$300.000` el **22 nov 2026**) y una `Tarjeta` seleccionada (`Visa ••4521`, corte día `15`, pago día `25`), el usuario toca `3` en los chips **`1 / 3 / 6 / 12 / Otro`** (si toca `Otro`, aparece un campo numérico entero para ingresar cualquier número de cuotas `>= 2`).
 2. La app muestra en línea, sin abrir un modal bloqueante, el resumen de separación contable:
    - **Consumo hoy (`Compra`):** `$300.000` en `Mercado` (una sola vez).
-   - **Obligaciones (`PlanDeCuotas` + `Cuota`):** `3 cuotas` de `$100.000` con fechas calculadas según `dia_corte = 15` y `dia_pago = 25` (compra 22 nov → corte 15 dic → primera cuota **25 dic 2026**, segunda **25 ene 2027**, tercera **25 feb 2027**).
+   - **Obligaciones (`PlanDeCuotas` + `Cuota`):** `3 cuotas` de `$100.000` con fechas calculadas según `dia_corte = 15` y `dia_pago = 25` (compra simulada 22 nov → corte 15 dic → primera cuota **25 dic 2026**, segunda **25 ene 2027**, tercera **25 feb 2027**).
    - **Costo financiero estimado (`CostoFinanciero`):** si la tarjeta tiene tasa (ej. `28,32 % E.A.`, convertida exactamente a `i = (1 + 0,2832)^(1/12) − 1 ≈ 2,0997 % M.V.`, redondeando solo el interés final al peso), muestra los intereses estimados **`$6.299`** (cuota 1), **`$4.199`** (cuota 2) y **`$2.100`** (cuota 3) en el balde aparte *Costo financiero*. Si la tarjeta está en `Sin tasa`, indica `"Sin tasa: registrarás intereses a mano"`.
 3. Al tocar **`Guardar $300.000 en 3 cuotas`**, se crean en un solo lote atómico `1 Compra` (`pago_tipo = 'financiado'`), `1 PlanDeCuotas` (`origen = 'compra'`, `capital = 300000`, `n_cuotas = 3`), `3 Cuota` (`25 dic`, `25 ene`, `25 feb`) y los `CostoFinanciero` calculados (`origen = 'calculado'`) si la tarjeta tiene tasa.
 
@@ -107,7 +110,9 @@ Basado en el Anexo Técnico FEV 1.9 (num. 11.7) documentado en [docs/dian-qr.md]
 1. Desde **Compra rápida**, el usuario toca **`Escanear`**.
 2. Se abre el visor de cámara en estado **Leyendo QR**, con acciones visibles de fallback (`Tomar foto (OCR)` e `Ingresar manual`).
 3. Al detectar un código QR DIAN, la app extrae localmente el `cufe`:
-   - **Deduplicación inmediata por hogar:** busca `(hogar_id, cufe)` entre compras no eliminadas. Si ya existe, muestra **"Esta factura ya está registrada"** con el detalle guardado y bloquea el duplicado.
+   - **Deduplicación inmediata por hogar respetando privacidad:** busca `(hogar_id, cufe)` entre compras no eliminadas.
+     - Si la compra existente es del hogar (`ambito = 'hogar'`) o personal del mismo miembro (`miembro_id = miembro_activo`): bloquea el duplicado y muestra **"Esta factura ya está registrada en el hogar"** junto con el detalle del registro existente.
+     - Si la compra existente es **personal de otro miembro** (`ambito = 'personal'` y `miembro_id != miembro_activo`): bloquea igualmente el duplicado y muestra únicamente el aviso **"Esta factura ya está registrada en el hogar"** **sin mostrar ningún detalle** del registro ajeno.
 4. Si el `cufe` es nuevo, bifurca según el formato del QR:
    - **Formato 1 — QR con campos (`NumFac`, `FecFac`, `NitFac`, `ValIva`, `ValTolFac`, `CUFE`/`CUDE` + URL `catalogo-vpfe`):**
      - Precarga `nit_comercio` (sin guardar nunca `DocAdq`), `fecha`, `monto_total` en COP enteros (ej. `$85.000`), `iva` informativo (ej. `$13.571` para IVA 19 % incluido en `$85.000`, nunca sumado aparte) y `cufe`.
@@ -137,7 +142,7 @@ Basado en el Anexo Técnico FEV 1.9 (num. 11.7) documentado en [docs/dian-qr.md]
 | **Tarjeta sin tasa configurada (`tasa_tipo = null`)** | La app **no** inventa ni calcula `CostoFinanciero`. Muestra solo las cuotas de capital y aclara: `"Sin tasa: registrarás intereses a mano en Obligaciones"`. |
 | **Error de dedo / registro duplicado manual** | Toast con `Deshacer` durante 5 s. Si en `< 60 s` se repite monto, categoría y medio, muestra confirmación inline antes de duplicar. |
 | **Sin conexión (PWA offline)** | La `Compra` se guarda en la copia local de **IndexedDB** con UUIDv7 y cola de sincronización; se confirma con `"Guardado en el dispositivo · se sincronizará al volver la conexión"`. |
-| **Factura ya registrada (`cufe` duplicado en el hogar)** | Índice único `(hogar_id, cufe)` bloquea el duplicado y muestra alerta accesible (`▲ Esta factura ya está registrada`) con el registro existente. |
+| **Factura ya registrada (`cufe` duplicado en el hogar)** | Índice único `(hogar_id, cufe)` bloquea el duplicado. Si la compra existente es del hogar o personal propia, muestra `▲ Esta factura ya está registrada en el hogar` con su detalle; si es una compra personal de otro miembro, muestra únicamente `▲ Esta factura ya está registrada en el hogar` sin revelar ningún detalle ajeno. |
 | **Total DIAN con centavos (`ValTolFac: 85000.40`)** | Se redondea al peso entero COP más cercano (`$85.000`), editable antes de guardar. |
 | **QR dañado, sin cámara o no DIAN** | Aviso claro con salidas inmediatas a `Tomar foto (OCR)` o `Ingresar manual`. Nunca bloquea el registro. |
 
@@ -155,7 +160,7 @@ flowchart TD
     Q3 --> C
     Q2 -- Si --> Q4["Extraer cufe localmente (sin consultar la DIAN)"]
     Q4 --> Q5{"(hogar_id, cufe) ya existe?"}
-    Q5 -- Si --> Q6["Bloquear duplicado y mostrar Compra existente"]
+    Q5 -- Si --> Q6["Bloquear duplicado: avisar factura ya registrada (sin detalle si es personal ajena)"]
     Q5 -- No --> Q7{"Formato del QR DIAN"}
     Q7 -- "Formato 1: con campos" --> Q8["Precargar nit_comercio, fecha, monto_total, iva y sugerir Categoria via AliasComercio"]
     Q7 -- "Formato 2: solo URL" --> Q9["Conservar cufe + completar total/fecha con OCR o a mano"]
@@ -181,8 +186,8 @@ Nombres canónicos alineados con `docs/data-model.md` y [docs/decisiones-2026-11
 
 | Entidad / Concepto | Tipo | Operación | Campos principales | Regla aplicada |
 | --- | --- | --- | --- | --- |
-| **`Compra`** | Hecho (tabla replicada) | Escritura / Lectura (dedupe) | `id`, `hogar_id`, `fecha`, `descripcion`, `monto_total`, `categoria_id`, `ambito` (`'hogar' \| 'personal'`, default `'hogar'`), `miembro_id`, `pago_tipo` (`'contado' \| 'financiado'`), `medio_de_pago_id`, `financiada_por_pasivo_id`, `registrado_por`, `mascota_id`, `item_despensa_id`, `cufe`, `nit_comercio`, `iva`, `origen` | Se registra **una sola vez** por `monto_total` en `fecha`. Único `(hogar_id, cufe)` por hogar. `ambito = 'personal'` solo la ve `miembro_id` y nunca suma aporte al hogar. Con `financiada_por_pasivo_id` no suma aporte hasta pagar el préstamo. |
-| **`PlanDeCuotas`** | Hecho (tabla replicada) | Escritura (si `pago_tipo = 'financiado'`) | `id`, `pasivo_id`, `origen` (`'compra'`), `compra_id`, `fecha_inicio`, `capital`, `sistema`, `n_cuotas`, `fecha_primera_cuota`, `tasa_tipo`, `tasa_ppm` | `capital = Compra.monto_total`; `fecha_primera_cuota` en tarjeta = primer `dia_pago` posterior al `dia_corte` siguiente a `fecha`. |
+| **`Compra`** | Hecho (tabla replicada) | Escritura / Lectura (dedupe) | `id`, `hogar_id`, `fecha`, `descripcion`, `monto_total`, `categoria_id`, `ambito` (`'hogar' \| 'personal'`, default `'hogar'`), `miembro_id`, `pago_tipo` (`'contado' \| 'financiado'`), `medio_de_pago_id`, `financiada_por_pasivo_id`, `registrado_por`, `mascota_id`, `item_despensa_id`, `cufe`, `nit_comercio`, `iva`, `origen` | Se registra **una sola vez** por `monto_total` en `fecha`. Único `(hogar_id, cufe)` por hogar (sin revelar detalle si coincide con una compra personal ajena). `ambito = 'personal'` solo la ve `miembro_id` y nunca suma aporte al hogar. Con `financiada_por_pasivo_id`, usa `pago_tipo = 'contado'`, `medio_de_pago_id = null`, apunta a un `Pasivo` (`Credito`/`Deuda`) con `PlanDeCuotas(origen = 'desembolso')` sin crear otro plan, y no suma aporte hasta pagar el préstamo. |
+| **`PlanDeCuotas`** | Hecho (tabla replicada) | Escritura (si `pago_tipo = 'financiado'`) | `id`, `pasivo_id`, `origen` (`'compra' \| 'saldo_inicial' \| 'desembolso'`), `compra_id`, `fecha_inicio`, `capital`, `sistema`, `n_cuotas`, `fecha_primera_cuota`, `tasa_tipo`, `tasa_ppm` | Este flujo crea planes con `origen = 'compra'` (`capital = Compra.monto_total`; en tarjeta, `fecha_primera_cuota` = primer `dia_pago` posterior al `dia_corte` siguiente a `fecha`). Cuando la compra usa `financiada_por_pasivo_id`, **no** crea plan: el capital ya vive en el plan `origen = 'desembolso'` del pasivo. |
 | **`Cuota`** | Hecho (tabla replicada) | Escritura (si `sistema != 'sin_calendario'`) | `id`, `plan_id`, `numero`, `fecha_vencimiento`, `capital` | `Σ capital = PlanDeCuotas.capital` en COP enteros. Nunca suma al consumo. Su **estado** es siempre DERIVADO. |
 | **`CostoFinanciero`** | Hecho (tabla replicada) | Escritura opcional (si la tarjeta tiene tasa) | `id`, `tipo` (`'interes'`), `monto`, `fecha_causacion`, `pasivo_id`, `cuota_id`, `origen` (`'calculado'`), `registrado_por` | Balde aparte (no es una `Categoria`). Conversión exacta E.A.→M.V., redondeando solo el interés al peso. |
 | **`MedioDePago` / `Pasivo`** | Hecho (tabla replicada) | Lectura | `MedioDePago` (`id`, `nombre`, `tipo`, `owner_tipo`, `owner_miembro_id`); `Pasivo` (`id`, `tipo`, `nombre`, `owner_tipo`, `tasa_tipo`, `tasa_ppm`) + `Tarjeta` (`dia_corte`, `dia_pago`) | `MedioDePago` paga de contado; `Tarjeta` (subtipo de `Pasivo`) genera plan de cuotas. El **último medio usado** es una **preferencia LOCAL del dispositivo por miembro** (no se sincroniza ni es columna). |

@@ -29,7 +29,7 @@
     <main id="contenido" class="app-main">
       <!-- Confirmación de exportación manual -->
       <div id="exportacion-lista" class="toast-target" role="status" aria-live="polite">
-        <span>✓ Exportación generada: JSON y CSV listos para descargar</span>
+        <span>✓ Exportación generada: hechos del hogar y tus personales (JSON y CSV)</span>
         <a href="#contenido">Cerrar</a>
       </div>
 
@@ -40,9 +40,17 @@
           <span class="badge badge--primary">✓ Activa</span>
         </div>
 
-        <p class="field-help" style="margin-bottom: 10px;">Cada semana una función programada genera un respaldo completo de todos los hechos del hogar en <strong>JSON + CSV</strong> en Storage, listo para descargar cuando quieras.</p>
+        <p class="field-help" style="margin-bottom: 10px;">Cada semana una función programada genera respaldos en <strong>JSON + CSV</strong> en Storage. <strong>Alcance por miembro:</strong> descargas todos los hechos del hogar más <strong>tus compras personales</strong>; nunca se incluyen las compras personales del otro miembro.</p>
 
         <dl class="kv-list" style="margin-bottom: 12px;">
+          <div class="kv-row">
+            <dt>Alcance de tu descarga</dt>
+            <dd>Hogar + tus personales (Santiago)</dd>
+          </div>
+          <div class="kv-row">
+            <dt>Privacidad</dt>
+            <dd>Excluye personales de Camila</dd>
+          </div>
           <div class="kv-row">
             <dt>Última exportación automática</dt>
             <dd>Dom 22 nov 2026 · 03:00</dd>
@@ -75,7 +83,7 @@
         <dl class="kv-list" style="margin-bottom: 12px;">
           <div class="kv-row">
             <dt>Estado sin conexión</dt>
-            <dd>✓ Copia completa al día</dd>
+            <dd>✓ Copia al día (hogar + tus personales)</dd>
           </div>
           <div class="kv-row">
             <dt>Última sincronización</dt>
@@ -87,7 +95,7 @@
           </div>
         </dl>
 
-        <p class="field-help" style="margin-bottom: 10px;">Cada dispositivo conserva su copia completa en IndexedDB para operar offline y recuperar tus datos aunque no haya internet.</p>
+        <p class="field-help" style="margin-bottom: 10px;">Cada dispositivo conserva en IndexedDB los hechos del hogar y únicamente tus compras personales para operar offline sin exponer las compras personales del otro miembro.</p>
 
         <a class="btn btn--secondary btn--full" href="#exportacion-lista">Descargar copia local (JSON)</a>
       </section>

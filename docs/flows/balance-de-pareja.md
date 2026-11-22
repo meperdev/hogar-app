@@ -25,10 +25,12 @@ Mostrar de forma transparente cuánto aportó cada `Miembro` al hogar durante el
 
 1. El usuario toca **Balance** en la barra de navegación inferior.
 2. En la cabecera selecciona o confirma el **mes calendario** activo (`Noviembre 2026 · 1–30 nov`, navegación `< Mes anterior` / `Mes siguiente >`).
-3. El bloque **Aportes del mes al hogar** (todo **DERIVADO** en el dispositivo, nunca guardado) suma exactamente las 4 fuentes de aporte por miembro `M`:
+3. El bloque **Aportes del mes al hogar** (todo **DERIVADO** en el dispositivo, nunca guardado) suma exactamente las 4 fuentes de aporte por miembro `M` (alineado con §8 de `docs/data-model.md`):
    - `Compra` de contado con `ambito = 'hogar'` desde `MedioDePago` de `M` (excluye compras personales y compras con `financiada_por_pasivo_id`).
-   - `PagoDeDeuda` desde `MedioDePago` de `M`.
-   - `CostoFinanciero` pagado directo desde `MedioDePago` de `M`.
+   - **`PagoDeDeuda` desde `MedioDePago` de `M` (solo porción FIFO aplicada a cargos del hogar):**
+     - Porción FIFO de `PagoDeDeuda(tipo = 'abono')` asignada a cargos con `ambito = 'hogar'` (si el pasivo mezcla cargos del hogar y personales, la porción que cubre cargos personales se excluye; un pasivo puramente personal aporta `$0`).
+     - Porción de `PagoDeDeuda(tipo = 'saldo_a_favor')` únicamente cuando se aplica a un cargo del hogar posterior, en el mes de ese cargo (`saldo_a_favor` no aplicado aún no suma como aporte).
+   - `CostoFinanciero` con `ambito = 'hogar'` pagado directo desde `MedioDePago` de `M`.
    - **`Aporte`** (transferencias desde `MedioDePago` de `M` hacia `MedioDePago` del `Hogar`, ej. cuenta común).
    - *(Nota: lo que sale luego desde un `MedioDePago` del hogar son "salidas del fondo común", informativas, y no vuelven a sumarse como aporte de nadie).*
 4. Muestra el resumen con **porcentajes a un decimal**:
@@ -65,7 +67,8 @@ Mostrar de forma transparente cuánto aportó cada `Miembro` al hogar durante el
 
 ### 4. Exportación automática y respaldo (Ajustes)
 
-1. Desde **Ajustes y exportación** ([ajustes-exportar.html](../../design/mockups/ajustes-exportar.html)), el usuario ve la **última exportación automática semanal** (función programada que genera JSON + CSV del hogar en Storage de Supabase), los botones **`Descargar JSON`** y **`Descargar CSV`**, el botón **`Exportar ahora`** y el estado de la **copia local completa en IndexedDB** del dispositivo.
+1. Desde **Ajustes y exportación** ([ajustes-exportar.html](../../design/mockups/ajustes-exportar.html)), el usuario ve la **última exportación automática semanal** (función programada que genera JSON + CSV en Storage de Supabase), los botones **`Descargar JSON`** y **`Descargar CSV`**, el botón **`Exportar ahora`** y el estado de la **copia local en IndexedDB** del dispositivo.
+2. **Alcance por miembro (privacidad de datos personales):** en toda descarga (respaldo semanal, `Exportar ahora` y copia local en IndexedDB), **cada miembro descarga los hechos del hogar más sus propias compras personales**, y **nunca** las compras personales del otro miembro.
 
 ## Casos borde y manejo de errores
 
@@ -76,8 +79,9 @@ Mostrar de forma transparente cuánto aportó cada `Miembro` al hogar durante el
 | **Un miembro aún no tiene ingresos registrados en el mes** | Sus aportes en `$` y `%` del hogar se muestran normal (`58,0 %`). Si `Hogar.mostrar_pct_ingreso` está activo, muestra `"Sin ingresos registrados este mes"` en lugar de dividir por cero. |
 | **Un miembro aportó `$0` en el mes** | Muestra `$0 (0,0 % del total)` en tono neutro, sin alertas rojas ni sugerencia de compensación. |
 | **Intento de crear `Aporte` entre dos medios de miembros** | Rechazado por la invariante I17: `medio_origen_id` debe tener `owner_tipo = 'miembro'` y `medio_destino_id` debe tener `owner_tipo = 'hogar'` (las transferencias entre miembros no crean deuda ni aporte). |
-| **Compra financiada con préstamo en efectivo (`financiada_por_pasivo_id`)** | No aparece como aporte al comprarse; el aporte del miembro aparece en el mes en que registre el `PagoDeDeuda` del préstamo. |
-| **Compra personal (`ambito = 'personal'`)** | Nunca suma al aporte del hogar; excluida de la vista por defecto salvo el interruptor local `incluir_personales` (solo muestra las del propio miembro). |
+| **Compra financiada con préstamo en efectivo (`financiada_por_pasivo_id`)** | No aparece como aporte al comprarse; el aporte del miembro aparece en el mes en que registre el `PagoDeDeuda(tipo = 'abono')` del préstamo por la porción FIFO aplicada a cargos del hogar. |
+| **Pago de deuda en pasivo mixto o con `saldo_a_favor`** | Si un pasivo tiene cargos del hogar y personales, solo la porción FIFO de `PagoDeDeuda(tipo = 'abono')` asignada a cargos `ambito = 'hogar'` suma como aporte. Un `PagoDeDeuda(tipo = 'saldo_a_favor')` no aporta hasta aplicarse a un cargo del hogar posterior (en el mes de ese cargo). |
+| **Compra personal (`ambito = 'personal'`)** | Nunca suma al aporte del hogar; excluida de la vista por defecto salvo el interruptor local `incluir_personales` (solo muestra las del propio miembro). En exportaciones, cada miembro descarga solo sus personales, nunca los del otro. |
 | **Cambio de salario a mitad de vigencia** | Se cierra `Ingreso.vigente_hasta` del anterior y se crea un nuevo `Ingreso` con `vigente_desde`, conservando la historia de meses pasados. |
 | **Día esperado 31 en mes de 28/30 días** | Se ajusta automáticamente al último día del mes calendario (`30` en noviembre, `28/29` en febrero). |
 
@@ -110,5 +114,5 @@ Nombres canónicos alineados con `docs/data-model.md` y [docs/decisiones-2026-11
 | **`Ingreso`** | Hecho (tabla replicada) | Lectura / Escritura | `id`, `miembro_id`, `tipo` (`'fijo' \| 'variable'`), `descripcion`, `monto`, `dia_esperado`, `vigente_desde`, `vigente_hasta`, `fecha` | Fijos guardan día esperado y vigencia; variables se registran con `fecha` al llegar. Todo en COP enteros. |
 | **`RecepcionIngreso`** | Hecho (tabla replicada) | Lectura / Escritura | `id`, `ingreso_id`, `periodo` (`'AAAA-MM'`), `recibido` (`boolean`), `monto_recibido` (`bigint` nullable), `fecha_recepcion` (`date` nullable) | Registra si un ingreso fijo del periodo llegó y por qué monto real. El balance usa `monto_recibido` si existe; si no, lo muestra como `esperado`. |
 | **`Aporte`** | Hecho (tabla replicada) | Lectura / Escritura | `id`, `medio_origen_id` (`owner_tipo = 'miembro'`), `medio_destino_id` (`owner_tipo = 'hogar'`), `monto`, `fecha`, `nota`, `registrado_por` | Transferencia de un miembro al fondo común del hogar. Una de las 4 fuentes del aporte derivado; no es consumo. |
-| **`Compra` / `PagoDeDeuda` / `CostoFinanciero` / `MedioDePago`** | Hecho (tablas replicadas) | Lectura | `Compra` (`ambito`, `monto_total`, `pago_tipo`, `medio_de_pago_id`, `financiada_por_pasivo_id`, `fecha`); `PagoDeDeuda` (`monto`, `medio_de_pago_id`, `fecha`); `CostoFinanciero` (`monto`, `medio_de_pago_id`, `fecha_causacion`) | Fuentes auditables del cálculo derivado de aportes por mes calendario. Lo personal (`ambito = 'personal'`) nunca suma como aporte. |
+| **`Compra` / `PagoDeDeuda` / `CostoFinanciero` / `MedioDePago`** | Hecho (tablas replicadas) | Lectura | `Compra` (`ambito`, `monto_total`, `pago_tipo`, `medio_de_pago_id`, `financiada_por_pasivo_id`, `fecha`); `PagoDeDeuda` (`tipo`: `'abono' \| 'saldo_a_favor'`, `monto`, `medio_de_pago_id`, `fecha`); `CostoFinanciero` (`monto`, `medio_de_pago_id`, `fecha_causacion`) | Fuentes auditables del cálculo derivado de aportes por mes calendario. Lo personal (`ambito = 'personal'`) nunca suma como aporte; en `PagoDeDeuda` solo cuenta la porción FIFO aplicada a cargos del hogar y `saldo_a_favor` no aporta hasta aplicarse a un cargo del hogar posterior. |
 | **Resumen de aportes, porcentajes (`58,0 %`, `40,9 %`), totales de ingresos** | **DERIVADO (nunca guardado)** | Solo lectura calculada | `aportes(M, mes)`, `pct_hogar(M)`, `pct_ingreso(M)`, `ingreso(M, mes)` | Siempre calculados en el dispositivo. **Prohibido** persistir resúmenes o calcular saldos/deudas entre miembros. `incluir_personales` es preferencia LOCAL de vista (apagada por defecto). |
