@@ -13,7 +13,7 @@ Ambos PRs usan EXACTAMENTE estos nombres (español, snake_case en campos, como d
 
 Hallazgos a corregir:
 - Ingreso fijo: entidad `RecepcionIngreso` (ingreso_id, periodo 'AAAA-MM', recibido boolean, monto_recibido bigint nullable, fecha_recepcion date nullable). Balance usa monto_recibido si existe; si no, muestra "esperado".
-- Pago duplicado de cuota: `PagoDeDeuda.cuota_id` nullable; único parcial (cuota_id) cuando no es null y el pago cubre la cuota completa; regla: un pago que haría el saldo del pasivo < 0 se rechaza con aviso "posible pago duplicado o sobrepago" (el usuario puede registrarlo como saldo a favor explícito `CostoFinanciero` no; como `PagoDeDeuda.tipo='saldo_a_favor'`). Saldo nunca negativo (nueva invariante).
+- Pago duplicado de cuota: `PagoDeDeuda.cuota_id` nullable; único parcial (cuota_id) cuando no es null y el pago cubre la cuota completa. Un abono que excede el saldo causado a la fecha del pago se rechaza con aviso "posible pago duplicado o sobrepago". Con confirmación explícita el exceso se registra como `PagoDeDeuda.tipo='saldo_a_favor'`, no como `CostoFinanciero`. Saldo nunca negativo (I20).
 - `AliasComercio` (hogar_id, nit_comercio, nombre, categoria_sugerida_id), sincronizado y único (hogar_id, nit_comercio). Último medio de pago usado: preferencia LOCAL del dispositivo por miembro, no se sincroniza.
 - Fase 1: tarjetas y créditos solo de un miembro. Las deudas pueden ser de miembro u hogar. Un "préstamo de la cocina" del hogar es `Pasivo` tipo deuda con dueño hogar, no un crédito.
 - Saldos, totales, estado de obligaciones, nivel de despensa: siempre DERIVADOS.

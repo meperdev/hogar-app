@@ -8,7 +8,8 @@
       "hscroll": false,
       "tapados": [],
       "sinScroll": [],
-      "fijos": []
+      "fijos": [],
+      "sinCta": null
     },
     "balance-de-pareja.html": {
       "axe": [],
@@ -16,7 +17,8 @@
       "hscroll": false,
       "tapados": [],
       "sinScroll": [],
-      "fijos": []
+      "fijos": [],
+      "sinCta": null
     },
     "compra-cuotas.html": {
       "axe": [],
@@ -24,7 +26,8 @@
       "hscroll": false,
       "tapados": [],
       "sinScroll": [],
-      "fijos": []
+      "fijos": [],
+      "sinCta": null
     },
     "compra-rapida.html": {
       "axe": [],
@@ -32,7 +35,8 @@
       "hscroll": false,
       "tapados": [],
       "sinScroll": [],
-      "fijos": []
+      "fijos": [],
+      "sinCta": null
     },
     "despensa-mascotas.html": {
       "axe": [],
@@ -40,7 +44,8 @@
       "hscroll": false,
       "tapados": [],
       "sinScroll": [],
-      "fijos": []
+      "fijos": [],
+      "sinCta": null
     },
     "escanear-factura.html": {
       "axe": [],
@@ -48,7 +53,8 @@
       "hscroll": false,
       "tapados": [],
       "sinScroll": [],
-      "fijos": []
+      "fijos": [],
+      "sinCta": null
     },
     "index.html": {
       "axe": [],
@@ -56,7 +62,8 @@
       "hscroll": false,
       "tapados": [],
       "sinScroll": [],
-      "fijos": []
+      "fijos": [],
+      "sinCta": null
     },
     "nueva-tarjeta-credito.html": {
       "axe": [],
@@ -64,7 +71,8 @@
       "hscroll": false,
       "tapados": [],
       "sinScroll": [],
-      "fijos": []
+      "fijos": [],
+      "sinCta": null
     },
     "nuevo-insumo-mascota.html": {
       "axe": [],
@@ -72,7 +80,8 @@
       "hscroll": false,
       "tapados": [],
       "sinScroll": [],
-      "fijos": []
+      "fijos": [],
+      "sinCta": null
     },
     "obligaciones-del-mes.html": {
       "axe": [],
@@ -80,7 +89,8 @@
       "hscroll": false,
       "tapados": [],
       "sinScroll": [],
-      "fijos": []
+      "fijos": [],
+      "sinCta": null
     },
     "registrar-ingreso.html": {
       "axe": [],
@@ -88,7 +98,8 @@
       "hscroll": false,
       "tapados": [],
       "sinScroll": [],
-      "fijos": []
+      "fijos": [],
+      "sinCta": null
     },
     "registrar-pago-obligacion.html": {
       "axe": [],
@@ -96,7 +107,8 @@
       "hscroll": false,
       "tapados": [],
       "sinScroll": [],
-      "fijos": []
+      "fijos": [],
+      "sinCta": null
     },
     "transferir-fondo-comun.html": {
       "axe": [],
@@ -104,7 +116,8 @@
       "hscroll": false,
       "tapados": [],
       "sinScroll": [],
-      "fijos": []
+      "fijos": [],
+      "sinCta": null
     }
   }
 }
