@@ -1,0 +1,88 @@
+# Plantilla del workflow que va idéntica en cada PR (.github/workflows/ci.yml).
+# El contenido del PR es solo dato: se checkoutea en pr/ y nunca se ejecuta.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VERIFICADOR_SHA: "01f7fe1b6164a0c4852b161727fc1951801df028"
+
+jobs:
+  docs:
+    name: docs (markdownlint + enlaces)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout del PR (solo datos)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: pr
+          persist-credentials: false
+
+      - name: Checkout del verificador (SHA fijo de ci/verificador)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.VERIFICADOR_SHA }}
+          path: verificador
+          persist-credentials: false
+          sparse-checkout: ci/verificador
+
+      - name: Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - name: Instalar el verificador
+        working-directory: verificador/ci/verificador
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Markdown
+        run: node verificador/ci/verificador/lint-md.mjs pr
+
+      - name: Enlaces y anclas
+        run: node verificador/ci/verificador/check-links.mjs pr
+
+  mockups-a11y:
+    name: mockups (axe + toques 44px)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout del PR (solo datos)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: pr
+          persist-credentials: false
+
+      - name: Checkout del verificador (SHA fijo de ci/verificador)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.VERIFICADOR_SHA }}
+          path: verificador
+          persist-credentials: false
+          sparse-checkout: ci/verificador
+
+      - name: Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - name: Instalar el verificador
+        working-directory: verificador/ci/verificador
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Instalar Chromium
+        working-directory: verificador/ci/verificador
+        run: npx playwright install --with-deps chromium
+
+      - name: Accesibilidad y toques
+        run: node verificador/ci/verificador/a11y-mockups.mjs pr

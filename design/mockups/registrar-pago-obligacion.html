@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Registrar pago de obligación — hogar-app</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido principal</a>
+
+  <div class="review-bar">
+    <a href="index.html">← Índice de mockups</a>
+    <span>Núcleo 2 · Pago de obligación</span>
+  </div>
+
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-left">
+        <a class="icon-btn" href="obligaciones-del-mes.html" aria-label="Volver a Obligaciones del mes">←</a>
+        <div>
+          <h1 class="app-title">Registrar pago</h1>
+          <p class="app-subtitle">Cuota 1/3 · Mercado Éxito (guardada 10 nov)</p>
+        </div>
+      </div>
+      <span class="badge badge--indigo">Pasivo</span>
+    </header>
+
+    <main id="contenido" class="app-main app-main--no-nav-action-bar">
+      <div id="pago-registrado" class="toast-target" role="status" aria-live="polite">
+        <span>✓ Abono registrado el 25 nov: $106.299 ($100.000 cap. + $6.299 int. · saldo $306.299 → $200.000 · aporte Camila desde Nequi)</span>
+        <a href="obligaciones-del-mes.html">Volver</a>
+      </div>
+
+      <!-- Contexto de la obligación -->
+      <section class="card card--accent-indigo" aria-labelledby="detalle-obligacion-heading">
+        <div class="section-header">
+          <h2 id="detalle-obligacion-heading" class="section-title">Visa ••4521 · Vence 25 nov</h2>
+          <span class="badge badge--primary">Hogar · titular Santiago</span>
+        </div>
+        <p class="field-help">Pasivo de ámbito Hogar (titular Santiago). Compra original: Mercado $300.000 (registrada una sola vez como consumo el 10 nov; corte 15 nov). Al vencimiento (25 nov) el interés de $6.299 ya está causado: el saldo causado antes del pago es $306.299 y este abono lo baja a $200.000 sin sumar al consumo.</p>
+      </section>
+
+      <form class="form-stack" action="#pago-registrado">
+        <!-- Quién realiza el pago -->
+        <fieldset class="radio-group">
+          <legend class="fieldset-legend">¿Quién realiza este pago?</legend>
+          <div class="radio-options">
+            <label class="radio-card" for="pagador-santiago">
+              <input id="pagador-santiago" type="radio" name="pagador" value="santiago">
+              <span>Santiago</span>
+            </label>
+            <label class="radio-card" for="pagador-camila">
+              <input id="pagador-camila" type="radio" name="pagador" value="camila" checked>
+              <span>Camila</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <!-- Regla de dominio: pago de cuota con interés y aporte según medio de origen -->
+        <div class="callout callout--primary">
+          <span class="callout__icon" aria-hidden="true">✓</span>
+          <p><strong>Aporte libre (ámbito Hogar · titular Santiago):</strong> el abono al vencimiento (25 nov) es <strong>$106.299</strong> (capital $100.000 + interés $6.299 ya causado y cargado al pasivo; saldo $306.299 → $200.000). Cuenta como aporte individual de <strong>Camila ($106.299)</strong> solo si paga desde una cuenta personal (ej. <em>Nequi · Camila</em>), sin generar deuda entre ustedes. Desde <strong>«Cuenta común · Hogar»</strong> el pago es por los mismos $106.299, pero <strong>no hay aporte individual</strong>.</p>
+        </div>
+
+        <!-- Desglose editable: Capital aplicado + Interés cargado al pasivo = Abono total -->
+        <div class="card form-stack">
+          <h2 class="section-title">Desglose del pago (COP enteros · 25 nov)</h2>
+
+          <div class="field">
+            <label for="pago-capital">Capital aplicado a la cuota (no suma al consumo)</label>
+            <input id="pago-capital" class="input input--cop" type="text" inputmode="numeric" value="$100.000" aria-describedby="ayuda-capital">
+            <p id="ayuda-capital" class="field-help">Capital de la cuota 1/3 ($100.000). Editable si haces un pago parcial (sin enlazar cuota) o abono extra a capital.</p>
+          </div>
+
+          <div class="field">
+            <label for="pago-intereses">Interés ligado a la cuota · Costo financiero (cargado al pasivo)</label>
+            <input id="pago-intereses" class="input input--cop" type="text" inputmode="numeric" value="$6.299" aria-describedby="ayuda-intereses">
+            <p id="ayuda-intereses" class="field-help">Causado el 25 nov (vencimiento) y cargado a Visa ••4521 con <code>cuota_id</code> (balde aparte Costo financiero; 28,32 % E.A. → 2,0997 % M.V., redondeado al peso). Ajusta contra el extracto real si cambió.</p>
+          </div>
+
+          <dl class="kv-list">
+            <div class="kv-row">
+              <dt>Saldo causado al 25 nov (tope único del abono: $300.000 + $6.299)</dt>
+              <dd class="cop">$306.299</dd>
+            </div>
+            <div class="kv-row">
+              <dt>Capital aplicado (baja capital de $300.000 a $200.000)</dt>
+              <dd class="cop">$100.000</dd>
+            </div>
+            <div class="kv-row">
+              <dt>Interés causado el 25 nov (Costo financiero cargado al pasivo)</dt>
+              <dd class="cop">$6.299</dd>
+            </div>
+            <div class="kv-row kv-row--total">
+              <dt>Abono total el 25 nov (PagoDeDeuda · cubre cuota 1/3)</dt>
+              <dd class="cop">$106.299</dd>
+            </div>
+            <div class="kv-row">
+              <dt>Saldo derivado después del pago ($306.299 − $106.299)</dt>
+              <dd class="cop">$200.000</dd>
+            </div>
+            <div class="kv-row">
+              <dt>Aporte individual (solo desde cuenta personal)</dt>
+              <dd class="cop">$106.299 · Camila ($0 fondo común)</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="cuenta-origen">Medio de origen</label>
+            <select id="cuenta-origen" class="select" aria-describedby="ayuda-origen-pago">
+              <option value="nequi" selected>Nequi · Camila</option>
+              <option value="bancolombia">Bancolombia · Santiago</option>
+              <option value="fondo-comun">Cuenta común · Hogar</option>
+              <option value="efectivo">Efectivo · Camila</option>
+            </select>
+            <p id="ayuda-origen-pago" class="field-help">Cuenta personal: aporta $106.299 al dueño del medio. Cuenta común · Hogar: salida del fondo común, sin aporte individual.</p>
+          </div>
+          <div class="field">
+            <label for="fecha-pago">Fecha de pago</label>
+            <input id="fecha-pago" class="input" type="date" value="2026-11-25" aria-describedby="ayuda-fecha-pago">
+            <p id="ayuda-fecha-pago" class="field-help">Vencimiento (25 nov): el interés de $6.299 ya está causado (saldo causado $306.299).</p>
+          </div>
+        </div>
+
+        <a class="btn btn--secondary btn--full" href="obligaciones-del-mes.html">Cancelar</a>
+      </form>
+
+      <!-- Estado 1: rechazo duro por posible pago duplicado (cuota_id ya cubierta) -->
+      <section class="card card--accent-danger" aria-labelledby="duplicado-heading">
+        <div class="section-header">
+          <h2 id="duplicado-heading" class="section-title">Protección contra pago duplicado</h2>
+          <span class="badge badge--danger">▲ Rechazado</span>
+        </div>
+        <div class="callout callout--danger" role="alert">
+          <span class="callout__icon" aria-hidden="true">▲</span>
+          <div>
+            <p><strong>Posible pago duplicado (cuota ya cubierta).</strong></p>
+            <p>Si esta cuota ya tiene un abono completo enlazado al mismo <code>cuota_id</code>, el segundo pago se <strong>rechaza</strong> (aunque el pasivo aún tenga saldo causado) y <strong>no se puede confirmar ni dividir</strong>. Cancela para revisar los pagos o regístralo como un pago distinto sin <code>cuota_id</code> (adelanto), sujeto al tope del saldo causado a la fecha ($306.299 al 25 nov).</p>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top: 10px;">
+          <a class="btn btn--secondary btn--sm" href="obligaciones-del-mes.html">Cancelar y revisar pagos</a>
+          <a class="btn btn--secondary btn--sm" href="#pago-capital">Registrar adelanto sin cuota</a>
+        </div>
+      </section>
+
+      <!-- Estado 2: sobrepago real (monto mayor que el saldo causado a la fecha) -->
+      <section class="card card--accent-amber" aria-labelledby="sobrepago-heading">
+        <div class="section-header">
+          <h2 id="sobrepago-heading" class="section-title">Sobrepago sobre el saldo causado</h2>
+          <span class="badge badge--amber">▲ Confirmación</span>
+        </div>
+        <div class="callout callout--amber" role="alert">
+          <span class="callout__icon" aria-hidden="true">▲</span>
+          <div>
+            <p><strong>Posible pago duplicado o sobrepago (monto mayor al saldo causado).</strong></p>
+            <p>La división aplica <strong>solo</strong> a un sobrepago real cuando el monto supera el tope único (saldo causado a la fecha del pago: $306.299 al 25 nov, sin interés ni costos futuros). Con confirmación explícita se registra en el mismo lote un <em>abono</em> hasta ese tope y <em>saldo a favor</em> solo por el excedente (no reduce capital ni costos ni aporta hasta cubrir un cargo futuro del hogar).</p>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top: 10px;">
+          <a class="btn btn--secondary btn--sm" href="obligaciones-del-mes.html">Cancelar</a>
+          <a class="btn btn--secondary btn--sm" href="#pago-registrado">Dividir: abono + saldo a favor</a>
+        </div>
+      </section>
+    </main>
+
+    <!-- CTA principal fijo visible sin scroll -->
+    <div class="action-bar action-bar--bottom" role="region" aria-label="Confirmar pago de obligación">
+      <a class="btn btn--primary btn--full" href="#pago-registrado" data-sin-scroll>Confirmar pago ($106.299)</a>
+    </div>
+  </div>
+</body>
+</html>

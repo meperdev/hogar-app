@@ -1,0 +1,132 @@
+# Flujo: Despensa de mascotas
+
+> **Contrato de datos:** las entidades, campos, fórmulas derivadas e invariantes de este flujo siguen `docs/data-model.md`, que llega en el PR #2.
+
+Controlar comida, higiene, salud y otros insumos recurrentes de cada `Mascota` del hogar registrando hechos de compra y ajuste (`NivelDespensa`), para **derivar** el nivel actual, la vida útil desde la observación (`vida_util_dias`), la fecha fija de reposición (`fecha_reposicion`) y los días restantes (`dias_restantes`) que bajan con el paso del tiempo, recomprar en un toque y mostrar un total mensual **100 % reconciliable** con las compras fechadas en el mes.
+
+## Objetivo
+
+- Anticipar cuándo se acaba un insumo mediante nivel restante **DERIVADO**, umbral de alerta configurable (`ItemDespensa.umbral_alerta_pct`, default `20 %`) y próxima compra estimada.
+- Permitir registrar ajustes manuales de inventario (`Ajustar nivel` → nuevo hecho `NivelDespensa` con `origen = 'ajuste'`) sin guardar columnas mutables de saldo.
+- Conectar la reposición directamente con **Compra rápida** (`Recomprar` en 1 toque), generando en un lote atómico la `Compra` y un hecho `NivelDespensa(origen = 'compra', compra_id = Compra.id, fecha = Compra.fecha, nivel_pct = 100)`.
+- Mostrar un **Gasto en Mascotas del mes (hogar)** reconciliable peso a peso: suma únicamente las `Compra` con **`ambito = 'hogar'`** y **`categoria = Mascotas`** cuya `fecha` cae dentro del mes calendario en curso, contando cada compra **una sola vez**. `mascota_id` es una etiqueta opcional usada **solo para el desglose/filtro por mascota**; las compras con `ambito = 'personal'` nunca entran en la vista compartida.
+
+## Pantallas
+
+| Pantalla | Propósito | Mockup |
+| --- | --- | --- |
+| **Despensa de mascotas** | Resumen reconciliable del gasto mensual en Mascotas (solo compras con fecha del mes), filtro por `Mascota`, nivel restante **derivado**, próxima compra estimada, alerta cuando `nivel_derivado <= umbral_alerta_pct`, acción inline `Ajustar nivel` y `Recomprar`. | [despensa-mascotas.html](../../design/mockups/despensa-mascotas.html) |
+| **Nuevo insumo o recurrente** | Alta de `ItemDespensa` con `mascota_id` (o compartido `null`), `tipo` (`comida \| higiene \| salud \| otro`), `frecuencia_dias`, `umbral_alerta_pct` (0..100, default `20`) y `monto_habitual`. | [nuevo-insumo-mascota.html](../../design/mockups/nuevo-insumo-mascota.html) |
+
+## Flujo paso a paso
+
+### 1. Revisar la despensa, alertas y total reconciliable del mes
+
+1. El usuario toca **Mascotas** en la barra de navegación inferior.
+2. En la parte superior ve la tarjeta **Gasto en Mascotas (hogar · noviembre 2026)** (valor **DERIVADO**), que suma **únicamente compras con `ambito = 'hogar'`, `categoria = Mascotas` y `fecha` en noviembre**, contando cada compra **una sola vez** (`mascota_id` es etiqueta opcional solo para el desglose por mascota; las compras personales nunca entran en la vista compartida):
+   - **Incluidas en el total (`$245.000`, 4 compras del hogar en categoría `Mascotas`):**
+     - `15 nov · Concentrado gato esterilizado 3 kg` (`ambito = 'hogar'`, `categoria = Mascotas`, `mascota_id = Milo`): `$68.000`
+     - `11 nov · Arena sanitaria 10 kg` (`ambito = 'hogar'`, `categoria = Mascotas`, `mascota_id = Milo`): `$42.000`
+     - `08 nov · Consulta veterinaria vacuna` (`ambito = 'hogar'`, `categoria = Mascotas`, `mascota_id = Luna`, gasto puntual sin `ItemDespensa`): `$115.000`
+     - `14 nov · Shampoo y bolsas higiénicas` (`ambito = 'hogar'`, `categoria = Mascotas`, **`mascota_id = null`** — sin mascota específica / compartida): `$20.000`
+     - **Total tarjeta "Mascotas" del hogar (noviembre):** **`$245.000`** (`$68.000 + $42.000 + $115.000 + $20.000`). Desglose opcional por `mascota_id`: Luna `$115.000`, Milo `$110.000`, sin etiqueta / compartidas `$20.000`.
+   - **Casos excluidos explícitamente del `$245.000` (fixture verificable):**
+     - **Otra categoría con etiqueta `mascota_id`:** `08 nov · Taxi a veterinaria` (`ambito = 'hogar'`, `categoria = Transporte`, `mascota_id = Luna`, `$18.000`) suma solo a `Transporte` (dentro de las compras diarias del hogar `$482.000`), **no** a la tarjeta "Mascotas" (cada compra cuenta una sola vez en su categoría).
+     - **Compra personal en categoría `Mascotas`:** `16 nov · Correa y placa personal` (`ambito = 'personal'`, `miembro_id = Santiago`, `categoria = Mascotas`, `mascota_id = Luna`, `$35.000`, dentro de sus compras personales de `$140.000`) **nunca entra** en la vista compartida del hogar.
+     - **Compras de meses anteriores:** las compras de insumos hechas en **octubre** (ej. concentrado de Luna del `22 oct · $165.000` o antipulgas del `29 oct · $95.000`) se muestran en cada tarjeta como referencia de última compra (`monto_habitual`), dejando explícito que **no suman a noviembre**.
+3. Debajo aparecen los chips de filtro por `Mascota`: `Todas`, `Luna (perra)`, `Milo (gato)`.
+4. La lista prioriza automáticamente los `ItemDespensa` donde **`nivel_derivado <= umbral_alerta_pct`** arriba (alerta), seguidos por nivel medio y bien.
+5. Cada tarjeta de `ItemDespensa` comunica el estado sin depender solo del color:
+   - Nombre, `Mascota` (o `Compartido · todas las mascotas`), `tipo` (`Comida`, `Higiene`, `Salud`, `Otro`) y `monto_habitual` + fecha de última compra.
+   - **Nivel actual observado y días restantes derivados que bajan con el tiempo:**
+     - `vida_util_dias = floor(nivel_pct * frecuencia_dias / 100)` (días desde la observación; fija mientras no exista una observación nueva).
+     - `fecha_reposicion = fecha_observacion + vida_util_dias` (fecha estimada fija —llamada `proxima_compra_estimada` en `docs/data-model.md` §8—, no cambia al avanzar los días).
+     - `dias_restantes = max(0, fecha_reposicion - hoy)` en la UI (mínimo `0`; en el cálculo crudo de `docs/data-model.md` §8, `fecha_reposicion - hoy` puede ser negativo cuando está vencida y la UI muestra `0 días` con aviso de revisión).
+     - **Umbral de alerta:** `alerta = nivel_pct <= umbral_alerta_pct` (ej. `Alerta <= 20 %`).
+     - **Fixture verificable al `22 nov 2026` (`hoy = 2026-11-22`) y consulta posterior (`23 nov 2026`):**
+       - *Concentrado adulto 12 kg* (`frecuencia_dias = 35`, obs. `22 nov` con `nivel_pct = 15`): `vida_util_dias = floor(15 * 35 / 100) = 5` días, `fecha_reposicion = 27 nov` (fija). Consultado el **`22 nov`**: `dias_restantes = 5`. Consultado el **`23 nov`** (un día después de la observación): **`dias_restantes = 4`**, mientras `fecha_reposicion` sigue siendo **`27 nov`** sin cambiar. Consultado el **`29 nov`** (vencida): `fecha_reposicion - hoy = -2` → la UI muestra **`0 días restantes`**.
+       - *Antipulgas mensual* (`frecuencia_dias = 30`, obs. `22 nov` con `nivel_pct = 20`): `vida_util_dias = 6`, `fecha_reposicion = 28 nov` (fija); al `22 nov` muestra `6 días restantes` (y al `23 nov`, `5 días restantes`).
+       - *Arena sanitaria 10 kg* (`frecuencia_dias = 25`, obs. **`20 nov`** con `nivel_pct = 52`): `vida_util_dias = floor(52 * 25 / 100) = 13` días desde el `20 nov`, `fecha_reposicion = 3 dic` (fija). Al consultarlo **2 días después (`22 nov`)**, ya bajó a **`dias_restantes = 11`** (`3 dic - 22 nov = 11`).
+       - *Concentrado gato esterilizado 3 kg* (`frecuencia_dias = 30`, obs. **`20 nov`** con `nivel_pct = 80`): `vida_util_dias = floor(80 * 30 / 100) = 24` días desde el `20 nov`, `fecha_reposicion = 14 dic` (fija). Al consultarlo **2 días después (`22 nov`)**, ya bajó a **`dias_restantes = 22`** (`14 dic - 22 nov = 22`).
+   - Etiqueta con icono + texto: **`▲ Por acabarse`** **siempre** que `nivel_pct <= umbral_alerta_pct` (incluido cuando iguala el umbral, ej. `20 % <= 20 %`), `● Media` (por encima del umbral hasta `60 %`) o `✓ Bien` (`> 60 %`).
+   - Dos acciones directas: **`Recomprar`** y **`Ajustar nivel`**.
+
+### 2. Ajustar nivel observado (`NivelDespensa` con `origen = 'ajuste'`)
+
+1. Si el usuario revisa físicamente el bulto o la arena y nota que queda más o menos de lo estimado, toca **`Ajustar nivel`** en la tarjeta del ítem.
+2. Selecciona o ingresa el porcentaje observado (`0..100 %`, ej. `15 %`, `0 % agotado`, `50 %`) y confirma.
+3. La app registra un nuevo hecho inmutable **`NivelDespensa`** (`item_despensa_id`, `fecha = hoy`, `nivel_pct`, `origen = 'ajuste'`) —nunca edita ni guarda una columna de saldo en `ItemDespensa`.
+4. A partir del último hecho `NivelDespensa` (`fecha_observacion`, `nivel_pct`) y `frecuencia_dias`, la app **re-deriva** al instante `vida_util_dias = floor(nivel_pct * frecuencia_dias / 100)`, la fecha fija `fecha_reposicion = fecha_observacion + vida_util_dias`, `dias_restantes = max(0, fecha_reposicion - hoy)` y si dispara alerta (`nivel_pct <= umbral_alerta_pct`).
+
+### 3. Recomprar un insumo en 1 toque (conexión con Compra rápida)
+
+1. El usuario toca **`Recomprar $165.000`** en `Concentrado adulto 12 kg`.
+2. Se abre **Compra rápida** prellenada con:
+   - `monto_total`: `$165.000` (editable si cambió el precio).
+   - `categoria_id`: `Mascotas`.
+   - `mascota_id`: `Luna` (heredada de `ItemDespensa.mascota_id`; libre si es compartido `null`).
+   - `item_despensa_id`: id del insumo.
+   - `ambito`: `'hogar'` (por defecto).
+   - `descripcion`: `Concentrado adulto 12 kg · Luna`.
+3. Al tocar **`Guardar`**, la app ejecuta en un solo lote atómico:
+   - Crea la `Compra` (respetando la regla de consumo y cuotas sin doble conteo).
+   - Crea un hecho **`NivelDespensa`** (`item_despensa_id`, `compra_id = Compra.id`, `fecha = Compra.fecha`, `nivel_pct = 100`, `origen = 'compra'`), vinculado al ciclo de vida y visibilidad de esa compra (si la compra se edita o elimina, la observación se edita o elimina en el mismo lote).
+   - **Solo si `Compra.ambito = 'hogar'`**, actualiza `ItemDespensa.monto_habitual` si el precio cambió. Si el usuario cambia el ámbito a `personal`, la app **nunca** actualiza `ItemDespensa.monto_habitual` ni otras filas compartidas, y la observación `NivelDespensa` vinculada solo la ve su dueño.
+
+### 4. Agregar un nuevo insumo o gasto recurrente (`ItemDespensa`)
+
+1. Desde **Despensa de mascotas**, el usuario toca **`+ Insumo`**.
+2. Completa los campos de `ItemDespensa`:
+   - `nombre` (ej. `Concentrado adulto 12 kg`, `Arena sanitaria 10 kg`).
+   - `mascota_id`: `Luna`, `Milo` o `Compartido (todas)` (`mascota_id = null`).
+   - `tipo`: **`Comida`** (`comida`), **`Higiene`** (`higiene`), **`Salud`** (`salud`) u **`Otro`** (`otro`).
+   - `frecuencia_dias`: duración estimada en días (ej. `35`).
+   - `umbral_alerta_pct`: porcentaje `0..100` para activar alerta (default **`20`**).
+   - `monto_habitual`: precio de referencia en COP enteros (opcional, ej. `$165.000`).
+3. Toca **`Guardar insumo`** y el ítem aparece en la despensa (sin estimación de próxima compra hasta que exista una primera `Compra` o un primer ajuste `NivelDespensa`).
+
+## Casos borde y manejo de errores
+
+| Caso borde / error | Comportamiento esperado |
+| --- | --- |
+| **Insumo nuevo sin compras ni ajustes previos** | No inventa fecha ni porcentaje: muestra `"Sin registros aún"` con botones `Recomprar` y `Ajustar nivel`. |
+| **El insumo se acabó antes de lo estimado** | El usuario toca `Ajustar nivel` → `0 %` (`NivelDespensa(nivel_pct=0, origen='ajuste')`). El nivel derivado queda en `0 % <= umbral_alerta_pct`, activa alerta inmediata y destaca `Recomprar`. |
+| **El insumo rindió más días de lo esperado** | Cuando `hoy` supera `fecha_reposicion` sin nueva compra (`fecha_reposicion - hoy <= 0`), la UI acota `dias_restantes` a `0` y muestra `▲ Revisar nivel (0 días)` con acciones `Ajustar nivel` y `Recomprar` (nunca asume una compra automática). |
+| **Compra de insumo hecha el mes anterior (ej. 22 oct)** | Muestra `Última compra: 22 oct · $165.000 (no suma a nov)` y **no** entra en el total del mes de noviembre (`$245.000`). |
+| **Compra de un bulto a cuotas (ej. `$300.000` en 3 cuotas)** | Pasa por *Compra rápida*: el consumo de `$300.000` suma una sola vez a `Mascotas` en la fecha de compra y sus cuotas van a *Obligaciones del mes*. |
+| **Compra del hogar en `Mascotas` sin `mascota_id` (`mascota_id = null`, ej. `$20.000`)** | **Sí suma** al total de la tarjeta "Mascotas" del hogar (`$245.000`), una sola vez; aparece en el desglose opcional bajo *Sin mascota / compartidas*. |
+| **Compra del hogar en otra categoría con `mascota_id` (ej. `Transporte` `$18.000` con `mascota_id = Luna`)** | **No suma** a la tarjeta "Mascotas" del hogar: cuenta únicamente en su categoría (`Transporte`) para evitar doble conteo; `mascota_id` es solo etiqueta opcional para desglose/filtro. |
+| **Gasto eventual de veterinario (sin `ItemDespensa`)** | Se registra desde *Compra rápida* con `ambito = 'hogar'`, `categoria_id = Mascotas` y `mascota_id = Luna`; suma automáticamente al total reconciliable del mes (`$115.000`). |
+| **Compra marcada como personal (`ambito = 'personal'`, ej. `$35.000` en `Mascotas`)** | **Nunca entra** en la tarjeta compartida "Mascotas" del hogar (`$245.000`) ni actualiza filas compartidas (`ItemDespensa.monto_habitual` permanece intacto). Si apunta a un ítem, su `NivelDespensa(origen = 'compra', compra_id = Compra.id)` hereda la visibilidad privada de la compra y no altera el cálculo compartido del hogar. |
+| **Umbral fuera de rango (`< 0` o `> 100`) o `frecuencia_dias <= 0`** | Validación inline accesible junto al campo afectado antes de guardar. |
+
+## Diagrama de flujo
+
+```mermaid
+flowchart TD
+    A["Abrir Despensa de mascotas"] --> B["Derivar gasto mensual Mascotas (ambito='hogar' y categoria=Mascotas, 1 vez c/u) y nivel desde NivelDespensa"]
+    B --> C{"Accion del usuario"}
+    C -- "Filtrar por Mascota" --> D["Mostrar ItemDespensa de esa mascota + compartidos (mascota_id null)"]
+    C -- "Ajustar nivel" --> E["Registrar hecho NivelDespensa(nivel_pct, fecha, origen='ajuste')"]
+    E --> B
+    C -- "Nuevo insumo" --> F["Formulario ItemDespensa: nombre, mascota_id, tipo, frecuencia_dias, umbral_alerta_pct (default 20), monto_habitual"]
+    F --> G{"Datos validos?"}
+    G -- No --> H["Mostrar error inline accesible"]
+    H --> F
+    G -- Si --> I["Guardar ItemDespensa"]
+    C -- "Recomprar" --> J["Abrir Compra rapida prellenada (monto_habitual, Categoria Mascotas, item_despensa_id, mascota_id)"]
+    J --> K["Guardar en lote atomico: Compra + NivelDespensa(origen='compra', compra_id, nivel_pct=100); monto_habitual solo si hogar"]
+    K --> B
+```
+
+## Datos del dominio que toca
+
+Nombres canónicos alineados con `docs/data-model.md` y [docs/decisiones-2026-11-22.md](../decisiones-2026-11-22.md).
+
+| Entidad / Concepto | Tipo | Operación | Campos principales | Regla aplicada |
+| --- | --- | --- | --- | --- |
+| **`Mascota`** | Hecho (tabla replicada) | Lectura / Escritura | `id`, `hogar_id`, `nombre`, `especie` (`'perro' \| 'gato' \| 'otro'`), `fecha_nacimiento`, `activa` | Pertenece al hogar. No guarda gasto propio; `Compra.mascota_id` es etiqueta opcional solo para el desglose/filtro por mascota. |
+| **`ItemDespensa`** | Hecho (tabla replicada) | Lectura / Escritura | `id`, `hogar_id`, `mascota_id` (`null` = todas), `nombre`, `tipo` (`'comida' \| 'higiene' \| 'salud' \| 'otro'`), `categoria_id`, `frecuencia_dias`, `umbral_alerta_pct` (`0..100`, default `20`), `monto_habitual`, `activo` | Define el producto, tipo, frecuencia y umbral de alerta. Nunca guarda nivel restante ni fecha de próxima compra. `monto_habitual` es fila compartida del hogar: una compra con `ambito = 'personal'` nunca la modifica. |
+| **`NivelDespensa`** | Hecho (tabla replicada) | Lectura / Escritura | `id`, `hogar_id`, `item_despensa_id`, `compra_id` (nullable), `fecha`, `nivel_pct` (`0..100`), `origen` (`'compra' \| 'ajuste'`) | Registra observaciones como hechos inmutables. Toda compra del ítem crea en el mismo lote atómico `NivelDespensa(origen = 'compra', compra_id = Compra.id, fecha = Compra.fecha, nivel_pct = 100)` (`compra_id` único entre activas; enlaza ciclo de vida y visibilidad); `Ajustar nivel` crea `origen = 'ajuste'` con `compra_id = null`. |
+| **`Compra`** | Hecho (tabla replicada) | Lectura / Escritura (vía *Compra rápida*) | `id`, `fecha`, `monto_total`, `categoria_id`, `ambito`, `mascota_id`, `item_despensa_id`, `pago_tipo`, `medio_de_pago_id`, `registrado_por` | La tarjeta "Mascotas" del hogar suma únicamente compras con `ambito = 'hogar'`, `categoria = Mascotas` y `fecha` en el mes, contando cada compra una sola vez. `mascota_id` es etiqueta opcional para desglose por mascota; las compras `personal` nunca entran en la vista compartida. |
+| **Nivel actual, vida útil, fecha de reposición, días restantes, alerta (`<= umbral_alerta_pct`), gasto mensual Mascotas** | **DERIVADO (nunca guardado)** | Solo lectura calculada | `nivel_actual` (`nivel_pct`), `vida_util_dias`, `fecha_reposicion` (`proxima_compra_estimada`), `dias_restantes`, `alerta`, `gasto_mascotas(mes)` | Siempre calculados en el dispositivo desde `ItemDespensa`, `NivelDespensa` y `Compra`: `vida_util_dias = floor(nivel_pct * frecuencia_dias / 100)`, `fecha_reposicion = fecha_observacion + vida_util_dias` (fija) y `dias_restantes = max(0, fecha_reposicion - hoy)` en UI. Nunca se almacenan en base de datos. |

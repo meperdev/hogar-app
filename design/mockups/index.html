@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>hogar-app — Índice de mockups (Fase 1)</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido principal</a>
+
+  <main id="contenido" class="index-page">
+    <header class="index-hero">
+      <div class="badge-row" style="margin-bottom: 10px;">
+        <span class="badge badge--primary">Fase 1 · Diseño UX/UI</span>
+        <span class="badge badge--neutral">Mobile-first · 390px</span>
+        <span class="badge badge--neutral">COP enteros · $300.000</span>
+        <span class="badge badge--indigo">WCAG AA</span>
+      </div>
+      <h1>hogar-app — Mockups interactivos de los 4 núcleos y ajustes</h1>
+      <p>Prototipo HTML estático clickeable sin frameworks ni CDNs. Los datos guardados corresponden a <strong>noviembre 2026</strong> (mes calendario) del hogar de <strong>Santiago y Camila</strong> (Luna y Milo) y reconcilian peso a peso (Consumo real hogar <strong>$3.112.000</strong>, aportes <strong>$3.600.000</strong>, mascotas <strong>$245.000</strong>). Las pantallas de entrada (<em>Compra rápida</em> $85.000, <em>Compra a cuotas</em> $300.000 del 22 nov y <em>Escanear factura</em> $85.000) muestran <strong>simulaciones antes de guardar</strong>.</p>
+      <div class="btn-row" style="margin-top: 14px;">
+        <a class="btn btn--primary" href="compra-rapida.html">Abrir app (Compra rápida)</a>
+        <a class="btn btn--secondary" href="obligaciones-del-mes.html">Ver Obligaciones del mes</a>
+        <a class="btn btn--secondary" href="ajustes-exportar.html">Ajustes y exportación</a>
+      </div>
+    </header>
+
+    <section aria-labelledby="nucleos-heading">
+      <h2 id="nucleos-heading" class="section-title" style="font-size: 1.125rem; margin-bottom: 12px;">Pantallas por núcleo</h2>
+      <div class="index-grid">
+        <article class="index-card">
+          <span class="badge badge--primary">Núcleo 1</span>
+          <h3>Compra rápida</h3>
+          <p class="app-subtitle">Selector Hogar | Personal (default Hogar), financiada con préstamo, cuotas 1/3/6/12/Otro y QR DIAN local.</p>
+          <ul class="index-links">
+            <li><a href="compra-rapida.html"><span>Compra rápida (borrador · $85.000)</span><span aria-hidden="true">→</span></a></li>
+            <li><a href="compra-cuotas.html"><span>Compra a cuotas (simulación 22 nov · $300.000)</span><span aria-hidden="true">→</span></a></li>
+            <li><a href="escanear-factura.html"><span>Escanear factura (QR DIAN · IVA $13.571)</span><span aria-hidden="true">→</span></a></li>
+          </ul>
+        </article>
+
+        <article class="index-card">
+          <span class="badge badge--indigo">Núcleo 2</span>
+          <h3>Obligaciones del mes</h3>
+          <p class="app-subtitle">Consumo, capital cuotas (pagado vs pendiente) y costo financiero separados. Sin tasa por defecto.</p>
+          <ul class="index-links">
+            <li><a href="obligaciones-del-mes.html"><span>Obligaciones de noviembre</span><span aria-hidden="true">→</span></a></li>
+            <li><a href="registrar-pago-obligacion.html"><span>Registrar pago (aviso duplicado)</span><span aria-hidden="true">→</span></a></li>
+            <li><a href="nueva-tarjeta-credito.html"><span>Nuevo pasivo (Sin tasa + saldo inicial)</span><span aria-hidden="true">→</span></a></li>
+          </ul>
+        </article>
+
+        <article class="index-card">
+          <span class="badge badge--primary">Núcleo 3</span>
+          <h3>Balance de pareja</h3>
+          <p class="app-subtitle">Aporte libre con 1 decimal, transferencias al fondo común, % ingreso apagado por defecto y Marcar recibido.</p>
+          <ul class="index-links">
+            <li><a href="balance-de-pareja.html"><span>Balance de noviembre (Aporte libre)</span><span aria-hidden="true">→</span></a></li>
+            <li><a href="transferir-fondo-comun.html"><span>Transferir al fondo común (Aporte)</span><span aria-hidden="true">→</span></a></li>
+            <li><a href="registrar-ingreso.html"><span>Registrar ingreso fijo o variable</span><span aria-hidden="true">→</span></a></li>
+          </ul>
+        </article>
+
+        <article class="index-card">
+          <span class="badge badge--amber">Núcleo 4</span>
+          <h3>Despensa de mascotas</h3>
+          <p class="app-subtitle">Nivel derivado, Ajustar nivel, umbral 20 %, próxima compra estimada y total mensual reconciliable.</p>
+          <ul class="index-links">
+            <li><a href="despensa-mascotas.html"><span>Despensa de Luna y Milo ($245.000)</span><span aria-hidden="true">→</span></a></li>
+            <li><a href="nuevo-insumo-mascota.html"><span>Nuevo insumo (4 tipos + umbral %)</span><span aria-hidden="true">→</span></a></li>
+          </ul>
+        </article>
+
+        <article class="index-card">
+          <span class="badge badge--neutral">Transversal</span>
+          <h3>Ajustes y exportación</h3>
+          <p class="app-subtitle">Exportación semanal (1 + N archivos ZIP en Storage; cada miembro descarga exactamente 2 ZIP: Hogar y Mis personales con JSON + CSV), botón Exportar ahora y copia local IndexedDB.</p>
+          <ul class="index-links">
+            <li><a href="ajustes-exportar.html"><span>Ajustes y exportación semanal</span><span aria-hidden="true">→</span></a></li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="reglas-heading">
+      <h2 id="reglas-heading" class="section-title" style="margin-bottom: 10px;">Reglas de dominio y accesibilidad verificadas</h2>
+      <dl class="kv-list">
+        <div class="kv-row">
+          <dt>Sin doble conteo en cuotas</dt>
+          <dd>Guardada 10 nov ($300.000 → cuota 1 vence 25 nov, incluida en $3.112.000) · Simulación 22 nov ($300.000 → 25 dic / 25 ene / 25 feb; $6.299 / $4.199 / $2.100 int.)</dd>
+        </div>
+        <div class="kv-row">
+          <dt>Aporte libre (mes calendario)</dt>
+          <dd>Santiago 58,0 % ($2.088.000) · Camila 42,0 % ($1.512.000) · % ingreso apagado por defecto</dd>
+        </div>
+        <div class="kv-row">
+          <dt>Propiedad fase 1</dt>
+          <dd>Tarjeta/Crédito: un miembro · Deuda (ej. cocina): miembro u hogar</dd>
+        </div>
+        <div class="kv-row">
+          <dt>Saldos y totales</dt>
+          <dd>Siempre derivados en el dispositivo, nunca guardados</dd>
+        </div>
+        <div class="kv-row">
+          <dt>Accesibilidad WCAG AA</dt>
+          <dd>Contraste &gt;= 4.5:1 · Toques y labels &gt;= 44×44px · CTA principal visible sin scroll a 390×844</dd>
+        </div>
+      </dl>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ajustes y exportación — hogar-app</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido principal</a>
+
+  <div class="review-bar">
+    <a href="index.html">← Índice de mockups</a>
+    <span>Ajustes · Exportación y respaldo · 390px</span>
+  </div>
+
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-left">
+        <a class="icon-btn" href="balance-de-pareja.html" aria-label="Volver a Balance de pareja">←</a>
+        <div>
+          <h1 class="app-title">Ajustes y exportación</h1>
+          <p class="app-subtitle">Hogar Santiago y Camila</p>
+        </div>
+      </div>
+      <span class="badge badge--primary">Respaldo activo</span>
+    </header>
+
+    <main id="contenido" class="app-main app-main--with-action-bar">
+      <!-- Confirmación de exportación manual -->
+      <div id="exportacion-lista" class="toast-target" role="status" aria-live="polite">
+        <span>✓ Exportación lista: 2 archivos ZIP separados — Hogar (compartido) y Mis personales (JSON + CSV)</span>
+        <a href="#contenido">Cerrar</a>
+      </div>
+
+      <!-- Exportación automática semanal (Supabase Storage: 1 + N archivos ZIP — 1 del hogar + 1 personal por miembro; cada miembro descarga exactamente 2 ZIP) -->
+      <section class="card card--accent-primary" aria-labelledby="export-auto-heading">
+        <div class="section-header">
+          <h2 id="export-auto-heading" class="section-title">Exportación automática semanal</h2>
+          <span class="badge badge--primary">✓ Activa</span>
+        </div>
+
+        <p class="field-help" style="margin-bottom: 10px;">Cada semana una función programada genera <strong>1 + N archivos ZIP en Storage</strong> (uno del hogar compartido y uno personal por cada miembro activo, <strong>nunca mezclados</strong>; para 2 miembros son 3 archivos). Cada miembro puede descargar <strong>exactamente dos ZIP</strong>: <em>Hogar (compartido)</em> y <em>Mis personales</em>, cada uno con el <strong>JSON y los CSV</strong> de todas las tablas de su alcance.</p>
+
+        <dl class="kv-list" style="margin-bottom: 12px;">
+          <div class="kv-row">
+            <dt>Última exportación automática</dt>
+            <dd>Dom 22 nov 2026 · 03:00</dd>
+          </div>
+          <div class="kv-row">
+            <dt>Próxima exportación programada</dt>
+            <dd>Dom 29 nov 2026 · 03:00</dd>
+          </div>
+          <div class="kv-row">
+            <dt>Privacidad</dt>
+            <dd>Ámbitos separados · sin personales de Camila</dd>
+          </div>
+        </dl>
+
+        <div class="form-stack" style="gap: 10px;">
+          <div class="card card--muted">
+            <div class="section-header" style="margin-bottom: 4px;">
+              <h3 class="section-title">Hogar (compartido)</h3>
+              <span class="badge badge--primary">ZIP · Sin personales</span>
+            </div>
+            <p class="field-help" style="margin-bottom: 10px;">Un archivo ZIP con <strong>JSON + CSV</strong> de solo los hechos compartidos del hogar (ninguna fila personal). 48 KB ZIP.</p>
+            <a class="btn btn--secondary btn--full" href="#exportacion-lista" aria-label="Descargar Hogar (compartido) en ZIP con JSON y CSV">Descargar Hogar (ZIP · JSON + CSV)</a>
+          </div>
+
+          <div class="card card--muted">
+            <div class="section-header" style="margin-bottom: 4px;">
+              <h3 class="section-title">Mis personales</h3>
+              <span class="badge badge--indigo">ZIP · Solo Santiago</span>
+            </div>
+            <p class="field-help" style="margin-bottom: 10px;">Un archivo ZIP con <strong>JSON + CSV</strong> de solo tus compras, pasivos y costos personales (nunca los de Camila). 11 KB ZIP.</p>
+            <a class="btn btn--secondary btn--full" href="#exportacion-lista" aria-label="Descargar Mis personales en ZIP con JSON y CSV">Descargar Mis personales (ZIP · JSON + CSV)</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Copia local completa en IndexedDB -->
+      <section class="card card--accent-indigo" aria-labelledby="copia-local-heading">
+        <div class="section-header">
+          <h2 id="copia-local-heading" class="section-title">Copia local en este dispositivo</h2>
+          <span class="badge badge--indigo">IndexedDB</span>
+        </div>
+
+        <dl class="kv-list" style="margin-bottom: 12px;">
+          <div class="kv-row">
+            <dt>Estado sin conexión</dt>
+            <dd>✓ Al día (alcance de Santiago)</dd>
+          </div>
+          <div class="kv-row">
+            <dt>Última sincronización</dt>
+            <dd>Hoy, 22 nov · 15:58</dd>
+          </div>
+          <div class="kv-row">
+            <dt>Último medio recordado (local)</dt>
+            <dd>Visa ••4521 · Santiago</dd>
+          </div>
+        </dl>
+
+        <p class="field-help">Cada sesión conserva en IndexedDB su réplica local autorizada (hogar y solo tus personales + cambios pendientes) para operar sin conexión. Los archivos ZIP de exportación se generan y descargan desde el bloque superior.</p>
+      </section>
+
+      <!-- Historial de respaldos semanales -->
+      <section class="card" aria-labelledby="historial-export-heading">
+        <div class="section-header">
+          <h2 id="historial-export-heading" class="section-title">Historial semanal reciente</h2>
+          <span class="section-meta">Últimos 3 domingos</span>
+        </div>
+
+        <ul class="item-list">
+          <li class="item-card card--muted">
+            <div class="item-card__top">
+              <div>
+                <h3 class="item-card__title">Respaldo 22 nov 2026</h3>
+                <p class="item-card__meta">Hogar (compartido): 48 KB ZIP (JSON + CSV) · Mis personales: 11 KB ZIP (JSON + CSV)</p>
+              </div>
+              <span class="badge badge--primary">✓ Listo</span>
+            </div>
+          </li>
+
+          <li class="item-card card--muted">
+            <div class="item-card__top">
+              <div>
+                <h3 class="item-card__title">Respaldo 15 nov 2026</h3>
+                <p class="item-card__meta">Hogar (compartido): 46 KB ZIP (JSON + CSV) · Mis personales: 10 KB ZIP (JSON + CSV)</p>
+              </div>
+              <span class="badge badge--neutral">Archivado</span>
+            </div>
+          </li>
+
+          <li class="item-card card--muted">
+            <div class="item-card__top">
+              <div>
+                <h3 class="item-card__title">Respaldo 08 nov 2026</h3>
+                <p class="item-card__meta">Hogar (compartido): 44 KB ZIP (JSON + CSV) · Mis personales: 9 KB ZIP (JSON + CSV)</p>
+              </div>
+              <span class="badge badge--neutral">Archivado</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- Preferencias del hogar -->
+      <section class="card" aria-labelledby="config-hogar-heading">
+        <h2 id="config-hogar-heading" class="section-title" style="margin-bottom: 10px;">Configuración del hogar</h2>
+        <div class="toggle-list" style="margin-bottom: 12px;">
+          <div class="toggle-item">
+            <div class="toggle-item__text">
+              <label class="toggle-item__label" for="cfg-pct-ingreso">Mostrar "% de su ingreso" en Balance</label>
+              <p class="toggle-item__help">Apagado por defecto para todo el hogar.</p>
+            </div>
+            <input id="cfg-pct-ingreso" class="toggle-switch" type="checkbox" role="switch">
+          </div>
+        </div>
+        <dl class="kv-list">
+          <div class="kv-row">
+            <dt>Moneda y formato</dt>
+            <dd>COP enteros ($300.000)</dd>
+          </div>
+          <div class="kv-row">
+            <dt>Zona horaria civil</dt>
+            <dd>America/Bogota</dd>
+          </div>
+        </dl>
+      </section>
+    </main>
+
+    <!-- CTA principal fijo visible sin scroll encima de la barra inferior -->
+    <div class="action-bar" role="region" aria-label="Acción principal de exportación">
+      <a class="btn btn--primary btn--full" href="#exportacion-lista" data-sin-scroll>Exportar ahora</a>
+    </div>
+
+    <nav class="bottom-nav" aria-label="Navegación principal">
+      <a class="bottom-nav__link" href="compra-rapida.html">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 8v8M8 12h8"/>
+        </svg>
+        <span>Compra</span>
+      </a>
+      <a class="bottom-nav__link" href="obligaciones-del-mes.html">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <rect x="4" y="5" width="16" height="15" rx="2"/>
+          <path d="M8 3v4M16 3v4M4 10h16"/>
+        </svg>
+        <span>Obligaciones</span>
+      </a>
+      <a class="bottom-nav__link" href="balance-de-pareja.html">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <circle cx="9" cy="9" r="3"/>
+          <circle cx="16" cy="9" r="3"/>
+          <path d="M3 19c0-3 2.5-5 6-5s6 2 6 5M14 14c3 0 6 1.8 6 5"/>
+        </svg>
+        <span>Balance</span>
+      </a>
+      <a class="bottom-nav__link" href="despensa-mascotas.html">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <circle cx="7" cy="9" r="2"/>
+          <circle cx="12" cy="7" r="2"/>
+          <circle cx="17" cy="9" r="2"/>
+          <path d="M7 16c0-2.5 2.2-4 5-4s5 1.5 5 4c0 1.8-1.4 3-3 3h-4c-1.6 0-3-1.2-3-3z"/>
+        </svg>
+        <span>Mascotas</span>
+      </a>
+    </nav>
+  </div>
+</body>
+</html>
