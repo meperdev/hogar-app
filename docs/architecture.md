@@ -1,6 +1,6 @@
 # Arquitectura de hogar-app
 
-Este documento fija las decisiones técnicas de la fase 1: principios, stack, capas, sincronización entre miembros, privacidad de los gastos personales, exportación y respaldo, autenticación, riesgos y las decisiones que Santiago tomó el 22 nov 2026. El modelo de datos (entidades, campos e invariantes I1–I23) vive en [data-model.md](data-model.md) y los números trabajados en [examples.md](examples.md). El negocio manda desde [domain.md](domain.md).
+Este documento fija las decisiones técnicas de la fase 1: principios, stack, capas, sincronización entre miembros, privacidad de los gastos personales, exportación y respaldo, autenticación, riesgos y las decisiones que Santiago tomó el 22 nov 2026. El modelo de datos (entidades, campos e invariantes I1–I26) vive en [data-model.md](data-model.md) y los números trabajados en [examples.md](examples.md). El negocio manda desde [domain.md](domain.md).
 
 **En una línea:** una PWA offline-first que guarda hechos en el teléfono, replica a Postgres con un protocolo propio pequeño y auditable, y calcula lo derivado en el dispositivo con las filas que el actor puede ver.
 
@@ -32,7 +32,7 @@ Fase 1: solo diseño (flujos, mockups y estos documentos). No hay código de pro
 | Documento | Rol |
 | --- | --- |
 | [domain.md](domain.md) | Fuente de verdad del negocio |
-| [data-model.md](data-model.md) | Entidades, campos, tipos, relaciones e invariantes I1–I23 |
+| [data-model.md](data-model.md) | Entidades, campos, tipos, relaciones e invariantes I1–I26 |
 | [examples.md](examples.md) | Ejemplos trabajados con números en COP y sus totales del mes |
 | [decisiones-2026-11-22.md](decisiones-2026-11-22.md) | Decisiones de Santiago y nombres canónicos de la ronda 2 |
 | [dian-qr.md](dian-qr.md) | Investigación del QR de factura electrónica DIAN (Anexo Técnico FEV 1.9) |
@@ -137,13 +137,22 @@ Toda tabla replicada lleva las mismas columnas de sync:
 | `actualizado_en` | `timestamptz` | Informativo, reloj del cliente |
 | `eliminado_en` | `timestamptz null` | Tombstone; nunca hay borrado físico |
 | `actualizado_por` | `uuid → Miembro` | Quién hizo el último cambio |
-| `seq` | `bigint` | Orden de réplica, asignado por el servidor |
+| `seq` | `bigint` | Orden de réplica dentro de su carril (`hogar` o `personal` del dueño), asignado por el servidor |
 
-### 5.2 `seq` por hogar y el orden de commit
+### 5.2 `seq` por carril y el orden de commit
 
-`seq` es un contador monotónico **por hogar**, guardado en la tabla solo-servidor `hogar_seq(hogar_id, ultimo_seq)`. Un trigger `BEFORE INSERT/UPDATE` hace `UPDATE hogar_seq SET ultimo_seq = ultimo_seq + 1 ... RETURNING`, lo que **bloquea la fila del hogar hasta el commit**.
+Hay **dos carriles** de numeración y ninguno comparte contador con el otro:
 
-Por qué no una secuencia global: una secuencia asigna el número al insertar, pero los commits no ocurren en ese orden. Un pull que ya leyó hasta `seq = 100` puede recibir después una fila con `seq = 97` confirmada tarde; el cursor ya pasó de 97 y esa fila no llega nunca. Con el contador por hogar, el segundo escritor del mismo hogar espera el lock hasta el commit del primero: **el orden de `seq` coincide con el orden de commit** y un cursor es seguro. Hogares distintos no se bloquean entre sí.
+| Carril | Contador (tabla solo-servidor) | Qué filas numera | Quién lo lee |
+| --- | --- | --- | --- |
+| Hogar | `hogar_seq(hogar_id, ultimo_seq)` | filas de ámbito hogar y sus dependientes compartidos | cualquier miembro, con `sync_pull` |
+| Personal | `personal_seq(hogar_id, miembro_id, ultimo_seq)` | filas personales de ese dueño y sus dependientes | solo su dueño, con `sync_pull_personal` |
+
+Un trigger `BEFORE INSERT/UPDATE` incrementa el contador del carril de la fila y **bloquea esa fila hasta el commit**. El carril personal se crea en la misma transacción que su `Miembro` (alta o canje de invitación) y arranca en `0`; una migración lo crea para los miembros existentes. `seq` es comparable solo dentro de su carril. Un lote mixto incrementa los dos contadores que toque, en la misma transacción, y un lote exclusivamente personal no toca `hogar_seq` (I25).
+
+**Pre-lock determinista en lotes mixtos.** Antes de asignar cualquier `seq`, `sync_push` bloquea **todos** los contadores que el lote va a tocar, en orden estable: primero `hogar_seq` (si el lote escribe al menos una fila de ámbito hogar) y después los `personal_seq` de los dueños implicados, en orden ascendente de `miembro_id`. Solo se bloquean los carriles tocados: un lote exclusivamente personal **nunca** adquiere el lock de `hogar_seq`. El orden evita interbloqueos entre dos lotes mixtos que tocan los mismos carriles en distinto orden de filas.
+
+Por qué no una secuencia global: una secuencia asigna el número al insertar, pero los commits no ocurren en ese orden. Un pull que ya leyó hasta `seq = 100` puede recibir después una fila con `seq = 97` confirmada tarde; el cursor ya pasó de 97 y esa fila no llega nunca. Con el contador por carril, el segundo escritor del mismo carril espera el lock hasta el commit del primero: **el orden de `seq` coincide con el orden de commit** y un cursor es seguro. Hogares y carriles personales distintos no se bloquean entre sí.
 
 ### 5.3 Push
 
@@ -157,11 +166,27 @@ La RPC `sync_push(lote)` aplica un lote (una intención) en una sola transacció
 | Unicidad rota | Cualquiera | Lote rechazado con `duplicado` |
 | Fila personal de otro miembro | Cualquiera | Lote rechazado con `no_autorizado`; nunca se trata como conflicto |
 
-### 5.4 Pull
+Cada `base_seq` se compara contra el `seq` de la fila en su propio carril (§5.2).
 
-`sync_pull(desde_seq, limite)` devuelve los registros del hogar con `seq > desde_seq`, ordenados por `seq`, tombstones incluidos. El cliente los aplica y avanza el cursor: **el servidor es la autoridad**.
+### 5.4 Pull por carril
 
-El pull **no es un canal de privilegio**: devuelve exactamente lo que el actor puede ver. Las filas compartidas del hogar llegan completas; una compra personal y sus filas dependientes llegan solo a su dueño. La forma barata de garantizarlo es que el pull sea `SECURITY INVOKER` sobre vistas protegidas por RLS, de modo que la política sea la única autoridad. Si por el cursor o por los tombstones tiene que ser `SECURITY DEFINER`, reaplica el mismo predicado de visibilidad fila por fila y un test de paridad verifica que pull y RLS devuelven el mismo conjunto (§5.9).
+Hay un pull por carril y el cliente lleva un cursor por carril:
+
+| RPC | Devuelve |
+| --- | --- |
+| `sync_pull(desde_seq, limite)` | filas **de ámbito hogar** del hogar con `desde_seq < seq ≤ H`, ordenadas por `seq`, tombstones incluidos |
+| `sync_pull_personal(desde_seq, limite)` | filas **personales del actor**, resueltas desde `auth.uid()` y nunca desde el cuerpo de la petición, con `desde_seq < seq ≤ H` |
+
+Cada RPC toma **un solo snapshot** y lo usa tanto para el agua `H` (el `ultimo_seq` del contador de su carril) como para las filas. Primero **filtra el alcance**: restringe a su carril y a lo que el actor puede ver, pide `desde_seq < seq ≤ H` ordenado por `seq` y trae `limite + 1` filas para saber si quedan más.
+
+| Resultado | Filas que devuelve | `siguiente_seq` (cursor para reanudar) |
+| --- | --- | --- |
+| Quedan filas (encontró `limite + 1`) | las `limite` primeras, en orden de `seq` | el `seq` de la **última fila devuelta** |
+| Se agotaron las filas (incluido vacío) | todas las que haya, pueden ser cero | `H`, el agua del snapshot |
+
+`H` es el **agua** del carril en el snapshot y no es el puntero de reanudación: el cliente guarda `siguiente_seq`. Confundirlos salta filas: avanzar a `H` con un `limite` truncado deja invisibles las filas posteriores a la última devuelta. Con el carril agotado, o vacío, `siguiente_seq = H` no pierde nada porque no hay filas por encima. Un carril sin filas para el actor devuelve cero filas y el cursor avanza igual; nunca se queda atascado (I25).
+
+El pull **no es un canal de privilegio**: devuelve exactamente lo que el actor puede ver. Las filas compartidas del hogar llegan completas; una compra personal y sus filas dependientes no viajan por el carril del hogar: llegan solo a su dueño por `sync_pull_personal`. La forma barata de garantizarlo es que el pull sea `SECURITY INVOKER` sobre vistas protegidas por RLS, de modo que la política sea la única autoridad. Si por el cursor o por los tombstones tiene que ser `SECURITY DEFINER`, reaplica el mismo predicado de visibilidad fila por fila y un test de paridad verifica que pull y RLS devuelven el mismo conjunto (§5.9).
 
 ### 5.5 Conflictos y duplicados
 
@@ -179,7 +204,7 @@ Nunca hay *last write wins*. Un dato de dinero no se sobrescribe en silencio:
 | Al volver la pestaña a foco | Igual |
 | Al recuperar red | Igual |
 | Después de un push | Pull inmediato |
-| Aviso de Supabase Realtime | Pull; el aviso lleva solo `(hogar_id, ultimo_seq)` en un canal del hogar, nunca filas (§5.9) |
+| Aviso de Supabase Realtime | Pull del carril; el aviso del hogar lleva solo `(hogar_id, ultimo_seq)` en un canal del hogar y el personal solo `(hogar_id, miembro_id, ultimo_seq)` en el canal privado del dueño, nunca filas (§5.9) |
 
 En iOS no existe Background Sync: el `outbox` solo se vacía con la app abierta. Por eso el push ocurre temprano y el estado del `outbox` es visible en la UI.
 
@@ -201,7 +226,7 @@ Decisión D1 (§11). «Una compra personal la ve solo su dueño» es una regla d
 
 **Qué es dato dependiente.** Una fila es personal si su ámbito es personal ([data-model.md](data-model.md) §8) o si cuelga de una compra o de un pasivo personal: el `Pasivo` personal y su subtipo, `PlanDeCuotas`, `Cuota`, `PagoDeDeuda`, `CostoFinanciero` y el `NivelDespensa` que generó una compra personal. El dueño se resuelve por `Compra.miembro_id` o `Pasivo.owner_miembro_id` según el origen; la observación de una compra usa su `compra_id`. Un nivel compartido de despensa solo usa hechos compartidos: una observación personal no modifica la alerta compartida.
 
-**Qué no cambia al guardar.** Una compra sincronizada conserva su ámbito y dueño. Para reclasificarla, se anula en su alcance original y se crea otra; el pull no retira copias por un cambio de visibilidad (I18). Guardar una compra personal tampoco crea ni modifica filas compartidas como `AliasComercio` o `ItemDespensa.monto_habitual` (I23).
+**Qué no cambia al guardar.** Una compra sincronizada conserva su ámbito y dueño. `sync_push` rechaza el cambio de `ambito` o de dueño sobre una fila ya sincronizada, así que una fila compartida nunca "desaparece" del pull de otro miembro sin tombstone: para reclasificar, se anula en su alcance original —y esa baja viaja por el carril del hogar, donde los demás la reciben— y se crea otra con un ID nuevo en el alcance de destino, que viaja por el carril del dueño (I18). Guardar una compra personal tampoco crea ni modifica filas compartidas como `AliasComercio` o `ItemDespensa.monto_habitual` (I23).
 
 #### 5.9.1 Una sola definición de visibilidad
 
@@ -213,7 +238,7 @@ El predicado `puede_ver(actor, fila)` vive en una única función SQL y lo usan 
 | Escritura | Solo `sync_push`, `SECURITY DEFINER`, con membresía activa y propiedad de cada fila personal | Lote con una compra personal ajena se rechaza con `no_autorizado` |
 | Pull | Mismo predicado; si `sync_pull` es `SECURITY DEFINER`, reaplica `puede_ver` fila por fila | El conjunto del pull es idéntico al de RLS para el mismo actor |
 | Conflictos | Solo se muestran versiones de filas visibles; una fila personal ajena se rechaza antes y nunca llega a borrador | Un lote en conflicto no crea borrador de fila personal ajena |
-| Realtime | El aviso del hogar transporta `(hogar_id, ultimo_seq)`, sin payload de filas; lo personal no se difunde | Un miembro suscrito al canal del hogar no recibe datos de compras personales del otro |
+| Realtime | El aviso del hogar transporta `(hogar_id, ultimo_seq)` y solo se emite cuando cambia `hogar_seq`; lo personal no se difunde ni mueve el carril compartido | Un miembro suscrito al canal del hogar no recibe datos de compras personales del otro ni un aviso por un lote solo personal (I25) |
 | Storage | Bucket privado con prefijos por dueño y URLs firmadas de vida corta (§9.2) | Un miembro no puede leer ni listar `personal/<hogar>/<otro>/` |
 | Índice local | Base Dexie abierta por `(hogar_id, actor)` (§9.3) | Cambiar de sesión no expone filas del actor anterior |
 
@@ -231,7 +256,7 @@ Cada `PagoDeDeuda` apunta a un solo `pasivo_id` y por lo tanto a un solo ámbito
 
 Consecuencia para el balance: los cargos y los pagos de un libro son todos del mismo ámbito, así que el aporte de un pago no depende de compras personales ocultas. El servidor no calcula aportes ni devuelve agregados: el balance se deriva en el cliente con las filas que el actor puede ver, sin lectura de red adicional (P1, P4).
 
-**No inferencia.** Dos escenarios que difieren solo en hechos personales del actor A producen, para otro actor B, el mismo conjunto de filas compartidas con los mismos montos, el mismo export compartido, el mismo balance del hogar y los mismos totales del hogar; la RLS le devuelve a B las mismas filas y ningún total compartido cambia. El cursor, los `seq` y los avisos globales de sync pueden reflejar que hubo actividad, nunca montos. Como ningún pago compartido cubre un cargo personal, no hay resta que revele el monto de una compra personal.
+**No inferencia.** Dos escenarios que difieren solo en hechos personales del actor A producen, para otro actor B, el mismo conjunto de filas compartidas con los mismos montos, el mismo export compartido, el mismo balance del hogar y los mismos totales del hogar; la RLS le devuelve a B las mismas filas y ningún total compartido cambia. Un lote exclusivamente personal no mueve `hogar_seq`, no deja saltos en la numeración del hogar y no emite aviso en el canal compartido: para B no hay señal de que existió. El carril personal del dueño tiene su propio cursor y no lo ve nadie más (I25). Como ningún pago compartido cubre un cargo personal, no hay resta que revele el monto de una compra personal.
 
 ### 5.11 Flujo completo
 
@@ -246,13 +271,13 @@ sequenceDiagram
     A->>DL: lote atómico Compra + PlanDeCuotas + Cuotas guardado en outbox
     Note over A,DL: la compra ya cuenta en los totales locales y el outbox queda pendiente
     A->>S: sync_push lote con schema_version y base_seq
-    S->>S: trigger asigna el seq del hogar y bloquea hogar_seq
+    S->>S: trigger asigna el seq del carril y bloquea su contador
     S-->>A: lote aceptado con su seq
     A->>DL: marca el lote como sincronizado
     Note over B: Beto abre la app o recibe un toque de Realtime
     B->>S: sync_pull desde su cursor
-    S-->>B: registros con seq mayor ordenados, tombstones incluidos
-    B->>DL: aplica el servidor como autoridad y avanza el cursor
+    S-->>B: filas del carril ordenadas por seq, tombstones, agua H y siguiente_seq
+    B->>DL: aplica el servidor como autoridad y guarda siguiente_seq
 ```
 
 ## 6. Autenticación del hogar
@@ -265,7 +290,7 @@ Supabase Auth con código OTP o enlace mágico por correo; Google opcional. No h
 
 | Paso | Qué pasa |
 | --- | --- |
-| Crear hogar | El primer usuario crea `Hogar` y su `Miembro` con `rol=admin` en una RPC atómica que también crea `hogar_seq` y las categorías por defecto |
+| Crear hogar | El primer usuario crea `Hogar` y su `Miembro` con `rol=admin` en una RPC atómica que también crea `hogar_seq`, el `personal_seq` de ese miembro y las categorías por defecto |
 | Invitar | Un admin genera una invitación: token aleatorio de un solo uso, guardado como hash, vence en 7 días, en la tabla solo-servidor `invitacion` |
 | Canjear | El invitado inicia sesión y la canjea; se crea su `Miembro` o se vincula a un `Miembro` existente sin cuenta (`usuario_id` null) |
 
@@ -293,7 +318,7 @@ La sesión se persiste; sin red se trabaja con la sesión en caché. Si el refre
 
 ## 7. Totales y definiciones clave
 
-Resumen para leer el resto del documento; las definiciones exactas, las reglas de cálculo (tasas, reparto de capital, FIFO, fechas de tarjeta) y los invariantes I1–I23 están en [data-model.md](data-model.md), secciones 8 a 10.
+Resumen para leer el resto del documento; las definiciones exactas, las reglas de cálculo (tasas, reparto de capital, FIFO, fechas de tarjeta) y los invariantes I1–I26 están en [data-model.md](data-model.md), secciones 8 a 10.
 
 | Concepto | Definición en una línea | Invariantes |
 | --- | --- | --- |
@@ -301,7 +326,7 @@ Resumen para leer el resto del documento; las definiciones exactas, las reglas d
 | Gasto personal de un miembro | Compras personales de ese miembro más los costos de su ámbito; solo lo ve su dueño y nunca entra al hogar, ni con el interruptor `incluir_personales` prendido, que es una vista | I18 |
 | Aportes del mes de un miembro | Salidas de caja desde medios de ese miembro que cubren cargos del hogar (compras de contado, pagos de deuda de pasivos del hogar, costos pagados directo) + Σ `Aporte` con origen en sus medios. Una compra personal, una compra financiada por desembolso y un pasivo personal no aportan | I6, I17, I18, I19 |
 | Balance de pareja | Los aportes por miembro en pesos y en porcentaje del total, incluido el fondo común; nunca una fila de diferencia | I7 |
-| Ingreso del mes de un miembro | Fijos vigentes en el mes, con `monto_recibido` si el recibo dice `recibido=true` y el esperado si no, más variables con fecha en el mes | I22 |
+| Ingreso del mes de un miembro | Por serie fija: un solo importe por mes calendario — el recibo del periodo si existe y, si no, el esperado de la versión vigente el día 1 (o el último día si la serie arranca a mitad de mes) — más variables con fecha en el mes | I12, I22, I24 |
 | Obligaciones del mes | Cuotas con vencimiento en el mes (capital más sus costos con `cuota_id`) + costos cargados sin `cuota_id` causados en el mes + obligaciones recurrentes; es una agenda, no se suma al gasto y se lee por `periodo`, no por `fecha` | I3, I10 |
 | Saldo de un pasivo | Capital de sus planes + costos cargados − pagos, a una fecha; **nunca negativo**: un abono que lo haría negativo se rechaza y el exceso va como saldo a favor explícito | I10, I20 |
 
@@ -368,11 +393,22 @@ Decisión D4 (§11): se acepta Supabase gratis y el respaldo no depende de que a
 ### 9.1 Qué se exporta
 
 - **Hechos, no derivados.** Las tablas replicadas con sus columnas de sync (§5.1): ids, fechas, montos y tombstones. Saldos, aportes, niveles de despensa, totales y estados no viajan: se recalculan con [data-model.md](data-model.md) §8. Un export no es una segunda fuente de verdad.
-- **Dos archivos descargables por miembro, nunca mezclados:**
-  - **Hogar** (`hogar/<hogar_id>/<AAAA-MM-DD>/`): un archivo común a todos los miembros, con las filas compartidas y sus dependientes. No incluye ninguna fila personal, ni siquiera la de quien descarga.
-  - **Personal** (`personal/<hogar_id>/<miembro_id>/<AAAA-MM-DD>/`): un archivo con solo las filas personales de ese miembro y sus dependientes. No incluye filas compartidas ni personales ajenas.
-- **Formato.** Cada archivo es un ZIP con el JSON de todas las filas de su alcance y un CSV por tabla. Ambas representaciones se generan a partir de las mismas filas.
-- **Alcance por hogar y por actor.** El archivo compartido se genera una sola vez por hogar y fecha, sin depender del actor. Para generar el personal, el actor es explícito: se seleccionan solo filas de ámbito personal y se aplica `puede_ver` (§5.9). No hay una lista de tablas copiada a mano.
+- **Dos ZIP descargables por miembro, y el contrato es exactamente ese:**
+  - **Hogar** (`hogar/<hogar_id>/<AAAA-MM-DD>/hogar.zip`): un archivo común a todos los miembros, con las filas compartidas y sus dependientes. No incluye ninguna fila personal, ni siquiera la de quien descarga.
+  - **Personal** (`personal/<hogar_id>/<miembro_id>/<AAAA-MM-DD>/personal.zip`): un archivo con solo las filas personales de ese miembro y sus dependientes. No incluye filas compartidas ni personales ajenas.
+- **Formato.** Cada ZIP lleva el JSON de todas las filas de su alcance y un CSV por tabla. Ambas representaciones se generan a partir de las mismas filas; no hay un tercer archivo ni un ZIP extra por tabla o por ámbito.
+- **Dos funciones, un solo camino.** El job y el botón usan las mismas dos funciones, una por alcance:
+
+```
+exportar_hogar(hogar_id, fecha)                  # ZIP compartido; no depende de un actor
+exportar_personal(hogar_id, miembro_id, fecha)   # ZIP personal; actor explícito: puede_ver + ámbito personal
+
+job semanal: exportar_hogar(hogar_id) y, por cada miembro activo M, exportar_personal(hogar_id, M.id, fecha)
+"Exportar ahora" de A: el compartido de hoy (si falta) + exportar_personal(hogar_id, A.id, fecha)
+                      → dos URLs firmadas: hogar.zip y el personal.zip de A
+```
+
+El job semanal deja en Storage `1 + N` archivos —el compartido y uno por miembro activo, cada uno en su prefijo—, pero cada miembro descarga dos. `miembro_id` sale del actor autenticado, nunca del cuerpo de la petición; el job con service role solo escribe en el prefijo del dueño. No hay una lista de tablas copiada a mano.
 
 ### 9.2 Cómo se genera y cómo se descarga
 

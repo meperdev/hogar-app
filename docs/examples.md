@@ -50,7 +50,7 @@ Todos los ejemplos usan el mismo hogar. Los identificadores de las tablas (`comp
 | Saldo del pasivo | Σ capital de planes con `fecha_inicio` ≤ fecha + Σ costos cargados al pasivo − Σ `PagoDeDeuda` `abono` − Σ saldo a favor aplicado a cargos; **nunca negativo** | No depende de los aportes |
 
 Definiciones exactas, campos, fórmulas e invariantes: [data-model.md](data-model.md) (entidades, campos, totales e
-invariantes I1–I23). Este documento no redefine nada: solo calcula con esas reglas.
+invariantes I1–I26). Este documento no redefine nada: solo calcula con esas reglas.
 
 ### Convenciones de lectura
 
@@ -505,11 +505,11 @@ es el pago de la obligación de energía), y una compra de contado desde el fond
 
 `Ingreso` (los fijos se cierran con `vigente_hasta`, no se editan)
 
-| id | miembro_id | tipo | descripcion | monto | dia_esperado | vigente_desde | vigente_hasta | fecha |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `ing-ana-fijo` | `ana` | fijo | Salario | $4.500.000 | 30 | 2026-01-01 | null | null |
-| `ing-beto-fijo` | `beto` | fijo | Salario | $2.000.000 | 15 | 2026-01-01\* | null | null |
-| `ing-beto-variable` | `beto` | variable | Freelance | $1.500.000 | null | null | null | 2026-11-20 |
+| id | serie_id | miembro_id | tipo | descripcion | monto | dia_esperado | vigente_desde | vigente_hasta | fecha |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `ing-ana-fijo` | `ing-ana-fijo` | `ana` | fijo | Salario | $4.500.000 | 30 | 2026-01-01 | null | null |
+| `ing-beto-fijo` | `ing-beto-fijo` | `beto` | fijo | Salario | $2.000.000 | 15 | 2026-01-01\* | null | null |
+| `ing-beto-variable` | null | `beto` | variable | Freelance | $1.500.000 | null | null | null | 2026-11-20 |
 
 Los dos fijos se crean al configurar el hogar. El variable se registra el 2026-11-20, en su propio lote: el alta de
 un ingreso es una intención independiente y no toca ninguna compra ni ningún aporte.
@@ -518,10 +518,14 @@ un ingreso es una intención independiente y no toca ninguna compra ni ningún a
 
 `RecepcionIngreso` (el recibo de noviembre de cada fijo; `monto_recibido` null = llegó el monto esperado)
 
-| id | ingreso_id | periodo | recibido | monto_recibido | fecha_recepcion | registrado_por |
-| --- | --- | --- | --- | --- | --- | --- |
-| `rec-ana-nov` | `ing-ana-fijo` | 2026-11 | true | null | 2026-11-30 | Ana |
-| `rec-beto-nov` | `ing-beto-fijo` | 2026-11 | true | null | 2026-11-15 | Beto |
+| id | ingreso_id | serie_id | periodo | recibido | monto_recibido | fecha_recepcion | registrado_por |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `rec-ana-nov` | `ing-ana-fijo` | `ing-ana-fijo` | 2026-11 | true | null | 2026-11-30 | Ana |
+| `rec-beto-nov` | `ing-beto-fijo` | `ing-beto-fijo` | 2026-11 | true | null | 2026-11-15 | Beto |
+
+`serie_id` es una columna física del recibo: la pone el servidor desde la versión referenciada y es inmutable, así
+el índice único parcial `(serie_id, periodo)` es implementable y el cliente no puede reclamar una serie ajena
+([data-model.md](data-model.md) §3.3.1).
 
 El recibo no crea un ingreso nuevo ni cambia `Ingreso.monto`: solo marca ese periodo como **recibido**. Sin la
 fila, el estado sería **esperado** y el balance usaría igual el monto declarado. Los dos recibos son del mismo mes
@@ -617,7 +621,7 @@ el ingreso del mes es el monto declarado (`$4.500.000` y `$2.000.000`).
 - **I7** — El balance no tiene fila de deuda ni cálculo de diferencia.
 - **I11** — Una sola compra por `(obligacion_id, periodo)`: no se puede pagar Energía de noviembre dos veces.
 - **I17** — `Aporte` con origen de dueño miembro y destino de dueño hogar.
-- **I22** — Un `RecepcionIngreso` por `(ingreso_id, periodo)`; el balance usa `monto_recibido` si `recibido=true` y
+- **I22** — Un `RecepcionIngreso` por `(serie_id, periodo)`; el balance usa `monto_recibido` si `recibido=true` y
   el esperado si no.
 
 ### 6. Test de fase 2 (descripción)
@@ -703,7 +707,32 @@ calculan en cada consulta a partir del último hecho compartido por `(fecha, id)
 | 2026-11 | Mascotas $185.000 | — | $185.000 | Beto $185.000 (100,0 %) | — | $0 |
 
 Filtro por mascota: en noviembre, `$185.000` para Luna; en octubre, `$180.000`. El filtro no cambia el total de la
-categoría en este caso porque Luna es la única mascota.
+categoría en este caso porque Luna es la única mascota etiquetada en la categoría Mascotas.
+
+### 3 ter. Alcance del total de mascotas (fixtures positivas y negativas)
+
+Sobre el mismo noviembre, cuatro compras más para fijar el alcance de la tarjeta "Mascotas" del hogar (no alteran
+las cifras de §3, que son el escenario base):
+
+| id | ámbito | categoría | mascota_id | monto | qué demuestra |
+| --- | --- | --- | --- | --- | --- |
+| `compra-juguete` | hogar | Mascotas | `luna` | $20.000 | positiva: suma al total y al desglose de Luna |
+| `compra-vet` | hogar | Mascotas | null | $40.000 | positiva sin etiqueta: suma al total, no a una mascota |
+| `compra-arena` | hogar | Mercado | `luna` | $10.000 | negativa: etiqueta mal puesta, sigue siendo Mercado |
+| `compra-masc-ana` | personal | Mascotas | `luna` | $50.000 | negativa en la vista compartida: es de Ana |
+
+| vista | cálculo | resultado |
+| --- | --- | --- |
+| Total Mascotas del hogar (noviembre) | `185.000 + 20.000 + 40.000` | **$245.000** |
+| Desglose por mascota: Luna | `185.000 + 20.000` | $205.000 |
+| Desglose sin etiqueta | `40.000` | $40.000 |
+| Suma del desglose | `205.000 + 40.000` | **$245.000** = el total, sin doble conteo |
+| Mercado del hogar (noviembre) | `compra-arena` sigue en su categoría | $10.000 |
+| Vista personal de Ana | `compra-masc-ana` | $50.000, nunca en la vista compartida |
+
+La tarjeta es una **vista de categoría**: el total son compras de ámbito hogar de la categoría Mascotas, cada una
+una vez. `mascota_id` solo reparte ese total; no agrega compras de otras categorías ni convierte una compra personal
+en gasto del hogar (**I26**).
 
 ### 3 bis. Variante — la reposición de diciembre se paga con tarjeta
 
@@ -775,16 +804,24 @@ la próxima compra estimada pasa a ser
   `2027-01-10`; el gasto de diciembre es `182000` (una sola vez) y los aportes de diciembre son `0`; el saldo de
   Visa Ana es `182000`; la compra resetea el nivel a `100` y la próxima compra estimada es `2027-01-02`; y al
   registrar el pago del 2027-01-10 el aporte del mes es de quien pagó y el saldo vuelve a `0`.
-- **T-e-3 (propiedad, nivel derivado).** Para cualquier `nivel_pct` en `0..100` y cualquier `frecuencia_dias = f`
-  positivo: `dias_restantes = floor(nivel_pct × f / 100)`, `proxima_compra_estimada = observacion.fecha +
-  dias_restantes` y `alerta` es verdadera si y solo si `nivel_pct ≤ umbral_alerta_pct`; sin observación compartida el nivel es
-  desconocido, sin alerta y sin fecha; con `frecuencia_dias` nula el nivel y la alerta existen pero los días y la
-  próxima compra son `null`. Ninguna función de totales incluye la fecha estimada y el gasto acumulado sigue siendo
-  Σ de los `monto_total` de las compras no eliminadas (**I16**, **I21**).
 - **T-e-4 (ajuste y reset).** *Given* el ítem con nivel 100 al 2026-11-04. *When* se registra un ajuste a `54` el
-  2026-11-20 y otro a `15` el 2026-11-28. *Then* el nivel derivado es `54` (16 días, próxima `2026-12-06`, sin
-  alerta) y después `15` (4 días, próxima `2026-12-02`, con alerta); ninguna de las dos compras del ítem se crea ni
-  se modifica; y la compra siguiente vuelve a dejar el nivel en `100`.
+  2026-11-20 y otro a `15` el 2026-11-28. *Then* el nivel derivado es `54` (16 días de vida útil, próxima
+  `2026-12-06`, sin alerta) y después `15` (4 días, próxima `2026-12-02`, con alerta); ninguna de las dos compras
+  del ítem se crea ni se modifica; y la compra siguiente vuelve a dejar el nivel en `100`.
+- **T-e-5 (alcance del total de mascotas).** *Given* las cuatro fixtures de §3 ter. *Then* el total Mascotas del
+  hogar es `245000`; el desglose suma `245000` (Luna `205000` + sin etiqueta `40000`); `compra-arena` queda en
+  Mercado (`10000`) y no entra al total de mascotas; `compra-masc-ana` no aparece en la vista compartida y sí en la
+  vista personal de Ana (`50000`); ninguna compra se cuenta dos veces (**I26**).
+- **T-e-6 (días restantes vs. vida útil).** *Given* la observación del 2026-11-20 con `nivel_pct=54` y
+  `frecuencia_dias=30`. *Then* `vida_util_dias=16` y `proxima_compra_estimada=2026-12-06` son fijos, y al consultar
+  el 2026-11-26 `dias_restantes=10`; el 2026-12-08 es `-2` (vencida). El valor no se congela en `16`.
+- **T-e-3 (propiedad, nivel derivado).** Para cualquier `nivel_pct` en `0..100` y cualquier `frecuencia_dias = f`
+  positivo: `vida_util_dias = floor(nivel_pct × f / 100)`, `proxima_compra_estimada = observacion.fecha +
+  vida_util_dias`, `dias_restantes(hoy) = proxima_compra_estimada − hoy` y `alerta` es verdadera si y solo si
+  `nivel_pct ≤ umbral_alerta_pct`; sin observación compartida el nivel es desconocido, sin alerta y sin fecha; con
+  `frecuencia_dias` nula el nivel y la alerta existen pero los días y la próxima compra son `null`. Ninguna función
+  de totales incluye la fecha estimada y el gasto acumulado sigue siendo Σ de los `monto_total` de las compras no
+  eliminadas (**I16**, **I21**).
 
 ---
 
@@ -1137,10 +1174,10 @@ declarados. Beto recibe el suyo completo el 2026-11-15. Los dos recibos son del 
 
 `RecepcionIngreso`
 
-| id | ingreso_id | periodo | recibido | monto_recibido | fecha_recepcion | registrado_por |
-| --- | --- | --- | --- | --- | --- | --- |
-| `rec-ana-nov` | `ing-ana-fijo` | 2026-11 | true | $4.300.000 | 2026-11-30 | Ana |
-| `rec-beto-nov` | `ing-beto-fijo` | 2026-11 | true | null | 2026-11-15 | Beto |
+| id | ingreso_id | serie_id | periodo | recibido | monto_recibido | fecha_recepcion | registrado_por |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `rec-ana-nov` | `ing-ana-fijo` | `ing-ana-fijo` | 2026-11 | true | $4.300.000 | 2026-11-30 | Ana |
+| `rec-beto-nov` | `ing-beto-fijo` | `ing-beto-fijo` | 2026-11 | true | null | 2026-11-15 | Beto |
 
 `monto_recibido = null` con `recibido = true` significa "llegó el monto esperado". `Ingreso.monto` **no** cambia:
 Ana sigue declarando `$4.500.000`. El recibo del periodo es un hecho aparte, no una edición del salario (**I22**).
@@ -1180,7 +1217,8 @@ el de diciembre no cambiaría: manda el `periodo`, igual que en la agenda de obl
 - El monto recibido **no** entra al gasto ni a los aportes: solo es el denominador de "% de su ingreso".
 - El "% de su ingreso" **no** se guarda: `39,5 %` se recalcula de `1.700.000 / 4.300.000` cada vez.
 - La ausencia de fila **no** es un error: es el estado "esperado".
-- Un segundo recibo del mismo `(ingreso_id, periodo)` **no** puede existir (**I22**).
+- Un segundo recibo del mismo `(serie_id, periodo)` **no** puede existir, aunque la serie tenga dos versiones ese
+  mes (**I22**).
 - Un recibo **no** se admite sobre un ingreso `tipo='variable'`: el freelance ya trae su `fecha` en el `Ingreso`.
 - `recibido = false` con `monto_recibido` cargado **no** es válido: los dos campos van juntos o ninguno (CHECK de
   [data-model.md](data-model.md) §3.3.1).
@@ -1191,7 +1229,7 @@ el de diciembre no cambiaría: manda el `periodo`, igual que en la agenda de obl
 - **I6** — Los aportes no cambian por un recibo: el ingreso nunca es aporte.
 - **I7** — El balance sigue sin fila de deuda: el recibo no crea obligaciones entre miembros.
 - **I12** — `periodo` es `'YYYY-MM'` de fecha civil: el mes del recibo no depende de un `timestamptz`.
-- **I22** — Único `(ingreso_id, periodo)`; el balance usa `monto_recibido` si `recibido = true` y el monto declarado
+- **I22** — Único `(serie_id, periodo)`; el balance usa `monto_recibido` si `recibido = true` y el monto declarado
   si no.
 
 ### 7. Test de fase 2 (descripción)
@@ -1202,11 +1240,180 @@ el de diciembre no cambiaría: manda el `periodo`, igual que en la agenda de obl
 - **T-i-2 (esperado).** *Given* el mismo escenario sin la fila de Ana. *Then* el ingreso del mes de Ana es
   `4500000`, el estado es "esperado" y el % es `37,8 %`; para `2026-12` los dos fijos están "esperado" con
   `4500000` y `2000000`.
-- **T-i-3 (rechazos).** *When* se intenta un segundo recibo del mismo `(ingreso_id, periodo)`, un recibo sobre un
+- **T-i-3 (rechazos).** *When* se intenta un segundo recibo del mismo `(serie_id, periodo)`, un recibo sobre un
   ingreso variable o un `recibido = false` con `monto_recibido` cargado. *Then* los tres se rechazan.
 - **T-i-4 (propiedad).** Para cualquier ingreso fijo y cualquier `monto_recibido > 0`: el ingreso del mes es
   `monto_recibido` cuando `recibido = true` y el monto declarado cuando no hay fila o `recibido = false`; los aportes
   del mes no cambian; y el % se calcula a un decimal solo si `mostrar_pct_ingreso` está prendido.
+
+---
+
+## Ejemplo i bis — cambio de monto y de día a mitad de mes
+
+### 1. Situación
+
+Variante de d. Ana cambia su salario el 2026-11-16: el monto pasa de `$4.500.000` a `$4.700.000` y el día de
+pago del 10 al 20. La serie se modela con dos versiones contiguas, no con filas sueltas. Noviembre debe aportar
+**un solo sueldo**: `$4.500.000`, el de la versión vigente el día 1. Diciembre ya usa `$4.700.000`.
+
+### 2. Registros creados
+
+`Ingreso` (misma serie, dos versiones con vigencias inclusivas y contiguas)
+
+| id | serie_id | miembro_id | tipo | descripcion | monto | dia_esperado | vigente_desde | vigente_hasta |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `ing-ana-fijo` | `ing-ana-fijo` | `ana` | fijo | Salario | $4.500.000 | 10 | 2026-01-01 | 2026-11-15 |
+| `ing-ana-v2` | `ing-ana-fijo` | `ana` | fijo | Salario | $4.700.000 | 20 | 2026-11-16 | null |
+
+`2026-11-15 + 1 día = 2026-11-16`: no hay solape ni hueco y una sola versión queda abierta ([data-model.md](data-model.md) §3.3).
+
+### 3. Qué importe aporta cada mes
+
+| mes | versión aplicable | esperado | recibo del periodo | ingreso del mes | por qué |
+| --- | --- | --- | --- | --- | --- |
+| 2026-10 | `ing-ana-fijo` | $4.500.000 | no | $4.500.000 | el día 1 de octubre cae en esa versión |
+| 2026-11 | `ing-ana-fijo` | $4.500.000 | no | $4.500.000 | el día 1 de noviembre cae en la versión vieja: el cambio rige desde diciembre |
+| 2026-11 (con recibo) | `ing-ana-fijo` | $4.500.000 | `rec-ana-nov`, `$4.700.000` | **$4.700.000** | el recibo manda sobre el esperado |
+| 2026-12 | `ing-ana-v2` | $4.700.000 | no | $4.700.000 | el día 1 de diciembre ya cae en la versión nueva |
+
+Con el recibo de `$4.700.000`, el "% de su ingreso" de Ana en noviembre es `1.700.000 / 4.700.000 = 36,2 %`; los
+aportes y el gasto de d no cambian.
+
+### 3 bis. Los dos contraejemplos de la revisión
+
+La regla anterior sumaba cada fila cuya **propia** fecha esperada caía dentro de su vigencia. Con vigencias 1–15 y
+16–30 de noviembre eso da dos sueldos o ninguno, según el orden de los días:
+
+| orden de días | versión 1–15 | versión 16–30 | regla anterior (fecha esperada propia) | regla vigente (día 1) |
+| --- | --- | --- | --- | --- |
+| 10 → 20 | día 10, `$4.500.000` | día 20, `$4.700.000` | **dos** sueldos: `$9.200.000` | **un** sueldo: `$4.500.000` |
+| 20 → 10 | día 20, `$4.500.000` | día 10, `$4.700.000` | **ninguno**: `$0` | **un** sueldo: `$4.500.000` |
+
+Con la regla vigente el resultado es el mismo en los dos órdenes: la serie aporta una sola vez por mes y el día de
+pago no interviene en la selección (**I24**).
+
+### 3 ter. Serie que arranca a mitad de mes
+
+Un ingreso fijo nuevo de Ana, serie `ing-ana-arriendo`, arranca el 2026-11-20 con `$3.000.000` y día esperado 5, sin
+versión anterior en la serie.
+
+| mes | versión aplicable | ingreso del mes | por qué |
+| --- | --- | --- | --- |
+| 2026-10 | ninguna | $0 | la serie todavía no existía |
+| 2026-11 | la vigente el 2026-11-30 | $3.000.000 | no hay versión para el día 1: aplica la del último día |
+| 2026-12 | la misma (abierta) | $3.000.000 | el día 1 de diciembre ya cae en ella |
+
+### 4. Lo que NO pasa
+
+- El cambio de monto **no** crea un ingreso nuevo: crea otra versión de la misma serie (`serie_id` estable).
+- El cambio de día **no** adelanta ni duplica el sueldo de noviembre: el día de pago no decide el mes.
+- Un recibo **no** se duplica por tener dos versiones: el único es `(serie_id, periodo)`, no `(ingreso_id, periodo)`.
+- Un mes anterior al inicio de la serie **no** se estima ni se prorratea: aporta `0`.
+- El cierre a mitad de mes **no** borra el mes en curso: el día 1 ya estaba cubierto por la versión.
+
+### 5. Invariantes que lo protegen
+
+- **I1** — Los montos son enteros; el ingreso no se prorratea por días.
+- **I12** — El mes es calendario civil en `America/Bogota`; el día 1 y el último día salen de la fecha civil.
+- **I22** — Un solo `RecepcionIngreso` por `(serie, periodo)`; el balance usa `monto_recibido` si `recibido=true`.
+- **I24** — Vigencias inclusivas y contiguas; exactamente un importe por serie y mes calendario.
+
+### 6. Test de fase 2 (descripción)
+
+- **T-i-5 (los dos contraejemplos).** *Given* una serie con vigencias 1–15 y 16–30 de noviembre. *When* se piden
+  los ingresos fijos de noviembre para días 10→20 y para días 20→10. *Then* en los dos casos el ingreso es
+  `4500000`, exactamente una versión aplicable y el total del hogar no suma dos veces.
+- **T-i-6 (arranque a mitad de mes y cierre terminal en el mismo mes).** *Given* una serie que arranca el
+  2026-11-20. *Then* octubre da `0` y noviembre da el monto de la versión vigente el 2026-11-30. *Given además* una
+  serie que arranca el 2026-11-20 y se cierra el 2026-11-25, sin versión siguiente. *Then* noviembre da **un solo**
+  importe (el cierre terminal se toma vigente hasta el 2026-11-30 para la selección) y diciembre da `0`. Una serie
+  que arranca en octubre y se cierra el 2026-11-25 sigue dando noviembre con su importe, sin aplicar la regla del
+  cierre en el mismo mes.
+- **T-i-7 (recibo: precedencia, mes activo y unicidad entre versiones).** *Given* la serie con dos versiones en
+  noviembre. *When* se registra un recibo de `2026-11` por `4700000` apuntando a la versión vieja y luego otro para
+  la nueva con el mismo periodo. *Then* el primero deja el ingreso de noviembre en `4700000` y el segundo se rechaza
+  por el único parcial `(serie_id, periodo)`. *Then además* ese recibo no cambia la versión aplicable (sigue siendo
+  la vigente el día 1) ni el mes: diciembre sigue con el esperado de la nueva versión. *And* se rechazan: un recibo
+  con `serie_id` distinto al de la versión referenciada (la FK compuesta `(ingreso_id, serie_id)` no lo permite), un
+  recibo sobre una versión `tipo='variable'`, y un recibo con `periodo='2026-10'` o `'2027-01'` cuando la serie no
+  tiene versión aplicable en ese mes.
+- **T-i-8 (propiedad).** Para cualquier serie con vigencias contiguas y cualquier mes: la cardinalidad de
+  `version(serie, mes)` es `0` o `1`; si es `1`, el importe del mes es el del recibo o el esperado, nunca la suma de
+  dos versiones (**I24**).
+
+---
+
+## Ejemplo j — lote solo personal: sin señal en el canal del hogar
+
+### 1. Situación
+
+Ana y Beto están sincronizados. Estado inicial: `hogar_seq = 40`, el cursor del hogar de Beto es
+`siguiente_seq = 40` y el carril personal de Ana tiene `personal_seq(ana) = 6`. Ana registra, en este orden, dos
+compras del hogar, un lote **exclusivamente personal** (una compra personal y su `NivelDespensa`, en la misma
+transacción) y una compra del hogar más. Beto está suscrito al canal del hogar.
+
+### 2. Qué asigna cada lote
+
+| # | lote de Ana | filas | `hogar_seq` | `personal_seq(ana)` | ¿aviso al canal del hogar? |
+| --- | --- | --- | --- | --- | --- |
+| 1 | `compra-hogar-1` | 1 del hogar | 41 | 6 | sí: `41` |
+| 2 | `compra-hogar-2` | 1 del hogar | 42 | 6 | sí: `42` |
+| 3 | `compra-personal-ana` + `NivelDespensa` | 2 personales | **42 (no cambia)** | 8 | **no** |
+| 4 | `compra-hogar-3` | 1 del hogar | 43 | 8 | sí: `43` |
+
+La numeración del hogar queda `41, 42, 43`: contigua y sin saltos por el lote 3. El lote 3 solo movió el carril
+privado de Ana (`6 → 8`) y, al no tocar filas del hogar, **nunca** bloqueó `hogar_seq` (el pre-lock de
+[architecture.md](architecture.md) §5.2 solo toma los carriles tocados).
+
+### 3. Pull de Beto con `limite = 1` (truncado)
+
+| paso | `desde_seq` | agua `H` | filas devueltas | `siguiente_seq` |
+| --- | --- | --- | --- | --- |
+| 1 | 40 | 43 | `41` | 41 |
+| 2 | 41 | 43 | `42` | 42 |
+| 3 | 42 | 43 | `43` | 43 |
+| 4 | 43 | 43 | — (vacío) | 43 |
+
+Beto recibe `41`, `42` y `43` exactamente una vez y **nunca** la personal de Ana. No hay salto observable: el agua
+`H = 43` no es el cursor, así que el paso truncado devuelve `siguiente_seq = 41`, no `43`. Si el cursor saltara al
+agua en el paso 1, Beto perdería `42` y `43`.
+
+### 3 bis. Pull de Ana por su carril personal, `limite = 1`
+
+| paso | `desde_seq` | agua `H` | filas devueltas | `siguiente_seq` |
+| --- | --- | --- | --- | --- |
+| 1 | 6 | 8 | `7` | 7 |
+| 2 | 7 | 8 | `8` | 8 |
+| 3 | 8 | 8 | — (vacío) | 8 |
+
+El carril agotado devuelve cero filas con `siguiente_seq = H = 8`: no se atasca y no adelanta de más. Un segundo
+pull vacío repite `0` filas y `8`.
+
+### 4. Lo que NO pasa
+
+- El lote 3 **no** mueve `hogar_seq` (de `42` a `43` no hay `44` por medio) ni deja hueco en la numeración.
+- El lote 3 **no** emite aviso en el canal del hogar: Beto no puede inferir que existió.
+- Un pull truncado **no** guarda el agua como cursor; un pull vacío **no** atasca el carril.
+- La fila personal de Ana **no** aparece en el pull del hogar de Beto.
+- La numeración personal **no** se mezcla con la del hogar: `seq` solo se compara dentro de su carril.
+
+### 5. Invariante que lo protege
+
+- **I25** — Un lote exclusivamente personal no mueve `hogar_seq`, no emite aviso compartido y no deja saltos; hay un
+  cursor por carril, `ultimo_seq` es el agua del snapshot y `siguiente_seq` es el cursor de reanudación.
+
+### 6. Test de fase 2 (descripción)
+
+- **T-j-1 (lote solo personal).** *Given* Ana y Beto con `hogar_seq = 40`, `personal_seq(ana) = 6` y el cursor del
+  hogar de Beto en `40`. *When* Ana escribe los lotes 1–4. *Then* `hogar_seq` termina en `43` y no cambió por el
+  lote 3; Beto recibe **3** avisos del hogar (`41`, `42`, `43`) y **0** por el lote 3; su pull devuelve las filas
+  `41–43` y ninguna personal; el estado del hogar de Beto es idéntico al de un escenario sin el lote 3;
+  `personal_seq(ana)` termina en `8` y solo Ana ve esas dos filas.
+- **T-j-2 (paginación truncada, incluido vacío).** *Given* el mismo estado con agua `H = 43`. *When* Beto hace pull
+  con `limite = 1` desde `40`. *Then* las páginas devuelven `41`, `42` y `43` exactamente una vez, con
+  `siguiente_seq` `41`, `42` y `43`; la cuarta página devuelve `0` filas con `siguiente_seq = 43`; la unión es
+  `[41, 42, 43]` sin huecos ni repetidos y ninguna página guarda el agua con filas pendientes. *And* el mismo test
+  con el carril vacío (`desde_seq = 43`) devuelve `siguiente_seq = 43` y no atasca.
 
 ---
 
@@ -1219,11 +1426,13 @@ el de diciembre no cambiaría: manda el `periodo`, igual que en la agenda de obl
 | b | deuda del hogar pagada por ambos, sin deuda entre miembros | I2, I3, I6, I7, I8, I10, I14 | T-b-1, T-b-2, T-b-3 |
 | c | un miembro paga la tarjeta del otro: cambia el aporte, no el gasto | I2, I4, I6, I7, I9, I10 | T-c-1, T-c-2 (propiedad) |
 | d | ingresos fijos vs variables, balance de pareja sin "debe" | I1, I2, I6, I7, I11, I17 | T-d-1, T-d-2, T-d-3 (identidad de aportes) |
-| e | despensa recurrente, nivel observado y derivado, variante con tarjeta | I2, I3, I6, I10, I15, I21 | T-e-1, T-e-2, T-e-3, T-e-4 (propiedad y reset) |
+| e | despensa recurrente, nivel observado y derivado, variante con tarjeta | I2, I3, I6, I10, I15, I21, I26 | T-e-1, T-e-2, T-e-3, T-e-4, T-e-5, T-e-6 (propiedad, reset y alcance) |
 | f | compra personal vs del hogar: el gasto se separa por ámbito y el aporte no cambia | I1, I2, I6, I7, I14, I16, I18 | T-f-1, T-f-2, T-f-3 (propiedad) |
 | g | préstamo en efectivo: desembolso una vez en el giro, compras vinculadas sin capital y aporte al pagar | I1, I2, I3, I6, I8, I10, I16, I19, I20 | T-g-1, T-g-2, T-g-3, T-g-4 (conservación) |
 | h | pago duplicado rechazado: único de cuota, saldo no negativo y reintento idempotente | I6, I10, I13, I16, I20 | T-h-1, T-h-2, T-h-3, T-h-4 (propiedad) |
 | i | ingreso fijo recibido por un monto distinto: cambia el denominador, no los aportes | I1, I6, I7, I12, I22 | T-i-1, T-i-2, T-i-3, T-i-4 (propiedad) |
+| i bis | cambio de monto y de día a mitad de mes: un solo importe por serie y mes calendario | I1, I12, I22, I24 | T-i-5, T-i-6, T-i-7, T-i-8 (propiedad y unicidad) |
+| j | lote solo personal: carriles, cursores y avisos aislados; pull truncado sin saltos | I25 | T-j-1, T-j-2 (paginación truncada y vacía) |
 
 Los property-based tests de a1, a2, c, d, e, f, g, h e i cubren la identidad de conservación **I16** desde ángulos
 distintos: sin tasa, con tasa, con pagos parciales, con salidas del fondo común, con compras personales, con un

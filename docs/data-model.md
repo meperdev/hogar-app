@@ -39,11 +39,11 @@ Presentes en **toda tabla replicada**; no se repiten en las tablas de §3.
 
 Excepción: los subtipos `Tarjeta`, `Credito` y `Deuda` no tienen `id` propio; su PK es `pasivo_id` (FK → `Pasivo(id)`) y llevan el resto de columnas de sincronización. Se crean en el mismo lote que su `Pasivo`.
 
-`seq` sale de la tabla solo-servidor `hogar_seq(hogar_id, ultimo_seq)`: un trigger `BEFORE INSERT/UPDATE` incrementa y bloquea la fila del hogar hasta el commit, así el orden de `seq` coincide con el de commit y un pull no se salta filas confirmadas. El cliente envía por registro un `base_seq` (el `seq` que vio, `null` si es nuevo) y por lote un `lote_id` (UUIDv7 del cliente) y un `schema_version`; ninguno es columna de las tablas replicadas. El servidor guarda cada `lote_id` aplicado con su resultado en la tabla solo-servidor `lote_aplicado`; reenviar un lote ya aplicado (por ejemplo, tras perder la respuesta) devuelve el resultado guardado sin volver a evaluar `base_seq`, así un reintento de una actualización no se confunde con un conflicto.
+`seq` sale de la tabla solo-servidor del carril de la fila —`hogar_seq(hogar_id, ultimo_seq)` o `personal_seq(hogar_id, miembro_id, ultimo_seq)` (§1.3)—: un trigger `BEFORE INSERT/UPDATE` incrementa y bloquea el contador de ese carril hasta el commit, así el orden de `seq` coincide con el de commit y un pull no se salta filas confirmadas. `seq` solo es comparable dentro de su carril. El cliente envía por registro un `base_seq` (el `seq` que vio, `null` si es nuevo) y por lote un `lote_id` (UUIDv7 del cliente) y un `schema_version`; ninguno es columna de las tablas replicadas. El servidor guarda cada `lote_id` aplicado con su resultado en la tabla solo-servidor `lote_aplicado`; reenviar un lote ya aplicado (por ejemplo, tras perder la respuesta) devuelve el resultado guardado sin volver a evaluar `base_seq`, así un reintento de una actualización no se confunde con un conflicto.
 
 ### 1.3 Tombstones y tablas solo-servidor
 
-Nada se borra físicamente: eliminar es escribir `eliminado_en`. El pull transporta esas filas y el cliente las aplica; un registro eliminado no cuenta en totales, saldos ni unicidad funcional. Tres tablas no se replican: `hogar_seq` (`hogar_id`, `ultimo_seq`, infraestructura de orden del servidor), `lote_aplicado` (`hogar_id`, `lote_id`, resultado; idempotencia de reintentos) e `invitacion` (token de un solo uso guardado como hash, vencimiento a 7 días; es un secreto, el cliente nunca lo lee).
+Nada se borra físicamente: eliminar es escribir `eliminado_en`. El pull transporta esas filas y el cliente las aplica; un registro eliminado no cuenta en totales, saldos ni unicidad funcional. Cuatro tablas no se replican: `hogar_seq` (`hogar_id`, `ultimo_seq`, carril compartido del orden del servidor), `personal_seq` (`hogar_id`, `miembro_id`, `ultimo_seq`, carril privado de cada dueño), `lote_aplicado` (`hogar_id`, `lote_id`, resultado; idempotencia de reintentos) e `invitacion` (token de un solo uso guardado como hash, vencimiento a 7 días; es un secreto, el cliente nunca lo lee).
 
 **Preferencias locales del dispositivo (no replicadas).** No son entidades ni columnas del servidor y nunca son autoridad: `incluir_personales` (vista del balance y reportes, apagada por defecto) y `ultimo_medio_de_pago_id` por miembro, para precargar la compra rápida. Se guardan en IndexedDB/localStorage del teléfono; no viajan en el lote y no alteran ningún cálculo de aportes.
 
@@ -99,6 +99,7 @@ Ingreso declarado de un miembro, fijo o variable, en una tabla con discriminador
 | --- | --- | --- | --- |
 | `miembro_id` | `uuid` | no | FK → `Miembro(id)` |
 | `tipo` | `enum('fijo','variable')` | no | Discriminador |
+| `serie_id` | `uuid` | sí | Identifica la **serie** de un ingreso fijo: un UUID estable elegido en el alta (por ejemplo, el `id` de la primera versión) que todas las versiones comparten. Obligatorio si `tipo='fijo'`; `null` si `variable` |
 | `descripcion` | `text` | no | "Salario", "Freelance", "Arriendo recibido" |
 | `monto` | `bigint` | no | CHECK `monto > 0` |
 | `dia_esperado` | `smallint` | sí | `1..31`. Obligatorio si `tipo='fijo'` |
@@ -106,7 +107,9 @@ Ingreso declarado de un miembro, fijo o variable, en una tabla con discriminador
 | `vigente_hasta` | `date` | sí | `fijo`; si existe, `≥ vigente_desde` |
 | `fecha` | `date` | sí | Obligatorio si `tipo='variable'`; `null` si `fijo` |
 
-CHECK compuesto: `fijo` exige `dia_esperado` y `vigente_desde` no nulos y `fecha` nula; `variable` exige `fecha` no nula y los campos de fijo nulos. Cambiar un salario es cerrar `vigente_hasta` y crear otro registro.
+CHECK compuesto: `fijo` exige `dia_esperado`, `vigente_desde` y `serie_id` no nulos y `fecha` nula; `variable` exige `fecha` no nula y los campos de fijo nulos. `Ingreso` declara `UNIQUE (id, serie_id)` para la FK compuesta de §3.3.1.
+
+**Una serie de versiones, no filas sueltas.** Cambiar monto o día de un ingreso fijo es cerrar la versión en curso (`vigente_hasta`) y crear otra con el mismo `serie_id` y `vigente_desde` igual al día siguiente. Las vigencias de una serie son **inclusivas y contiguas**: `vigente_hasta + 1 día = siguiente.vigente_desde`, sin solapes ni huecos, y a lo sumo una versión abierta (`vigente_hasta` nula). Un trigger diferido lo valida en el mismo lote. La serie empieza en el `vigente_desde` de su primera versión y termina donde se cierra la última; solo se cierra la última. El importe del mes se resuelve **por serie y mes calendario** (§8): un cambio de una serie ya existente que empieza a mitad de mes rige desde el mes siguiente; si la serie **arranca** a mitad de mes, aplica en el mes del arranque (regla del último día de §8). Si una serie **arranca y se cierra dentro del mismo mes** —cierre terminal, sin versión siguiente—, ese cierre se toma como vigente hasta el último día civil de ese mes para la selección: el mes del arranque aporta una sola vez. La regla no toca los cambios internos al mes (siempre que exista versión siguiente) ni los cierres en un mes posterior al del arranque.
 
 #### 3.3.1 RecepcionIngreso
 
@@ -114,13 +117,15 @@ Recibo mensual de un ingreso fijo. **No** es un ingreso nuevo ni cambia `Ingreso
 
 | Campo | Tipo | Nulo | Regla / notas |
 | --- | --- | --- | --- |
-| `ingreso_id` | `uuid` | no | FK → `Ingreso(id)` con `tipo='fijo'` |
-| `periodo` | `text` | no | `'YYYY-MM'`; único `(ingreso_id, periodo)` entre no eliminadas |
+| `ingreso_id` | `uuid` | no | FK compuesta `(ingreso_id, serie_id)` → `Ingreso(id, serie_id)`. Puede apuntar a cualquier versión de la serie; la versión referenciada debe ser `tipo='fijo'` (CHECK/trigger) |
+| `serie_id` | `uuid` | no | Serie de la versión referenciada. La **asigna el servidor** desde `Ingreso.serie_id` y es **inmutable**; el cliente no puede reclamar otra: la FK compuesta la valida contra la fila real |
+| `periodo` | `text` | no | `'YYYY-MM'`. Único parcial `(serie_id, periodo) WHERE eliminado_en IS NULL`. Solo meses en que la serie tiene versión aplicable (§8) |
 | `recibido` | `boolean` | no | Default `false` |
 | `monto_recibido` | `bigint` | sí | CHECK `monto_recibido > 0`. `null` con `recibido=true` = llegó el monto esperado |
 | `fecha_recepcion` | `date` | sí | Obligatoria si `recibido=true` |
+| `registrado_por` | `uuid` | no | FK → `Miembro(id)`. Quien registró el recibo |
 
-CHECK: `recibido=false` ⇔ `monto_recibido` y `fecha_recepcion` ambos nulos; `recibido=true` exige `fecha_recepcion` no nula. Solo se admite en ingresos `tipo='fijo'` (trigger o función de dominio).
+CHECK: `recibido=false` ⇔ `monto_recibido` y `fecha_recepcion` ambos nulos; `recibido=true` exige `fecha_recepcion` no nula. Solo se admite en ingresos `tipo='fijo'` (trigger o función de dominio) y solo para un mes **activo** de la serie: `version(serie, periodo) != null` (§8), validado en el servidor; un `periodo` anterior al arranque o posterior al cierre se rechaza. El único es por **serie**: para `2026-11` existe un solo recibo aunque la serie tenga dos versiones ese mes, y un segundo recibo que apunte a la otra versión se rechaza. Un recibo **nunca** cambia la versión aplicable ni el mes: su precedencia es solo sobre el importe de ese mes activo.
 
 ### 3.4 Categoria
 
@@ -208,7 +213,7 @@ El gasto real: una vez, en la fecha de la compra, por su valor total, sea de con
 | `medio_de_pago_id` | `uuid` | sí | FK → `MedioDePago(id)`. En `contado`, exactamente uno de `medio_de_pago_id` o `financiada_por_pasivo_id`; `null` si `financiado` |
 | `financiada_por_pasivo_id` | `uuid` | sí | FK → `Pasivo(id)`. La compra se pagó con el desembolso de un préstamo en efectivo: no crea plan, no suma capital y no es aporte. Exige `pago_tipo='contado'`, `medio_de_pago_id` nulo y plan `origen='desembolso'` con `fecha_inicio ≤ Compra.fecha` (I19) |
 | `registrado_por` | `uuid` | no | FK → `Miembro(id)`. Quien digitó, no quien consume |
-| `mascota_id` | `uuid` | sí | FK → `Mascota(id)`. Etiqueta para filtros |
+| `mascota_id` | `uuid` | sí | FK → `Mascota(id)`. Etiqueta opcional para el desglose por mascota; no crea gasto propio ni cambia la categoría de la compra (I26) |
 | `item_despensa_id` | `uuid` | sí | FK → `ItemDespensa(id)` |
 | `obligacion_id` | `uuid` | sí | FK → `Obligacion(id)`. Solo para `ambito='hogar'`: una compra personal nunca liquida una instancia compartida |
 | `periodo` | `text` | sí | `'YYYY-MM'`; presente si y solo si hay `obligacion_id`. Es el mes de la instancia de la obligación, no el del pago: el recibo de noviembre pagado el 2 de diciembre lleva `periodo='2026-11'` y cuenta en el gasto de diciembre (por `fecha`) |
@@ -312,7 +317,7 @@ El aportante es el dueño del medio cuando es un miembro; si el medio es del hog
 
 **Enlace de cuota completa.** Un pago parcial no lleva `cuota_id`; un pago que cubre una cuota completa puede llevarlo. Único parcial `(cuota_id)` donde `cuota_id IS NOT NULL`, `tipo='abono'` y `eliminado_en IS NULL`: no puede haber dos pagos completos enlazados a la misma cuota (I20). El enlace se valida con el FIFO vigente en el mismo lote: la cuota declarada debe quedar cubierta por ese pago; el enlace no reasigna nada.
 
-**Sobrepago y saldo a favor.** Un pago `abono` que dejaría el saldo del pasivo por debajo de cero se rechaza con el aviso "posible pago duplicado o sobrepago". La app propone dividirlo en dos filas del mismo lote: el `abono` que cubre lo debido y un `saldo_a_favor` por el exceso. Una fila `saldo_a_favor` no reduce capital ni costos, no es `CostoFinanciero` y no se aplica retroactivamente: queda como crédito para cargos futuros. No es aporte mientras no cubra un cargo; cuando cubre un cargo del hogar, el monto aplicado es aporte del dueño del medio en el mes de ese cargo. En un pasivo personal nunca es aporte del hogar.
+**Sobrepago y saldo a favor.** Un pago `abono` que dejaría el saldo del pasivo por debajo de cero se rechaza con el aviso "posible pago duplicado o sobrepago". La app propone dividirlo en dos filas del mismo lote: el `abono` que cubre lo debido y un `saldo_a_favor` por el exceso. Una fila `saldo_a_favor` no reduce capital ni costos, no es `CostoFinanciero` y no se aplica retroactivamente: queda como crédito para cargos futuros. No es aporte mientras no cubra un cargo; cuando cubre un cargo del hogar, el monto aplicado es aporte del dueño del medio en el mes de ese cargo. En un pasivo personal nunca es aporte del hogar. Con varios créditos y varios cargos el orden es determinista (§8): FIFO por `(fecha, id)` del crédito y, dentro de cada crédito, el mismo orden de cargos, así dos implementaciones atribuyen el mismo monto a la misma persona (I10).
 
 **Nunca negativo.** El saldo derivado de un pasivo no puede ser negativo en ninguna fecha histórica. La validación se ejecuta en la misma transacción que aplica el lote (`sync_push`), bloqueando el pasivo (por ejemplo `SELECT ... FOR UPDATE` o un advisory lock por `pasivo_id`) y recalculando con las filas del lote y las ya confirmadas. Dos pagos offline de la misma cuota se serializan: el segundo ve el primero y se rechaza o se registra como saldo a favor. La validación local de `domain/` es la misma; el servidor es la autoridad (I20).
 
@@ -351,7 +356,7 @@ Transferencia de un miembro a un medio del hogar, por ejemplo a la cuenta común
 
 ### 3.13 Mascota
 
-Animal del hogar; agrupa compras y recordatorios de despensa. **No** tiene gasto propio: su gasto son las compras etiquetadas con `mascota_id`.
+Animal del hogar; agrupa compras y recordatorios de despensa. **No** tiene gasto propio ni columna de gasto: la tarjeta "Mascotas" del hogar suma `Compra.monto_total` con `ambito='hogar'` y categoría **Mascotas**, cada compra una sola vez; `mascota_id` es una etiqueta opcional que solo habilita el desglose por mascota y nunca agrega compras de otras categorías al total. Las compras personales no entran en la vista compartida: su dueño las ve en su vista personal (§8, I26).
 
 | Campo | Tipo | Nulo | Regla / notas |
 | --- | --- | --- | --- |
@@ -383,11 +388,11 @@ Hecho observado del nivel de un artículo en una fecha. **No** guarda el nivel a
 | --- | --- | --- | --- |
 | `item_despensa_id` | `uuid` | no | FK → `ItemDespensa(id)` |
 | `fecha` | `date` | no | Fecha de la observación |
-| `compra_id` | `uuid` | sí | FK → `Compra(id)`. Presente solo con `origen='compra'`; único entre observaciones activas. Vincula observación, ciclo de vida y visibilidad |
+| `compra_id` | `uuid` | sí | FK → `Compra(id)`. Presente si y solo si `origen='compra'`; único entre observaciones activas. La compra debe ser del mismo ítem y del mismo ámbito y dueño que la observación, así el dueño siempre se resuelve por `compra_id`. Vincula observación, ciclo de vida y visibilidad |
 | `nivel_pct` | `integer` | no | CHECK `0..100` |
 | `origen` | `enum('compra','ajuste')` | no | `compra` = lo generó una compra del artículo; `ajuste` = lo digitó el usuario |
 
-CHECK: `origen='compra'` implica `nivel_pct=100`; un `ajuste` puede usar cualquier valor `0..100`. La compra con `item_despensa_id` y su `NivelDespensa(origen='compra', compra_id=Compra.id, fecha=Compra.fecha, nivel_pct=100)` entran en el mismo lote atómico; si la compra se edita o elimina, la observación se edita o elimina en el mismo lote. Un `ajuste` es un hecho compartido, en un lote propio, y no crea ni modifica compras. El cálculo compartido usa solo observaciones compartidas; una observación generada por compra personal solo se ve por su dueño. Varias observaciones por fecha son válidas: el desempate es `(fecha, id)`.
+CHECK: `(origen='compra') = (compra_id IS NOT NULL)` — ni una observación de compra sin `compra_id` ni un `ajuste` con `compra_id`; `origen='compra'` implica `nivel_pct=100`; un `ajuste` puede usar cualquier valor `0..100`. La compra con `item_despensa_id` y su `NivelDespensa(origen='compra', compra_id=Compra.id, fecha=Compra.fecha, nivel_pct=100)` entran en el mismo lote atómico; si la compra se edita o elimina, la observación se edita o elimina en el mismo lote. Un `ajuste` es un hecho compartido, en un lote propio, y no crea ni modifica compras. El cálculo compartido usa solo observaciones compartidas; una observación generada por compra personal solo se ve por su dueño. Varias observaciones por fecha son válidas: el desempate es `(fecha, id)`.
 
 ### 3.15 Obligacion
 
@@ -461,7 +466,7 @@ Como el aporte es libre, la app registra lo que cada uno puso y nunca lo que cad
 | --- | --- | --- |
 | `Hogar` → `Miembro` | 1 : N | Todo miembro pertenece a un hogar |
 | `Miembro` → `Ingreso` | 1 : N | Cada ingreso declara su miembro |
-| `Ingreso` → `RecepcionIngreso` | 1 : N | Un recibo por periodo; máximo uno `(ingreso_id, periodo)` |
+| `Ingreso` → `RecepcionIngreso` | 1 : N | Un recibo por periodo; máximo uno `(serie_id, periodo)` |
 | `Miembro` → `MedioDePago` | 0..1 : N | Solo si `owner_tipo='miembro'` |
 | `Miembro` → `Pasivo` | 0..1 : N | Solo si `owner_tipo='miembro'`; un libro personal exige además `ambito='personal'` |
 | `Miembro` → `Compra` | 0..1 : N | Vía `miembro_id`, solo compras personales |
@@ -663,9 +668,11 @@ saldo_a_favor_no_aplicado(d) = Σ PagoDeDeuda(tipo='saldo_a_favor', fecha ≤ d)
 
 Un `abono` se aplica completo porque se rechaza si excede el saldo. El saldo a favor solo cubre cargos **posteriores** a su fecha: nunca reescribe el saldo de meses pasados. Si no hay cargos futuros, queda como crédito no aplicado y se resta en la conservación.
 
-**Estado de cada cuota (FIFO).** Los pagos acumulados del pasivo cubren los cargos exigibles en orden cronológico estricto: cada cuota como `capital + sus costos con cuota_id` (fecha = `fecha_vencimiento`), cada costo cargado sin `cuota_id` (fecha = `fecha_causacion`) y el capital de un plan `sin_calendario` como un cargo en su `fecha_inicio` (no al final de la cola). Desempate en la misma fecha: primero los costos sin cuota, luego por `fecha_inicio` del plan y por `numero` (el capital `sin_calendario` usa `numero=0`); a igualdad total, por `id`. Cada cuota queda `pagada`, `parcial` (con su restante), `pendiente` o `vencida` según `fecha_vencimiento` frente a la fecha de consulta.
+**Orden determinista de los saldos a favor.** Con varios créditos y varios cargos, la aplicación es FIFO por `(fecha, id)` del crédito y, dentro de cada crédito, por el mismo orden de cargos del FIFO de abajo; cada crédito solo cubre cargos posteriores a su fecha. El monto aplicado se atribuye al dueño del medio del `saldo_a_favor`, en el mes de ese cargo. Dos implementaciones producen la misma atribución: no hay otra regla (I10).
 
-Un `PagoDeDeuda` con `cuota_id` **no cambia** este orden: el enlace solo declara que ese pago cubre la cuota completa y el índice único impide dos enlaces para la misma cuota. Un pago parcial no lleva `cuota_id`.
+**Estado de cada cuota (FIFO).** Los pagos acumulados del pasivo cubren **todos los cargos programados —vencidos y futuros—** en orden cronológico estricto: cada cuota como `capital + sus costos con cuota_id` (fecha = `fecha_vencimiento`), cada costo cargado sin `cuota_id` (fecha = `fecha_causacion`) y el capital de un plan `sin_calendario` como un cargo en su `fecha_inicio` (no al final de la cola). Desempate en la misma fecha: primero los costos sin cuota, luego por `fecha_inicio` del plan y por `numero` (el capital `sin_calendario` usa `numero=0`); a igualdad total, por `id`. Cada cuota queda `pagada`, `parcial` (con su restante), `pendiente` o `vencida` según `fecha_vencimiento` frente a la fecha de consulta.
+
+El FIFO no filtra por "exigible": adelantar cuotas futuras es válido mientras el pago no exceda la suma de cargos programados, y solo ese exceso se propone como `saldo_a_favor` (ejemplo h). Un pago parcial no lleva `cuota_id` y tampoco cambia el orden.
 
 **Ámbito de cargos y pagos.** Cada `Pasivo` es un libro de un solo ámbito, así que el ámbito de sus cargos y pagos es el del pasivo (I18).
 
@@ -693,6 +700,16 @@ gasto_personal(M, mes) = Σ Compra.monto_total (ambito='personal', miembro_id=M,
 
 `gasto_hogar` es el gasto canónico del hogar y excluye lo personal. La vista `incluir_personales` puede sumar el `gasto_personal` visible, pero no cambia los aportes. Un costo personal se atribuye a `M` por el `miembro_id` de la compra de su plan o, si el plan no tiene compra, por `owner_miembro_id` del pasivo, que en un libro personal es el mismo miembro. La conservación de §8 es de todos los ámbitos: suma hogar y personales.
 
+**Total de mascotas.** La tarjeta "Mascotas" del hogar es una vista de categoría, no una entidad ni un segundo gasto:
+
+```
+total_mascotas(mes) = Σ Compra.monto_total (ambito='hogar', categoria='Mascotas', fecha en el mes)
+desglose_por_mascota(mascota, mes) = Σ de esas mismas compras con mascota_id = mascota
+sin_etiqueta(mes)                  = Σ de esas mismas compras con mascota_id nulo
+```
+
+Cada compra suma una vez, en su fecha, por `monto_total`; el desglose solo reparte compras de la categoría Mascotas y su suma es el total. Una compra de otra categoría con `mascota_id` (etiqueta mal puesta) no entra al total de mascotas ni al desglose: sigue contando en su categoría. Las compras personales nunca entran en la vista compartida; el dueño las ve en su vista personal. `Mascota` no guarda gasto (I26).
+
 **Aportes del mes del miembro `M`.** Financiar no es aportar; lo que sale de medios del hogar es "salidas del fondo común", informativo, y no es aporte de nadie.
 
 ```
@@ -705,17 +722,34 @@ aportes(M) = Σ compras de contado ambito='hogar' desde medios de M
 
 Las compras personales, las compras pagadas con `financiada_por_pasivo_id` y los pagos a libros personales no suman. Un `saldo_a_favor` no aplicado no es aporte; cuando cubre un cargo del hogar, el monto aplicado es aporte del dueño del medio en el mes de ese cargo. Un pago desde un medio del hogar no es aporte de ningún miembro.
 
-**Ingreso del mes de `M`.** El recibo manda sobre el esperado, pero no cambia el monto declarado.
+**Ingreso del mes de `M`.** Una serie de ingreso fijo aporta **exactamente un importe por mes calendario**. El recibo manda sobre el esperado, pero no cambia el monto declarado.
 
 ```
-recibido(M, periodo) = RecepcionIngreso(ingreso, periodo) con recibido=true
-monto_fijo(M, mes) = Σ [recibido ? COALESCE(monto_recibido, Ingreso.monto) : Ingreso.monto]
-                     de los ingresos fijos vigentes en el mes
+version(serie, mes):
+  p = primer día del mes; u = último día del mes
+  ref = p si serie.inicio <= p; si no: u      # el día 1 decide; si arranca a mitad de mes, el último día
+  fin_sel = serie.fin
+  # cierre terminal dentro del mes del arranque: vale hasta el último día civil de ESE mes
+  si serie.fin != null y serie.inicio y serie.fin caen en el mismo mes:
+    fin_sel = último día del mes de serie.inicio
+  si serie.inicio > u o (fin_sel != null y fin_sel < p): ninguna   # fuera de la serie
+  la versión cuyo rango [vigente_desde, vigente_hasta o fin_sel] contiene ref
 
+esperado(serie, mes) = version(serie, mes).monto        # 0 si no hay versión aplicable
+recibo(serie, periodo) = RecepcionIngreso con recibido=true, único por (serie, periodo)
+
+monto_fijo(serie, mes) = 0                                si no hay version(serie, mes)
+                          COALESCE(recibo.monto_recibido,
+                                   esperado(serie, mes)) si hay recibo(serie, mes)
+                          esperado(serie, mes)            si no hay recibo
+
+monto_fijo(M, mes) = Σ_series de M monto_fijo(serie, mes)
 ingreso(M, mes) = monto_fijo(M, mes) + Σ ingresos variables con fecha en el mes
-
-"Vigente en el mes" significa: la fecha esperada de ese mes (`dia_esperado`, ajustado al último día si el mes es más corto) cae dentro de `[vigente_desde, vigente_hasta]`. Así, si el salario cambia a mitad de mes, cuenta una sola fila: la vigente el día de pago.
 ```
+
+El mes lo decide **el día 1**, nunca el día de pago: un cambio de monto o de día con `vigente_desde` a mitad de mes rige desde el mes siguiente, porque el día 1 de ese mes todavía cae en la versión anterior. Si la serie **arranca** a mitad de mes no hay versión para el día 1 y aplica la vigente el último día. Un cierre a mitad de mes no borra el mes en curso: el día 1 ya estaba cubierto. Si la serie **arranca y se cierra en el mismo mes**, ese cierre terminal se toma como vigente hasta el último día civil de ese mes, así el mes del arranque tiene exactamente una versión aplicable; un cambio interno al mes (con versión siguiente) no se ve afectado, ni tampoco un cierre en un mes posterior al del arranque. Meses anteriores al inicio de la serie y posteriores a su cierre aportan `0`.
+
+**Precedencia del recibo.** Un recibo solo puede existir para un mes **activo** de la serie (`version(serie, periodo) != null`); el servidor rechaza un `periodo` fuera de la serie y un `serie_id` que no sea el de la versión referenciada. Cuando existe, gana **primero** sobre el esperado de la versión aplicable, y solo sobre el importe: nunca cambia la versión aplicable ni el mes. Por eso ninguna regla de "no hay versión" puede ignorar un recibo válido: si hay recibo, hay mes activo.
 
 Estado de la fila del mes: "recibido" si `recibido=true`; "esperado" si no hay `RecepcionIngreso` o `recibido=false`. Un `monto_recibido` distinto solo cambia el ingreso del mes, no `Ingreso.monto`.
 
@@ -729,18 +763,22 @@ La agenda se lee por `periodo` de la obligación y el gasto por `fecha` de la co
 observacion = NivelDespensa compartido más reciente por (fecha, id); null si no hay ninguno
 nivel_actual = observacion.nivel_pct si hay observacion; si no: null
 
-dias_restantes = si nivel_actual != null y frecuencia_dias != null:
-                   floor(nivel_actual × frecuencia_dias / 100)
+vida_util_dias = si nivel_actual != null y frecuencia_dias != null:
+                   floor(nivel_actual × frecuencia_dias / 100)   # días desde la observación
                  si no: null
 
 proxima_compra_estimada =
-  si dias_restantes != null: observacion.fecha + dias_restantes
+  si vida_util_dias != null: observacion.fecha + vida_util_dias  # fecha fija, no cambia
+  si no: null
+
+dias_restantes(hoy) =
+  si proxima_compra_estimada != null: proxima_compra_estimada − hoy   # negativo = vencida
   si no: null
 
 alerta = nivel_actual != null && nivel_actual <= umbral_alerta_pct
 ```
 
-Sin una observación compartida, el nivel compartido es **desconocido**, no hay alerta y no se estima fecha. Si falta `frecuencia_dias`, el nivel y la alerta siguen existiendo, pero `dias_restantes` y `proxima_compra_estimada` quedan en `null`. La compra de un ítem crea la observación con su `compra_id` en el mismo lote (§3.14.1); una observación originada en una compra personal no alimenta el cálculo compartido.
+`vida_util_dias` se mide desde la observación y no cambia; `proxima_compra_estimada` es una fecha fija; los **días restantes** que muestra la UI se recalculan contra la fecha de consulta y bajan con el paso de los días. Una observación de hace 10 días con vida útil 16 muestra 6 días restantes, no 16. Sin una observación compartida, el nivel compartido es **desconocido**, no hay alerta y no se estima fecha. Si falta `frecuencia_dias`, el nivel y la alerta siguen existiendo, pero `vida_util_dias`, `proxima_compra_estimada` y `dias_restantes` quedan en `null`. La compra de un ítem crea la observación con su `compra_id` en el mismo lote (§3.14.1); una observación originada en una compra personal no alimenta el cálculo compartido.
 
 **Identidad de conservación** (base de los tests de propiedades). "Salidas externas" = compras de contado desde cualquier medio (incluye personales; no incluye las pagadas con desembolso) + `PagoDeDeuda` (ambos tipos) + costos pagados directo.
 
@@ -800,8 +838,11 @@ Un `desembolso` no es gasto ni salida externa: su capital está en el saldo del 
 | I19 | `financiada_por_pasivo_id` no crea plan ni suma capital; exige plan `desembolso` previo, `fecha` no anterior al giro y acumulado de compras ≤ fondos desembolsados a esa fecha; no es aporte; las compras vinculadas tienen el ámbito y dueño del pasivo | Trigger diferido / función de dominio en el mismo lote | Préstamo 100.000, compra 60.000: saldo 100.000, gasto 60.000, aporte 0; compra de 41.000 se rechaza; compra antes del giro se rechaza; compra vinculada con plan de compra se rechaza; compra de otro ámbito se rechaza |
 | I20 | Saldo de pasivo nunca negativo en ninguna fecha histórica; un `abono` que lo haría negativo se rechaza y el exceso va como `saldo_a_favor`; `cuota_id` solo en pago completo y único; `saldo_a_favor` no reduce capital ni costo | `sync_push` con lock del pasivo y validación en la misma transacción + único parcial `(cuota_id)` + dominio | Dos pagos offline de la misma cuota se serializan y el segundo se rechaza o pasa a saldo a favor; ningún histórico queda negativo; dos enlaces completos a la misma cuota se rechazan |
 | I21 | Nivel de despensa derivado (nunca guardado), determinista con nivel desconocido o `frecuencia_dias` nula; la compra del ítem guarda `NivelDespensa(100)` en el mismo lote atómico | Tipos (no existen columnas derivadas) + lote atómico + dominio | Compra del ítem crea nivel 100 en el mismo lote; ajuste a 15 % con frecuencia 30 da 4 días; sin frecuencia: días y próxima compra nulos pero alerta; sin observación compartida: desconocido, sin alerta ni fecha, aunque exista una observación personal |
-| I22 | `RecepcionIngreso`: único `(ingreso_id, periodo)` entre no eliminadas, solo para ingresos fijos; el balance usa `monto_recibido` si `recibido=true`, si no el esperado | Único parcial + CHECK/trigger + dominio | Dos recibos del mismo periodo se rechazan; salario esperado 4.500.000 recibido 4.400.000 da ingreso 4.400.000; sin fila da 4.500.000 esperado |
+| I22 | `RecepcionIngreso`: único `(serie_id, periodo)` entre no eliminadas, solo para ingresos fijos; el balance usa `monto_recibido` si `recibido=true`, si no el esperado | Único parcial + CHECK/trigger + dominio | Dos recibos del mismo periodo se rechazan; salario esperado 4.500.000 recibido 4.400.000 da ingreso 4.400.000; sin fila da 4.500.000 esperado |
 | I23 | Registrar o editar una compra personal no crea ni modifica filas compartidas, incluido `AliasComercio` y `ItemDespensa.monto_habitual` | Caso de uso local + validación del lote en `sync_push` | Ver prueba de escritura compartida debajo |
+| I24 | Ingreso fijo por **serie y mes calendario**: cada serie aporta exactamente un importe al mes activo (versión vigente el día 1; la vigente el último día si la serie arranca a mitad de mes; cierre terminal en el mismo mes del arranque vale hasta el último día civil; `0` antes del inicio o tras el cierre); un recibo de `(serie, periodo)` gana **primero** sobre el esperado del mes activo y nunca cambia la versión ni el mes; las vigencias de la serie son inclusivas y contiguas | Trigger diferido de vigencias + único `(serie_id, periodo)` + FK compuesta `(ingreso_id, serie_id)` + función de dominio | Días 10→20 y 20→10 con vigencias 1–15 y 16–30 de noviembre dan **un solo** sueldo; serie que arranca el 20/11 usa la versión del 30/11; serie que arranca y cierra en el mismo mes da un importe; octubre da `0`; recibo de noviembre cambia el importe sin cambiar la versión ni el mes; dos recibos que apunten a versiones distintas de la misma serie y periodo se rechazan, igual que un `serie_id` ajeno o un `periodo` fuera de la serie |
+| I25 | Aislamiento de carriles de sync: un lote exclusivamente personal no mueve `hogar_seq`, no emite aviso en el canal del hogar y no deja saltos en la numeración compartida; hay un cursor por carril (`hogar` y `personal` por dueño), el alcance se filtra antes de aplicar `limite`, `ultimo_seq` es el agua del snapshot y `siguiente_seq` es el cursor de reanudación (última fila devuelta si el `limite` truncó; el agua solo si el carril se agotó, incluso vacío) | `hogar_seq` + `personal_seq` con triggers por ámbito y pre-lock determinista + `sync_pull` / `sync_pull_personal` con snapshot único | Lote solo personal de Ana: `hogar_seq` y el `ultimo_seq` visible por Beto no cambian, Beto no recibe aviso y su pull devuelve el mismo conjunto; Ana recibe su fila por el carril personal; pull con `limite=1` truncado sobre filas 41–43 no salta ninguna y un pull vacío devuelve `siguiente_seq` sin atascarse |
+| I26 | Total de mascotas = compras de **ámbito hogar** de la categoría **Mascotas**, cada una una vez; `mascota_id` solo desglosa y nunca agrega compras de otras categorías al total; las personales no entran en la vista compartida | Función de dominio de totales (vista de categoría) + RLS | Compra del hogar de Mercado con `mascota_id` no suma a Mascotas; compra personal de Mascotas no aparece en la vista compartida y sí en la del dueño; el desglose por mascota suma el total |
 
 **I18 — Reclasificación tras sincronizar.** Ana y Beto ya descargaron una compra del hogar; Ana también tiene una compra personal sincronizada. Intentar cambiar el ámbito de la primera (incluso enviando un dueño válido) o reasignar la segunda a Beto debe rechazar cada lote sin modificar ninguna fila ni los totales. Si Ana anula la compartida y crea otra personal con un ID nuevo, el pull de Beto recibe el tombstone compartido, pero ni la nueva compra ni sus dependientes. Tras el pull, el gasto y los aportes del hogar dejan de contar la anulada; solo Ana ve la nueva en su gasto personal y no suma aporte.
 

@@ -9,6 +9,7 @@
 - Un **hogar** tiene uno o más **miembros**.
 - Cada miembro declara sus **ingresos**: **fijos** (salario, arriendo recibido) o **variables** (comisiones, freelance). Los variables se registran cuando llegan; los fijos tienen monto y día esperado.
 - Un ingreso fijo puede **recibirse** cada mes. El recibo es un hecho aparte (`RecepcionIngreso`): puede estar pendiente, llegar completo o llegar por un monto distinto. El balance usa el monto recibido si existe; si no, muestra el esperado. Marcar recibido no crea un ingreso nuevo ni cambia el monto declarado.
+- Un ingreso fijo es una **serie de versiones** con vigencias contiguas: cambiar monto o día cierra la versión en curso y abre otra. En cada **mes calendario** la serie aporta exactamente un importe: el del recibo del periodo si existe y, si no, el esperado de la versión vigente el día 1; si la serie arranca a mitad de mes, el de la versión vigente el último día, y si arranca y se cierra en el mismo mes, ese cierre terminal se toma al último día civil de ese mes. Un cambio de monto o de día a mitad de mes rige el mes siguiente, salvo recibo registrado, y un recibo solo existe para un mes activo de la serie: gana sobre el importe, nunca cambia la versión ni el mes. Nunca dos sueldos ni ninguno en el mes del cambio ([data-model.md](data-model.md) §8, I24).
 - Todos los miembros ven los ingresos del otro. La vista **"% de su ingreso"** viene apagada por defecto (`Hogar.mostrar_pct_ingreso = false`): el balance muestra pesos y porcentaje del total aportado, y solo si el hogar la prende agrega el porcentaje sobre el ingreso individual. El ingreso es denominador informativo; nunca cambia los aportes.
 
 ## Gastos del hogar y personales
@@ -17,6 +18,7 @@
 - Una compra personal pertenece a un miembro (`Compra.miembro_id`) y por defecto solo la ve su dueño. Los reportes y el balance del hogar excluyen lo personal; el interruptor de vista `incluir_personales` (apagado, preferencia local) puede mostrarlo, pero **nunca** cambia los aportes.
 - Una compra personal pagada con un medio de un miembro **no es aporte al hogar**, ni siquiera con el interruptor prendido.
 - Un pago de una deuda puramente personal tampoco es aporte del hogar. Cada pasivo es un libro de un solo ámbito y cada pago pertenece a un solo libro: un pago a un libro del hogar es aporte completo de quien paga; uno a un libro personal no aporta. Cuando una transferencia cubre dos libros (por ejemplo el libro del hogar y el personal de la misma tarjeta), se registran dos pagos con las porciones que el usuario identifique; la app nunca reparte sola ([data-model.md](data-model.md)).
+- **Mascotas.** La tarjeta "Mascotas" del hogar es una vista de categoría: suma las compras de ámbito hogar de la categoría Mascotas, cada una una sola vez. `mascota_id` es una etiqueta opcional que solo sirve para el desglose por mascota y no agrega compras de otras categorías al total; las compras personales nunca entran en la vista compartida, su dueño las ve en su vista personal ([data-model.md](data-model.md) §8, I26).
 
 ## Aporte libre
 
