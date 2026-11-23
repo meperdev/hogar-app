@@ -1,5 +1,7 @@
 // Verifica que los enlaces relativos y las anclas de .md y .html bajo <raiz> sean válidos.
 // El contenido del PR es solo dato: no se ejecuta nada, solo se lee texto.
+// La contención se valida sobre el destino real (fs.realpathSync): un enlace
+// simbólico que sale de la raíz es una falla, igual que un archivo que lo es.
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -15,20 +17,43 @@ if (!fs.existsSync(raizAbs) || !fs.statSync(raizAbs).isDirectory()) {
   console.error(`No existe la raíz: ${raiz}`);
   process.exit(2);
 }
+const raizReal = fs.realpathSync(raizAbs);
 
 const archivos = [];
+const rotos = [];
+const mostrar = abs => path.join(raiz, path.relative(raizAbs, abs)) || raiz;
+
+function dentroDeRaizReal(p) {
+  const rel = path.relative(raizReal, p);
+  return rel === '' || (!rel.startsWith('..' + path.sep) && rel !== '..' && !path.isAbsolute(rel));
+}
+
 (function recorrer(dir) {
   for (const entrada of fs.readdirSync(dir, { withFileTypes: true })) {
     if (IGNORAR.has(entrada.name)) continue;
     const p = path.join(dir, entrada.name);
+    if (entrada.isSymbolicLink()) {
+      let real;
+      try {
+        real = fs.realpathSync(p);
+      } catch {
+        rotos.push({ archivo: mostrar(p), destino: fs.readlinkSync(p), motivo: 'enlace simbólico roto' });
+        continue;
+      }
+      if (!dentroDeRaizReal(real)) {
+        rotos.push({ archivo: mostrar(p), destino: fs.readlinkSync(p), motivo: 'el enlace simbólico sale de la raíz' });
+        continue;
+      }
+      // Un directorio enlazado no se recorre: evita ciclos y caminos repetidos.
+      if (fs.statSync(real).isDirectory()) continue;
+      if (/\.(md|html)$/i.test(entrada.name)) archivos.push(p);
+      continue;
+    }
     if (entrada.isDirectory()) recorrer(p);
     else if (/\.(md|html)$/i.test(entrada.name)) archivos.push(p);
   }
 })(raizAbs);
 archivos.sort();
-
-const dentroDeRaiz = p => p === raizAbs || p.startsWith(raizAbs + path.sep);
-const mostrar = abs => path.join(raiz, path.relative(raizAbs, abs)) || raiz;
 
 // --- Extracción de texto y enlaces -------------------------------------------
 
@@ -83,6 +108,51 @@ function slug(texto) {
     .replace(/\s+/g, '-');
 }
 
+// Encabezado Setext: la línea de texto (no vacía, sin abrir otro bloque) seguida
+// de una línea de solo = o solo -. En CommonMark, --- después de un párrafo es
+// un encabezado de nivel 2, no una regla horizontal.
+const NO_ES_PARRAFO = /^[ \t]{0,3}(?:[-*+][ \t]|\d{1,9}[.)][ \t]|>|#{1,6}[ \t]|```|~~~|<!--)/;
+
+function esSetext(lineas, i) {
+  const subrayado = /^[ \t]{0,3}(=+|-+)[ \t]*$/.exec(lineas[i]);
+  if (!subrayado) return null;
+  const anterior = lineas[i - 1];
+  if (anterior === undefined) return null;
+  if (!anterior.trim()) return null;
+  if (NO_ES_PARRAFO.test(anterior)) return null;
+  return anterior.trim();
+}
+
+function anclasMarkdown(md) {
+  const lineas = md.split('\n');
+  const ocupados = new Set();
+  const anclas = new Set();
+  const agregar = texto => {
+    const base = slug(texto);
+    if (!base) return;
+    let candidato = base;
+    for (let n = 1; ocupados.has(candidato); n++) candidato = `${base}-${n}`;
+    ocupados.add(candidato);
+    anclas.add(candidato);
+  };
+  // Encabezado YAML inicial: su contenido no genera anclas.
+  let desde = 0;
+  if (lineas[0]?.trim() === '---') {
+    const cierre = lineas.findIndex((l, i) => i > 0 && l.trim() === '---');
+    if (cierre > 0) desde = cierre + 1;
+  }
+  for (let i = desde; i < lineas.length; i++) {
+    const atx = /^[ \t]{0,3}#{1,6}[ \t]+(.+)$/.exec(lineas[i]);
+    if (atx) {
+      agregar(atx[1].trim().replace(/[ \t]+#+$/, '').trim());
+      continue;
+    }
+    const setext = esSetext(lineas, i);
+    if (setext) agregar(setext);
+  }
+  return anclas;
+}
+
 function idsHtml(txt) {
   const ids = [];
   const reId = /(?<![\w:-])id\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>"']+))/g;
@@ -99,17 +169,7 @@ function anclasDe(archivo, esMarkdown) {
   const txt = quitarComentarios(fs.readFileSync(archivo, 'utf8'));
   const anclas = new Set();
   if (esMarkdown) {
-    const md = quitarCodigoMd(txt);
-    const ocupados = new Set();
-    for (const m of md.matchAll(/^[ \t]{0,3}#{1,6}[ \t]+(.+)$/gm)) {
-      let texto = m[1].trim().replace(/[ \t]+#+$/, '').trim();
-      const base = slug(texto);
-      if (!base) continue;
-      let candidato = base;
-      for (let n = 1; ocupados.has(candidato); n++) candidato = `${base}-${n}`;
-      ocupados.add(candidato);
-      anclas.add(candidato);
-    }
+    for (const ancla of anclasMarkdown(quitarCodigoMd(txt))) anclas.add(ancla);
   }
   for (const id of idsHtml(txt)) if (id) anclas.add(id);
   cacheAnclas.set(archivo, anclas);
@@ -117,8 +177,6 @@ function anclasDe(archivo, esMarkdown) {
 }
 
 // --- Validación ---------------------------------------------------------------
-
-const rotos = [];
 
 function validar(archivo, destinoCrudo) {
   let destino = destinoCrudo.trim();
@@ -148,6 +206,7 @@ function validar(archivo, destinoCrudo) {
 
   const etiqueta = mostrar(archivo);
 
+  const dentroDeRaiz = p => p === raizAbs || p.startsWith(raizAbs + path.sep);
   if (!dentroDeRaiz(destinoAbs)) {
     rotos.push({ archivo: etiqueta, destino: destinoCrudo, motivo: 'sale de la raíz' });
     return;
@@ -156,13 +215,26 @@ function validar(archivo, destinoCrudo) {
     rotos.push({ archivo: etiqueta, destino: destinoCrudo, motivo: 'no existe' });
     return;
   }
+  // El destino real decide: un symlink que sale de la raíz no es un enlace válido.
+  let destinoReal;
+  try {
+    destinoReal = fs.realpathSync(destinoAbs);
+  } catch {
+    rotos.push({ archivo: etiqueta, destino: destinoCrudo, motivo: 'el destino real no se puede resolver' });
+    return;
+  }
+  if (!dentroDeRaizReal(destinoReal)) {
+    rotos.push({ archivo: etiqueta, destino: destinoCrudo, motivo: 'el destino real sale de la raíz (enlace simbólico)' });
+    return;
+  }
+
   if (ancla === null || ancla === '') return;
 
-  const ext = path.extname(destinoAbs).toLowerCase();
+  const ext = path.extname(destinoReal).toLowerCase();
   if (ext !== '.md' && ext !== '.html') return;
-  if (!fs.statSync(destinoAbs).isFile()) return;
+  if (!fs.statSync(destinoReal).isFile()) return;
 
-  const anclas = anclasDe(destinoAbs, ext === '.md');
+  const anclas = anclasDe(destinoReal, ext === '.md');
   if (!anclas.has(ancla)) {
     rotos.push({ archivo: etiqueta, destino: destinoCrudo, motivo: `falta el ancla #${ancla}` });
   }

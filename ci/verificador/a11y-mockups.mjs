@@ -1,12 +1,23 @@
 // Revisa los mockups de <raiz>/design/mockups a 390x844:
 // axe (WCAG 2.2 AA), objetivos táctiles >= 44x44 px, scroll horizontal,
 // controles tapados y CTA principal visible sin scroll.
-// El HTML del PR es solo dato: se abre en Chromium sin red y solo con file:.
+//
+// El HTML del PR es solo dato y nada del mockup se ejecuta:
+//   1. Preflight estático: falla si el HTML trae <script>, atributos on*,
+//      href/src "javascript:" o <iframe>/<object>/<embed>.
+//   2. Las medidas corren en un contexto con javaScriptEnabled: false.
+//   3. axe corre en un contexto aparte con JS habilitado porque axe-core usa
+//      timers y Chromium los suspende cuando la ejecución de scripts está
+//      deshabilitada. Ese contexto solo recibe documentos que pasaron el
+//      preflight (sin código ejecutable), aborta toda solicitud que no sea
+//      file: y bloquea service workers.
 import fs from 'node:fs';
 import path from 'node:path';
 
 const ANCHO = 390;
 const ALTO = 844;
+const ETIQUETAS_AXE = ['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'];
+const MIN_JUSTIFICACION = 10;
 
 let raiz = '.';
 let archivoReporte = null;
@@ -33,6 +44,33 @@ function escribirReporte() {
   fs.writeFileSync(destino, JSON.stringify(reporte, null, 2) + '\n');
 }
 
+// --- Preflight: el mockup no puede traer código ejecutable --------------------
+
+// Etiquetas capaces de cargar o embeber otro documento.
+const ETIQUETAS_PROHIBIDAS = new Set(['script', 'iframe', 'frame', 'frameset', 'object', 'embed', 'applet']);
+
+function codigoEjecutable(txt) {
+  const hallazgos = new Set();
+  // Comentarios y CDATA son inertes: no se inspeccionan.
+  const limpio = txt
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<!\[CDATA\[[\s\S]*?\]\]>/g, '');
+  // Solo etiquetas reales: el texto suelto no cuenta como atributo.
+  for (const etiqueta of limpio.matchAll(/<([a-zA-Z][\w:-]*)((?:[^>"']|"[^"]*"|'[^']*')*)>/g)) {
+    const nombre = etiqueta[1].toLowerCase();
+    if (ETIQUETAS_PROHIBIDAS.has(nombre)) hallazgos.add(`<${nombre}>`);
+    for (const atributo of etiqueta[2].matchAll(/(?:^|\s)([a-zA-Z_][\w:.-]*)\s*=\s*("[^"]*"|'[^']*'|[^\s"'=<>`]+)/g)) {
+      const clave = atributo[1].toLowerCase();
+      const valor = atributo[2].replace(/^["']|["']$/g, '').trim();
+      if (/^on[a-z]+$/.test(clave)) hallazgos.add(`atributo ${clave}`);
+      else if ((clave === 'href' || clave === 'src') && /^javascript:/i.test(valor)) {
+        hallazgos.add(`${clave}="javascript:"`);
+      }
+    }
+  }
+  return [...hallazgos];
+}
+
 if (!html.length) {
   if (hayReadme) {
     console.error(`FAIL: ${path.join(dir, 'README.md')} declara mockups pero no hay archivos HTML`);
@@ -46,36 +84,85 @@ if (!html.length) {
   process.exit(0);
 }
 
+const inocentes = [];
+for (const archivo of html) {
+  const hallazgos = codigoEjecutable(fs.readFileSync(path.join(dir, archivo), 'utf8'));
+  if (!hallazgos.length) {
+    inocentes.push(archivo);
+    continue;
+  }
+  reporte.fallas++;
+  reporte.archivos[archivo] = { codigoProhibido: hallazgos };
+  console.log(`FAIL ${archivo} el mockup trae código ejecutable: ${hallazgos.join(', ')}`);
+}
+
+if (!inocentes.length) {
+  escribirReporte();
+  console.error(`${reporte.fallas} de ${html.length} mockups con fallas`);
+  process.exit(1);
+}
+
+// --- Navegador -------------------------------------------------------------
+
 const { chromium } = await import('playwright');
-const { default: AxeBuilder } = await import('@axe-core/playwright');
+const { default: axe } = await import('axe-core');
+// Código del verificador (axe fijado por lockfile), no del mockup: se inyecta
+// por CDP (page.evaluate), que no es un <script> de la página.
+const fuenteAxe = axe.source;
 
 const navegador = await chromium.launch();
-const contexto = await navegador.newContext({
+const nuevoContexto = js => navegador.newContext({
   viewport: { width: ANCHO, height: ALTO },
   isMobile: true,
   hasTouch: true,
+  javaScriptEnabled: js,
+  serviceWorkers: 'block',
 });
 // Los mockups son estáticos: solo se permite leer archivos locales, nunca la red.
-await contexto.route('**/*', ruta => (ruta.request().url().startsWith('file:') ? ruta.continue() : ruta.abort()));
+const soloArchivos = contexto => contexto.route(
+  '**/*',
+  ruta => (ruta.request().url().startsWith('file:') ? ruta.continue() : ruta.abort()),
+);
 
-for (const archivo of html) {
-  const esIndex = archivo.toLowerCase() === 'index.html';
-  const pagina = await contexto.newPage();
+const contextoMedidas = await nuevoContexto(false);
+const contextoAxe = await nuevoContexto(true);
+await soloArchivos(contextoMedidas);
+await soloArchivos(contextoAxe);
+
+async function violacionesAxe(url) {
+  const pagina = await contextoAxe.newPage();
   try {
-    await pagina.goto('file://' + path.resolve(dir, archivo));
+    await pagina.goto(url);
+    const ejecutables = await pagina.evaluate(
+      () => document.querySelectorAll('script,iframe,frame,frameset,object,embed,applet').length,
+    );
+    if (ejecutables) throw new Error(`${ejecutables} elementos ejecutables llegaron al DOM`);
+    await pagina.evaluate(fuenteAxe);
+    return await pagina.evaluate(async etiquetas => {
+      const resultado = await window.axe.run(document, { runOnly: { type: 'tag', values: etiquetas } });
+      return resultado.violations.map(v => ({
+        id: v.id,
+        impacto: v.impact,
+        ayuda: v.help,
+        nodos: v.nodes.map(n => n.target.join(' ')),
+      }));
+    }, ETIQUETAS_AXE);
+  } finally {
+    await pagina.close();
+  }
+}
 
-    const axe = await new AxeBuilder({ page: pagina })
-      .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
-      .analyze();
-    const violaciones = axe.violations.map(v => ({
-      id: v.id,
-      impacto: v.impact,
-      ayuda: v.help,
-      nodos: v.nodes.map(n => n.target.join(' ')),
-    }));
+for (const archivo of inocentes) {
+  const esIndex = archivo.toLowerCase() === 'index.html';
+  const url = 'file://' + path.resolve(dir, archivo);
+  const pagina = await contextoMedidas.newPage();
+  try {
+    await pagina.goto(url);
 
-    const datos = await pagina.evaluate(({ ancho, alto, esIndex }) => {
-      const resultado = { chicos: [], hscroll: false, tapados: [], sinScroll: [], fijos: [], sinCta: false };
+    const violaciones = await violacionesAxe(url);
+
+    const datos = await pagina.evaluate(({ ancho, alto, esIndex, minJustificacion }) => {
+      const resultado = { chicos: [], hscroll: false, tapados: [], sinScroll: [], fijos: [], sinCta: null };
 
       const visible = e => {
         const r = e.getBoundingClientRect();
@@ -115,8 +202,14 @@ for (const archivo of html) {
       const controles = [...document.querySelectorAll('a,button,input,select,textarea,[role=button]')];
       const visibles = controles.filter(visible);
 
-      if (!esIndex) {
-        resultado.sinCta = !document.querySelector('[data-sin-scroll]') && !document.body.hasAttribute('data-sin-cta');
+      // Una pantalla sin CTA puede omitirlo solo con justificación en <body>.
+      if (!esIndex && !document.querySelector('[data-sin-scroll]')) {
+        const justificacion = (document.body.getAttribute('data-sin-cta') ?? '').trim().replace(/\s+/g, ' ');
+        resultado.sinCta = {
+          presente: document.body.hasAttribute('data-sin-cta'),
+          justificacion,
+          falta: justificacion.length < minJustificacion,
+        };
       }
 
       resultado.hscroll = document.documentElement.scrollWidth > ancho;
@@ -189,20 +282,21 @@ for (const archivo of html) {
       window.scrollTo(0, 0);
 
       return resultado;
-    }, { ancho: ANCHO, alto: ALTO, esIndex });
+    }, { ancho: ANCHO, alto: ALTO, esIndex, minJustificacion: MIN_JUSTIFICACION });
 
+    const justificacionCta = datos.sinCta?.justificacion ?? '';
+    const faltaCta = datos.sinCta?.falta ?? false;
     const falla = violaciones.length || datos.chicos.length || datos.hscroll ||
-      datos.tapados.length || datos.sinScroll.length || datos.fijos.length || datos.sinCta;
-
-    const sinCta = datos.sinCta ? 'sin CTA: falta [data-sin-scroll] o <body data-sin-cta>' : null;
+      datos.tapados.length || datos.sinScroll.length || datos.fijos.length || faltaCta;
 
     reporte.archivos[archivo] = {
       axe: violaciones,
       chicos: datos.chicos,
       hscroll: datos.hscroll,
       tapados: datos.tapados,
-      sinScroll: sinCta ? [...datos.sinScroll, sinCta] : datos.sinScroll,
+      sinScroll: datos.sinScroll,
       fijos: datos.fijos,
+      sinCta: justificacionCta || null,
     };
 
     if (falla) {
@@ -214,10 +308,18 @@ for (const archivo of html) {
       if (datos.tapados.length) partes.push('tapados: ' + datos.tapados.join(' | '));
       if (datos.sinScroll.length) partes.push('sin-scroll: ' + datos.sinScroll.join(' | '));
       if (datos.fijos.length) partes.push('fijos fuera: ' + datos.fijos.join(' | '));
-      if (sinCta) partes.push(sinCta);
+      if (faltaCta) {
+        if (!datos.sinCta.presente) {
+          partes.push(`sin CTA: falta [data-sin-scroll] y <body data-sin-cta> con al menos ${MIN_JUSTIFICACION} caracteres`);
+        } else if (!justificacionCta) {
+          partes.push(`sin CTA: <body data-sin-cta> vacío (mínimo ${MIN_JUSTIFICACION} caracteres)`);
+        } else {
+          partes.push(`sin CTA: justificación de ${justificacionCta.length} caracteres (mínimo ${MIN_JUSTIFICACION})`);
+        }
+      }
       console.log(`FAIL ${archivo} ${partes.join(' ')}`);
     } else {
-      console.log(`OK ${archivo}`);
+      console.log(`OK ${archivo}${justificacionCta ? ` (sin CTA: "${justificacionCta}")` : ''}`);
     }
   } catch (error) {
     reporte.fallas++;
