@@ -1,5 +1,7 @@
 # Flujo: Balance de pareja
 
+> **Contrato de datos:** las entidades, campos e invariantes de este flujo siguen `docs/data-model.md`, que llega en el PR #2.
+
 Mostrar de forma transparente cuánto aportó cada `Miembro` al hogar durante el **mes calendario** (`1` al último día del mes, fecha civil `America/Bogota`) junto con sus `Ingreso` fijos y variables, bajo el principio estricto de **aporte libre**: la app informa con totales **DERIVADOS**, nunca guarda resúmenes y nunca calcula ni insinúa que un miembro le debe dinero a otro.
 
 ## Objetivo
@@ -17,7 +19,7 @@ Mostrar de forma transparente cuánto aportó cada `Miembro` al hogar durante el
 | **Balance de pareja** | Resumen por **mes calendario** de aporte libre (pesos y `%` con 1 decimal), interruptores `Mostrar % de su ingreso` (apagado por defecto) e `Incluir personales` (apagado por defecto), acción `Transferir al fondo común`, desglose de ingresos fijos (con `Marcar recibido`) vs variables y acceso a Ajustes/exportación. | [balance-de-pareja.html](../../design/mockups/balance-de-pareja.html) |
 | **Transferir al fondo común** | Registrar una entidad `Aporte` desde un `MedioDePago` de un `Miembro` hacia un `MedioDePago` del `Hogar` (cuenta común o caja común), sin contarla como consumo. | [transferir-fondo-comun.html](../../design/mockups/transferir-fondo-comun.html) |
 | **Registrar ingreso** | Alta de `Ingreso` fijo (`dia_esperado`, `vigente_desde`) o variable (`fecha`) para un miembro del hogar. | [registrar-ingreso.html](../../design/mockups/registrar-ingreso.html) |
-| **Ajustes y exportación** | Estado de la exportación automática semanal en Storage, exactamente dos descargas ZIP (una por ámbito: «Hogar (compartido)» y «Mis personales», cada ZIP con JSON + CSV de su alcance), botón `Exportar ahora` y estado de la copia local en IndexedDB. | [ajustes-exportar.html](../../design/mockups/ajustes-exportar.html) |
+| **Ajustes y exportación** | Estado de la exportación automática semanal (`1 + N` archivos ZIP en Storage: uno del hogar y uno personal por miembro activo), exactamente dos descargas ZIP por miembro («Hogar (compartido)» y «Mis personales», cada ZIP con JSON + CSV de su alcance), botón `Exportar ahora` y estado de la copia local en IndexedDB. | [ajustes-exportar.html](../../design/mockups/ajustes-exportar.html) |
 
 ## Flujo paso a paso
 
@@ -28,14 +30,14 @@ Mostrar de forma transparente cuánto aportó cada `Miembro` al hogar durante el
 3. El bloque **Aportes del mes al hogar** (todo **DERIVADO** en el dispositivo, nunca guardado) suma exactamente las 4 fuentes de aporte por miembro `M` (alineado con §8 de `docs/data-model.md`):
    - `Compra` de contado con `ambito = 'hogar'` desde cualquier `MedioDePago` de `M` (excluye compras personales y compras con `financiada_por_pasivo_id`).
    - **`PagoDeDeuda` desde cualquier `MedioDePago` de `M` según el ámbito único del `Pasivo` (`Pasivo.ambito`):**
-     - Cada `Pasivo` tiene un único ámbito (`'hogar'` o `'personal'`, inmutable con hechos vinculados): todo `PagoDeDeuda(tipo = 'abono')` a un `Pasivo` con `ambito = 'hogar'` aporta **completo** a `M` (sin importar quién sea el dueño del pasivo ni el medio de `M` usado); todo abono a un `Pasivo` con `ambito = 'personal'` aporta **`$0`**. El reparto FIFO solo asigna el abono a cuotas y cargos de ese libro, **nunca** decide el aporte.
+     - Cada `Pasivo` tiene un único ámbito (`'hogar'` o `'personal'`, inmutable con hechos vinculados): todo `PagoDeDeuda(tipo = 'abono')` a un `Pasivo` con `ambito = 'hogar'` aporta **completo** a `M` (sin importar quién sea el titular del pasivo ni la cuenta personal de `M` usada); todo abono a un `Pasivo` con `ambito = 'personal'` aporta **`$0`**. El reparto FIFO solo asigna el abono a cuotas y cargos de ese libro, **nunca** decide el aporte.
      - `PagoDeDeuda(tipo = 'saldo_a_favor')` en un `Pasivo` con `ambito = 'hogar'` no aporta mientras no cubra un cargo; cuando se aplica a un cargo posterior del hogar, el monto aplicado suma como aporte de `M` en el mes de ese cargo (en un pasivo personal nunca aporta).
    - `CostoFinanciero` con `ambito = 'hogar'` pagado directo desde un `MedioDePago` de `M`.
    - **`Aporte`** (transferencias desde un `MedioDePago` de `M` hacia un `MedioDePago` del `Hogar`, ej. cuenta común).
    - *(Nota: lo que sale luego desde un `MedioDePago` del hogar son "salidas del fondo común", informativas, y no vuelven a sumarse como aporte de nadie).*
 4. Muestra el resumen con **porcentajes a un decimal**:
    - **Total aportado en el mes:** `$3.600.000`.
-   - **Santiago:** `$2.088.000` · **`58,0 %`** del total (incluye arriendo `$1.800.000`, cuota Mastercard Camila `$234.500` y transferencia al fondo común `$53.500`).
+   - **Santiago:** `$2.088.000` · **`58,0 %`** del total (incluye arriendo `$1.800.000`, cuota Mastercard ••8834 [ámbito Hogar · titular Camila] `$234.500` y transferencia al fondo común `$53.500`).
    - **Camila:** `$1.512.000` · **`42,0 %`** del total (incluye transferencia al fondo común `$500.000`, servicios EPM `$285.000`, compras de mascotas `$245.000` y compras diarias del hogar `$482.000`).
    - Nota permanente de **Aporte libre**: *"Cada quien aporta lo que quiere o puede. Nunca se generan saldos ni deudas entre ustedes."*
 5. **Controles de vista (ambos APAGADOS por defecto):**
@@ -67,8 +69,8 @@ Mostrar de forma transparente cuánto aportó cada `Miembro` al hogar durante el
 
 ### 4. Exportación automática y respaldo (Ajustes)
 
-1. Desde **Ajustes y exportación** ([ajustes-exportar.html](../../design/mockups/ajustes-exportar.html)), el usuario ve la **última exportación automática semanal** (función programada en Storage de Supabase), exactamente **dos descargas ZIP separadas** —una para **«Hogar (compartido)»** y otra para **«Mis personales»**—, el botón **`Exportar ahora`** y el estado de la **copia local en IndexedDB** del dispositivo.
-2. **Dos descargas ZIP separadas (nunca mezcladas):** cada descarga es un archivo **ZIP que incluye JSON + CSV de su alcance**: **«Hogar (compartido)»** contiene únicamente hechos compartidos del hogar (sin ninguna fila personal de ningún miembro); **«Mis personales»** contiene únicamente las filas personales del miembro activo y sus dependientes, y **nunca** las del otro miembro.
+1. Desde **Ajustes y exportación** ([ajustes-exportar.html](../../design/mockups/ajustes-exportar.html)), el usuario ve la **última exportación automática semanal** (la función programada genera **`1 + N` archivos ZIP en Storage**: uno del hogar compartido y uno personal por cada miembro activo), sus **exactamente dos descargas ZIP separadas** —**«Hogar (compartido)»** y **«Mis personales»**—, el botón **`Exportar ahora`** y el estado de la **copia local en IndexedDB** del dispositivo.
+2. **Dos descargas ZIP separadas por miembro (nunca mezcladas):** aunque Storage almacena `1 + N` archivos por ciclo semanal (para 2 miembros activos: 1 del hogar + 2 personales = 3 archivos), cada miembro solo puede descargar exactamente dos ZIP (cada uno con JSON + CSV de su alcance): **«Hogar (compartido)»** contiene únicamente hechos compartidos del hogar (sin ninguna fila personal de ningún miembro); **«Mis personales»** contiene únicamente las filas personales del miembro activo y sus dependientes, y **nunca** las del otro miembro.
 
 ## Casos borde y manejo de errores
 

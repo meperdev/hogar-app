@@ -88,7 +88,7 @@
             <input id="umbral-alerta" class="input" type="number" min="0" max="100" value="20" aria-describedby="ayuda-umbral">
           </div>
         </div>
-        <p id="ayuda-umbral" class="field-help">Por defecto 20 %. El aviso se activa cuando el nivel restante derivado baje a este porcentaje o menos.</p>
+        <p id="ayuda-umbral" class="field-help">Por defecto 20 %. La alerta se activa cuando el último nivel observado (<code>nivel_pct</code>) es menor o igual al umbral. Con <code>frecuencia_dias</code> se derivan <code>vida_util_dias = floor(nivel_pct × frecuencia_dias / 100)</code>, <code>fecha_reposicion</code> fija y <code>dias_restantes = max(0, fecha_reposicion − hoy)</code>.</p>
 
         <div class="field">
           <label for="precio-insumo">Monto habitual en COP (opcional)</label>

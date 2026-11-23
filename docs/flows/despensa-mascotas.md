@@ -1,6 +1,8 @@
 # Flujo: Despensa de mascotas
 
-Controlar comida, higiene, salud y otros insumos recurrentes de cada `Mascota` del hogar registrando hechos de compra y ajuste (`NivelDespensa`), para **derivar** el nivel restante, los días restantes y la próxima compra estimada, recomprar en un toque y mostrar un total mensual **100 % reconciliable** con las compras fechadas en el mes.
+> **Contrato de datos:** las entidades, campos, fórmulas derivadas e invariantes de este flujo siguen `docs/data-model.md`, que llega en el PR #2.
+
+Controlar comida, higiene, salud y otros insumos recurrentes de cada `Mascota` del hogar registrando hechos de compra y ajuste (`NivelDespensa`), para **derivar** el nivel actual, la vida útil desde la observación (`vida_util_dias`), la fecha fija de reposición (`fecha_reposicion`) y los días restantes (`dias_restantes`) que bajan con el paso del tiempo, recomprar en un toque y mostrar un total mensual **100 % reconciliable** con las compras fechadas en el mes.
 
 ## Objetivo
 
@@ -36,8 +38,17 @@ Controlar comida, higiene, salud y otros insumos recurrentes de cada `Mascota` d
 4. La lista prioriza automáticamente los `ItemDespensa` donde **`nivel_derivado <= umbral_alerta_pct`** arriba (alerta), seguidos por nivel medio y bien.
 5. Cada tarjeta de `ItemDespensa` comunica el estado sin depender solo del color:
    - Nombre, `Mascota` (o `Compartido · todas las mascotas`), `tipo` (`Comida`, `Higiene`, `Salud`, `Otro`) y `monto_habitual` + fecha de última compra.
-   - **Nivel restante derivado** (barra accesible con porcentaje y patrón), **días restantes derivados** con la fórmula `dias_restantes = floor(nivel_pct / 100 × frecuencia_dias)`, **próxima compra estimada** (`fecha_observacion + dias_restantes`) y **umbral de alerta** (ej. `Alerta <= 20 %`). Con observaciones del `22 nov`: `15 %` de `35` días = `5` días (`27 nov`), `20 %` de `30` días = `6` días (`28 nov`), `45 %` de `25` días = `11` días (`3 dic`) y `75 %` de `30` días = `22` días (`14 dic`).
-   - Etiqueta con icono + texto: **`▲ Por acabarse`** **siempre** que `nivel_derivado <= umbral_alerta_pct` (incluido cuando iguala el umbral, ej. `20 % <= 20 %`), `● Media` (por encima del umbral hasta `60 %`) o `✓ Bien` (`> 60 %`).
+   - **Nivel actual observado y días restantes derivados que bajan con el tiempo:**
+     - `vida_util_dias = floor(nivel_pct * frecuencia_dias / 100)` (días desde la observación; fija mientras no exista una observación nueva).
+     - `fecha_reposicion = fecha_observacion + vida_util_dias` (fecha estimada fija —llamada `proxima_compra_estimada` en `docs/data-model.md` §8—, no cambia al avanzar los días).
+     - `dias_restantes = max(0, fecha_reposicion - hoy)` en la UI (mínimo `0`; en el cálculo crudo de `docs/data-model.md` §8, `fecha_reposicion - hoy` puede ser negativo cuando está vencida y la UI muestra `0 días` con aviso de revisión).
+     - **Umbral de alerta:** `alerta = nivel_pct <= umbral_alerta_pct` (ej. `Alerta <= 20 %`).
+     - **Fixture verificable al `22 nov 2026` (`hoy = 2026-11-22`) y consulta posterior (`23 nov 2026`):**
+       - *Concentrado adulto 12 kg* (`frecuencia_dias = 35`, obs. `22 nov` con `nivel_pct = 15`): `vida_util_dias = floor(15 * 35 / 100) = 5` días, `fecha_reposicion = 27 nov` (fija). Consultado el **`22 nov`**: `dias_restantes = 5`. Consultado el **`23 nov`** (un día después de la observación): **`dias_restantes = 4`**, mientras `fecha_reposicion` sigue siendo **`27 nov`** sin cambiar. Consultado el **`29 nov`** (vencida): `fecha_reposicion - hoy = -2` → la UI muestra **`0 días restantes`**.
+       - *Antipulgas mensual* (`frecuencia_dias = 30`, obs. `22 nov` con `nivel_pct = 20`): `vida_util_dias = 6`, `fecha_reposicion = 28 nov` (fija); al `22 nov` muestra `6 días restantes` (y al `23 nov`, `5 días restantes`).
+       - *Arena sanitaria 10 kg* (`frecuencia_dias = 25`, obs. **`20 nov`** con `nivel_pct = 52`): `vida_util_dias = floor(52 * 25 / 100) = 13` días desde el `20 nov`, `fecha_reposicion = 3 dic` (fija). Al consultarlo **2 días después (`22 nov`)**, ya bajó a **`dias_restantes = 11`** (`3 dic - 22 nov = 11`).
+       - *Concentrado gato esterilizado 3 kg* (`frecuencia_dias = 30`, obs. **`20 nov`** con `nivel_pct = 80`): `vida_util_dias = floor(80 * 30 / 100) = 24` días desde el `20 nov`, `fecha_reposicion = 14 dic` (fija). Al consultarlo **2 días después (`22 nov`)**, ya bajó a **`dias_restantes = 22`** (`14 dic - 22 nov = 22`).
+   - Etiqueta con icono + texto: **`▲ Por acabarse`** **siempre** que `nivel_pct <= umbral_alerta_pct` (incluido cuando iguala el umbral, ej. `20 % <= 20 %`), `● Media` (por encima del umbral hasta `60 %`) o `✓ Bien` (`> 60 %`).
    - Dos acciones directas: **`Recomprar`** y **`Ajustar nivel`**.
 
 ### 2. Ajustar nivel observado (`NivelDespensa` con `origen = 'ajuste'`)
@@ -45,7 +56,7 @@ Controlar comida, higiene, salud y otros insumos recurrentes de cada `Mascota` d
 1. Si el usuario revisa físicamente el bulto o la arena y nota que queda más o menos de lo estimado, toca **`Ajustar nivel`** en la tarjeta del ítem.
 2. Selecciona o ingresa el porcentaje observado (`0..100 %`, ej. `15 %`, `0 % agotado`, `50 %`) y confirma.
 3. La app registra un nuevo hecho inmutable **`NivelDespensa`** (`item_despensa_id`, `fecha = hoy`, `nivel_pct`, `origen = 'ajuste'`) —nunca edita ni guarda una columna de saldo en `ItemDespensa`.
-4. A partir del último hecho `NivelDespensa` y `frecuencia_dias`, la app **re-deriva** al instante el nivel actual, los días restantes, la próxima compra estimada y si dispara alerta (`nivel_derivado <= umbral_alerta_pct`).
+4. A partir del último hecho `NivelDespensa` (`fecha_observacion`, `nivel_pct`) y `frecuencia_dias`, la app **re-deriva** al instante `vida_util_dias = floor(nivel_pct * frecuencia_dias / 100)`, la fecha fija `fecha_reposicion = fecha_observacion + vida_util_dias`, `dias_restantes = max(0, fecha_reposicion - hoy)` y si dispara alerta (`nivel_pct <= umbral_alerta_pct`).
 
 ### 3. Recomprar un insumo en 1 toque (conexión con Compra rápida)
 
@@ -80,7 +91,7 @@ Controlar comida, higiene, salud y otros insumos recurrentes de cada `Mascota` d
 | --- | --- |
 | **Insumo nuevo sin compras ni ajustes previos** | No inventa fecha ni porcentaje: muestra `"Sin registros aún"` con botones `Recomprar` y `Ajustar nivel`. |
 | **El insumo se acabó antes de lo estimado** | El usuario toca `Ajustar nivel` → `0 %` (`NivelDespensa(nivel_pct=0, origen='ajuste')`). El nivel derivado queda en `0 % <= umbral_alerta_pct`, activa alerta inmediata y destaca `Recomprar`. |
-| **El insumo rindió más días de lo esperado** | Cuando el nivel derivado llega a `0 %` sin nueva compra, muestra `▲ Revisar nivel (0 %)` con acciones `Ajustar nivel` y `Recomprar` (nunca asume una compra automática). |
+| **El insumo rindió más días de lo esperado** | Cuando `hoy` supera `fecha_reposicion` sin nueva compra (`fecha_reposicion - hoy <= 0`), la UI acota `dias_restantes` a `0` y muestra `▲ Revisar nivel (0 días)` con acciones `Ajustar nivel` y `Recomprar` (nunca asume una compra automática). |
 | **Compra de insumo hecha el mes anterior (ej. 22 oct)** | Muestra `Última compra: 22 oct · $165.000 (no suma a nov)` y **no** entra en el total del mes de noviembre (`$245.000`). |
 | **Compra de un bulto a cuotas (ej. `$300.000` en 3 cuotas)** | Pasa por *Compra rápida*: el consumo de `$300.000` suma una sola vez a `Mascotas` en la fecha de compra y sus cuotas van a *Obligaciones del mes*. |
 | **Compra del hogar en `Mascotas` sin `mascota_id` (`mascota_id = null`, ej. `$20.000`)** | **Sí suma** al total de la tarjeta "Mascotas" del hogar (`$245.000`), una sola vez; aparece en el desglose opcional bajo *Sin mascota / compartidas*. |
@@ -118,4 +129,4 @@ Nombres canónicos alineados con `docs/data-model.md` y [docs/decisiones-2026-11
 | **`ItemDespensa`** | Hecho (tabla replicada) | Lectura / Escritura | `id`, `hogar_id`, `mascota_id` (`null` = todas), `nombre`, `tipo` (`'comida' \| 'higiene' \| 'salud' \| 'otro'`), `categoria_id`, `frecuencia_dias`, `umbral_alerta_pct` (`0..100`, default `20`), `monto_habitual`, `activo` | Define el producto, tipo, frecuencia y umbral de alerta. Nunca guarda nivel restante ni fecha de próxima compra. `monto_habitual` es fila compartida del hogar: una compra con `ambito = 'personal'` nunca la modifica. |
 | **`NivelDespensa`** | Hecho (tabla replicada) | Lectura / Escritura | `id`, `hogar_id`, `item_despensa_id`, `compra_id` (nullable), `fecha`, `nivel_pct` (`0..100`), `origen` (`'compra' \| 'ajuste'`) | Registra observaciones como hechos inmutables. Toda compra del ítem crea en el mismo lote atómico `NivelDespensa(origen = 'compra', compra_id = Compra.id, fecha = Compra.fecha, nivel_pct = 100)` (`compra_id` único entre activas; enlaza ciclo de vida y visibilidad); `Ajustar nivel` crea `origen = 'ajuste'` con `compra_id = null`. |
 | **`Compra`** | Hecho (tabla replicada) | Lectura / Escritura (vía *Compra rápida*) | `id`, `fecha`, `monto_total`, `categoria_id`, `ambito`, `mascota_id`, `item_despensa_id`, `pago_tipo`, `medio_de_pago_id`, `registrado_por` | La tarjeta "Mascotas" del hogar suma únicamente compras con `ambito = 'hogar'`, `categoria = Mascotas` y `fecha` en el mes, contando cada compra una sola vez. `mascota_id` es etiqueta opcional para desglose por mascota; las compras `personal` nunca entran en la vista compartida. |
-| **Nivel actual, días restantes, alerta (`<= umbral_alerta_pct`), próxima compra estimada, gasto mensual Mascotas** | **DERIVADO (nunca guardado)** | Solo lectura calculada | `nivel_actual_pct`, `dias_restantes`, `en_alerta`, `proxima_compra_estimada`, `gasto_mascotas(mes)` | Siempre calculados en el dispositivo desde `ItemDespensa`, `NivelDespensa` y `Compra`. Nunca se almacenan en base de datos. |
+| **Nivel actual, vida útil, fecha de reposición, días restantes, alerta (`<= umbral_alerta_pct`), gasto mensual Mascotas** | **DERIVADO (nunca guardado)** | Solo lectura calculada | `nivel_actual` (`nivel_pct`), `vida_util_dias`, `fecha_reposicion` (`proxima_compra_estimada`), `dias_restantes`, `alerta`, `gasto_mascotas(mes)` | Siempre calculados en el dispositivo desde `ItemDespensa`, `NivelDespensa` y `Compra`: `vida_util_dias = floor(nivel_pct * frecuencia_dias / 100)`, `fecha_reposicion = fecha_observacion + vida_util_dias` (fija) y `dias_restantes = max(0, fecha_reposicion - hoy)` en UI. Nunca se almacenan en base de datos. |

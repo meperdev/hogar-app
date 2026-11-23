@@ -1,5 +1,7 @@
 # Flujo: Compra rápida
 
+> **Contrato de datos:** las entidades, campos e invariantes de este flujo siguen `docs/data-model.md`, que llega en el PR #2.
+
 Registrar una `Compra` del hogar (o personal) en COP enteros en la menor cantidad de toques posible desde el instante en que se abre la app, evitando formularios largos y garantizando que una compra financiada o a cuotas nunca se cuente dos veces.
 
 ## Objetivo

@@ -1,5 +1,7 @@
 # Flujo: Obligaciones del mes
 
+> **Contrato de datos:** las entidades, campos e invariantes de este flujo siguen `docs/data-model.md`, que llega en el PR #2.
+
 Concentrar en una sola vista todo lo que hay que pagar en el mes calendario en curso —`Cuota` de tarjetas, créditos y deudas, más instancias de `Obligacion` recurrente (arriendo, servicios, suscripciones)— separando estrictamente **consumo**, **capital de cuotas (pagado vs pendiente)** y **costo financiero** para que nunca exista doble conteo.
 
 ## Objetivo
@@ -36,18 +38,18 @@ Concentrar en una sola vista todo lo que hay que pagar en el mes calendario en c
 4. Debajo se muestra la lista de obligaciones del mes (estado **DERIVADO** por FIFO para `Cuota`, y derivado por existencia de `Compra(obligacion_id, periodo)` para `Obligacion`): **Vencidas**, **Pendientes este mes** y **Pagadas en noviembre**.
 5. Cada tarjeta muestra:
    - Nombre y tipo (ej. `Cuota 1/3 · Mercado Éxito (compra guardada 10 nov)` en `Visa ••4521`, `Préstamo remodelación cocina` como **`Deuda del hogar`**, `Arriendo apartamento` en categoría **`Arriendo`**, `Servicios públicos EPM` en categoría `Servicios`).
-   - **Propiedad del pasivo:** `Deuda de Santiago`, `Deuda de Camila`, `Deuda del hogar` (`Pasivo.tipo = 'deuda'`, `owner_tipo = 'hogar'`) u `Obligación del hogar`.
+   - **Ámbito y titular del pasivo:** `Hogar · titular Santiago`, `Hogar · titular Camila`, `Hogar · titular Hogar` (`Pasivo.tipo = 'deuda'`, `owner_tipo = 'hogar'`), `Personal · titular <Miembro>` u `Obligación del hogar`.
    - Desglose en COP enteros: capital + costo financiero exacto (ej. `$100.000 cap. + $6.299 int. = $106.299`), fecha límite y estado con icono + texto (`◷ Pendiente`, `▲ Vence pronto`, `✓ Pagado`).
 
 ### 2. Registrar el pago de una obligación (y control de pago duplicado)
 
-1. El usuario toca **`Registrar pago`** en una `Cuota` pendiente (ej. `Cuota 1/3 · Mercado Éxito (compra guardada 10 nov)` en `Visa ••4521`, deuda de Santiago con `Pasivo.ambito = 'hogar'`, vencimiento 25 nov).
+1. El usuario toca **`Registrar pago`** en una `Cuota` pendiente (ej. `Cuota 1/3 · Mercado Éxito (compra guardada 10 nov)` en `Visa ••4521`, pasivo de **ámbito Hogar · titular Santiago**, `Pasivo.ambito = 'hogar'`, `owner_tipo = 'miembro'`, vencimiento 25 nov).
 2. Se abre **Registrar pago de obligación** con el desglose precargado del cargo completo de la cuota:
    - **Capital aplicado a la cuota:** `$100.000` (editable si hace abono parcial o extraordinario; la `Cuota` guarda solo capital).
    - **Interés ligado a la cuota (`CostoFinanciero` cargado al pasivo):** `$6.299` (`pasivo_id = Visa ••4521`, `cuota_id = cuota-1`, `medio_de_pago_id = null`; calculado al crear el plan con `28,32 % E.A. → 2,0997 % M.V.`, editable contra el extracto real pasando a `origen = 'manual'`, o vacío si el pasivo está en `Sin tasa`).
    - **Total del abono (`PagoDeDeuda`, `tipo = 'abono'`):** **`$106.299`** (`$100.000` de capital + `$6.299` de interés cargado al pasivo). Como cubre el cargo completo de la cuota, lleva el enlace declarativo `cuota_id`.
 3. El usuario elige el `MedioDePago` de origen (`medio_de_pago_id`), que define si existe aporte individual y de quién:
-   - **Cuenta personal de un miembro (`owner_tipo = 'miembro'`, ej. `Nequi · Camila`):** como el pasivo es del hogar (`Pasivo.ambito = 'hogar'`), aparece el aviso de **Aporte libre**: *"Este pasivo del hogar es de Santiago. Al pagarlo desde una cuenta personal de Camila, el abono de `$106.299` (`$100.000` capital + `$6.299` interés) cuenta como aporte individual de Camila y no genera deuda entre ustedes."*
+   - **Cuenta personal de un miembro (`owner_tipo = 'miembro'`, ej. `Nequi · Camila`):** como el pasivo es de ámbito Hogar (`Pasivo.ambito = 'hogar'`, titular Santiago), aparece el aviso de **Aporte libre**: *"Este pasivo es de ámbito Hogar · titular Santiago. Al pagarlo desde una cuenta personal de Camila, el abono de `$106.299` (`$100.000` capital + `$6.299` interés) cuenta como aporte individual de Camila y no genera deuda entre ustedes."*
    - **`Cuenta común · Hogar` (`owner_tipo = 'hogar'`):** el monto pagado es exactamente el mismo (`$106.299`, cubre la misma cuota y reduce el saldo igual), pero **es una salida del fondo común y no hay aporte individual** (`$0` para Santiago y `$0` para Camila).
    - **Regla de aporte por `Pasivo.ambito` (§3.10 y §8 de `docs/data-model.md`):** cada `Pasivo` es un libro de un único ámbito (`'hogar'` o `'personal'`). Un `PagoDeDeuda(tipo = 'abono')` desde una cuenta personal de un miembro (`owner_tipo = 'miembro'`) a un pasivo con `ambito = 'hogar'` aporta **completo** (`$106.299`) al dueño del medio; a un pasivo con `ambito = 'personal'` aporta **`$0`**; y desde `Cuenta común · Hogar` (`owner_tipo = 'hogar'`) **no hay aporte individual**. El reparto FIFO solo asigna el abono a las cuotas y cargos de ese libro, **no** decide el aporte. Si una transferencia cubre un libro del hogar y uno personal de la misma tarjeta física, se registran dos `PagoDeDeuda` separados (uno por `pasivo_id`).
 4. **Control de posible pago duplicado o sobrepago (invariante de saldo nunca negativo, I20):**

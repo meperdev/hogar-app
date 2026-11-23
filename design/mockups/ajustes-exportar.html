@@ -33,14 +33,14 @@
         <a href="#contenido">Cerrar</a>
       </div>
 
-      <!-- Exportación automática semanal (Supabase Storage: exactamente 2 ZIP, uno por ámbito) -->
+      <!-- Exportación automática semanal (Supabase Storage: 1 + N archivos ZIP — 1 del hogar + 1 personal por miembro; cada miembro descarga exactamente 2 ZIP) -->
       <section class="card card--accent-primary" aria-labelledby="export-auto-heading">
         <div class="section-header">
           <h2 id="export-auto-heading" class="section-title">Exportación automática semanal</h2>
           <span class="badge badge--primary">✓ Activa</span>
         </div>
 
-        <p class="field-help" style="margin-bottom: 10px;">Cada semana una función programada genera <strong>exactamente dos archivos ZIP</strong> en Storage, <strong>nunca mezclados</strong>: uno para el hogar y otro para tus personales propios. Cada ZIP incluye el <strong>JSON y los CSV</strong> de todas las tablas de su alcance.</p>
+        <p class="field-help" style="margin-bottom: 10px;">Cada semana una función programada genera <strong>1 + N archivos ZIP en Storage</strong> (uno del hogar compartido y uno personal por cada miembro activo, <strong>nunca mezclados</strong>; para 2 miembros son 3 archivos). Cada miembro puede descargar <strong>exactamente dos ZIP</strong>: <em>Hogar (compartido)</em> y <em>Mis personales</em>, cada uno con el <strong>JSON y los CSV</strong> de todas las tablas de su alcance.</p>
 
         <dl class="kv-list" style="margin-bottom: 12px;">
           <div class="kv-row">

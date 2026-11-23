@@ -87,8 +87,19 @@
       <section aria-labelledby="inventario-heading">
         <div class="section-header">
           <h2 id="inventario-heading" class="section-title">Insumos y recurrentes</h2>
-          <span class="section-meta">Nivel y fecha derivados</span>
+          <span class="section-meta">Hoy: 22 nov · Derivado</span>
         </div>
+
+        <details class="inline-picker" style="margin-bottom: 12px;">
+          <summary>
+            <span>Cómo bajan los días restantes (fórmula y ejemplo 23 nov)</span>
+            <span aria-hidden="true">▾</span>
+          </summary>
+          <div class="inline-picker__body">
+            <p class="field-help"><strong>Fórmula:</strong> <code>vida_util_dias = floor(nivel_pct × frecuencia_dias / 100)</code> desde la observación; <code>fecha_reposicion = fecha_observacion + vida_util_dias</code> (fija); <code>dias_restantes = max(0, fecha_reposicion − hoy)</code> (mínimo 0).</p>
+            <p class="field-help"><strong>Ejemplo posterior al día observado:</strong> <em>Concentrado adulto</em> observado el <strong>22 nov</strong> con <code>nivel_pct = 15</code> y <code>frecuencia_dias = 35</code> tiene <code>vida_util_dias = 5</code> y <code>fecha_reposicion = 27 nov</code> (fija). El 22 nov muestra <strong>5 días restantes</strong>; al consultar el <strong>23 nov</strong> baja a <strong>4 días restantes</strong> y la fecha estimada <strong>27 nov</strong> no cambia.</p>
+          </div>
+        </details>
 
         <ul class="item-list">
           <!-- Urgente: nivel 15% <= umbral 20% -->
@@ -102,14 +113,14 @@
             </div>
 
             <div>
-              <div class="progress-track" role="progressbar" aria-label="Nivel restante derivado de concentrado de Luna" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100">
+              <div class="progress-track" role="progressbar" aria-label="Nivel observado de concentrado de Luna" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100">
                 <div class="progress-fill--danger" style="width: 15%;"></div>
               </div>
               <div class="legend-row">
-                <span><strong>15 % restante</strong> (5 días)</span>
-                <span>Próxima compra est.: <strong>27 nov</strong></span>
+                <span><strong>15 % obs.</strong> · <strong>5 días rest.</strong></span>
+                <span>Reposición: <strong>27 nov</strong></span>
               </div>
-              <p class="field-help" style="margin-top: 4px;">Obs. 22 nov · Frecuencia: 35 días · Umbral de alerta: 20 %</p>
+              <p class="field-help" style="margin-top: 4px;">Obs. 22 nov · Vida útil: 5 días · Frec.: 35 días · Umbral: 20 % · El 23 nov muestra 4 días rest. (27 nov fija)</p>
             </div>
 
             <a class="btn btn--secondary btn--sm btn--full" href="compra-rapida.html">Recomprar $165.000</a>
@@ -124,7 +135,7 @@
                   <label for="nivel-luna-concentrado">Nivel observado hoy (% restante, 0–100)</label>
                   <input id="nivel-luna-concentrado" class="input" type="number" min="0" max="100" value="15">
                 </div>
-                <p class="field-help">Guarda un registro de ajuste hoy y recalcula los días y próxima compra estimada.</p>
+                <p class="field-help">Guarda una observación hoy y recalcula <code>vida_util_dias</code>, <code>fecha_reposicion</code> fija y <code>dias_restantes</code>.</p>
                 <a class="btn btn--secondary btn--sm btn--full" href="#nivel-ajustado">Guardar ajuste de nivel</a>
               </div>
             </details>
@@ -141,14 +152,14 @@
             </div>
 
             <div>
-              <div class="progress-track" role="progressbar" aria-label="Nivel restante derivado de antipulgas mensual" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">
+              <div class="progress-track" role="progressbar" aria-label="Nivel observado de antipulgas mensual" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">
                 <div class="progress-fill--danger" style="width: 20%;"></div>
               </div>
               <div class="legend-row">
-                <span><strong>20 % restante</strong> (6 días)</span>
-                <span>Próxima compra est.: <strong>28 nov</strong></span>
+                <span><strong>20 % obs.</strong> · <strong>6 días rest.</strong></span>
+                <span>Reposición: <strong>28 nov</strong></span>
               </div>
-              <p class="field-help" style="margin-top: 4px;">Obs. 22 nov · Frecuencia: 30 días · Umbral de alerta: 20 %</p>
+              <p class="field-help" style="margin-top: 4px;">Obs. 22 nov · Vida útil: 6 días · Frec.: 30 días · Umbral: 20 %</p>
             </div>
 
             <div class="btn-row">
@@ -157,7 +168,7 @@
             </div>
           </li>
 
-          <!-- Nivel medio (comprado en noviembre: $42.000) -->
+          <!-- Nivel medio (observado el 20 nov: 2 días antes de hoy 22 nov; 13 -> 11 días restantes) -->
           <li class="item-card card--accent-indigo">
             <div class="item-card__top">
               <div>
@@ -167,18 +178,18 @@
               <span class="badge badge--indigo">● Media</span>
             </div>
             <div>
-              <div class="progress-track" role="progressbar" aria-label="Nivel restante derivado de arena sanitaria de Milo" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100">
-                <div class="progress-fill--indigo" style="width: 45%;"></div>
+              <div class="progress-track" role="progressbar" aria-label="Nivel observado de arena sanitaria de Milo" aria-valuenow="52" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-fill--indigo" style="width: 52%;"></div>
               </div>
               <div class="legend-row">
-                <span><strong>45 % restante</strong> (11 días)</span>
-                <span>Próxima compra est.: <strong>3 dic</strong></span>
+                <span><strong>52 % obs.</strong> · <strong>11 días rest.</strong></span>
+                <span>Reposición: <strong>3 dic</strong></span>
               </div>
-              <p class="field-help" style="margin-top: 4px;">Obs. 22 nov · Frecuencia: 25 días · Umbral de alerta: 20 %</p>
+              <p class="field-help" style="margin-top: 4px;">Obs. 20 nov · Vida útil: 13 días (al 22 nov bajan a 11) · Frec.: 25 días · Umbral: 20 %</p>
             </div>
           </li>
 
-          <!-- Nivel bien (comprado en noviembre: $68.000) -->
+          <!-- Nivel bien (observado el 20 nov: 2 días antes de hoy 22 nov; 24 -> 22 días restantes) -->
           <li class="item-card card--accent-primary">
             <div class="item-card__top">
               <div>
@@ -188,14 +199,14 @@
               <span class="badge badge--primary">✓ Bien</span>
             </div>
             <div>
-              <div class="progress-track" role="progressbar" aria-label="Nivel restante derivado de concentrado de Milo" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100">
-                <div class="progress-fill--primary" style="width: 75%;"></div>
+              <div class="progress-track" role="progressbar" aria-label="Nivel observado de concentrado de Milo" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-fill--primary" style="width: 80%;"></div>
               </div>
               <div class="legend-row">
-                <span><strong>75 % restante</strong> (22 días)</span>
-                <span>Próxima compra est.: <strong>14 dic</strong></span>
+                <span><strong>80 % obs.</strong> · <strong>22 días rest.</strong></span>
+                <span>Reposición: <strong>14 dic</strong></span>
               </div>
-              <p class="field-help" style="margin-top: 4px;">Obs. 22 nov · Frecuencia: 30 días · Umbral de alerta: 20 %</p>
+              <p class="field-help" style="margin-top: 4px;">Obs. 20 nov · Vida útil: 24 días (al 22 nov bajan a 22) · Frec.: 30 días · Umbral: 20 %</p>
             </div>
           </li>
         </ul>
