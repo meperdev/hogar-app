@@ -18,7 +18,9 @@ verificador, desde un commit fijo de la rama `ci/verificador`.
   contención por separado, cada uno antes de su primera lectura.
 - **El documento del PR nunca se carga con JavaScript habilitado.** `a11y-mockups.mjs`
   abre un único contexto con `javaScriptEnabled: false`, service workers bloqueados y
-  `context.route` que aborta toda solicitud que no sea `file:`. Las medidas usan solo
+  `context.route` que resuelve cada `file:` a su ruta real y aborta —registrándolo como
+  falla— todo lo que salga de la raíz real del PR (navegación incluida; el resto de los
+  esquemas también se aborta). Las medidas usan solo
   APIs síncronas del DOM por CDP: `getBoundingClientRect`, `getComputedStyle`,
   `elementFromPoint`, `scrollIntoView`.
 - **axe se inyecta desde el verificador.** `axe-core` (fijado por lockfile) entra con

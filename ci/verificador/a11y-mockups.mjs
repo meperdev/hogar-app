@@ -12,13 +12,19 @@
 //      la garantía no depende de él.
 //   3. Un único contexto con javaScriptEnabled: false carga el mockup. Las
 //      medidas usan solo APIs síncronas del DOM vía CDP.
-//   4. axe-core se inyecta desde el verificador (fijado por lockfile) con
+//   4. Cada solicitud del navegador —la navegación incluida— pasa por
+//      raiz-segura.mjs: un file: se resuelve a ruta y realpath, y solo continúa si
+//      el destino real queda dentro de la raíz real del PR. Cualquier otra cosa
+//      (otro file:, http:, blob:, data: que no sea una imagen en línea, destino
+//      inexistente) se aborta y cuenta como falla del mockup.
+//   5. axe-core se inyecta desde el verificador (fijado por lockfile) con
 //      page.evaluate: es código nuestro por CDP, no un <script> de la página, y
 //      corre igual con los scripts de la página deshabilitados. Chromium suspende
 //      los timers con JS deshabilitado, así que axe.run se ejecuta con una cola de
 //      timers que el mismo evaluate vacía de forma síncrona (ver violacionesAxe).
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { abrirRaiz, reportarViolaciones } from './raiz-segura.mjs';
 
 const ANCHO = 390;
@@ -158,11 +164,28 @@ const contexto = await navegador.newContext({
   javaScriptEnabled: false,
   serviceWorkers: 'block',
 });
-// Los mockups son estáticos: solo se permite leer archivos locales, nunca la red.
-await contexto.route(
-  '**/*',
-  ruta => (ruta.request().url().startsWith('file:') ? ruta.continue() : ruta.abort()),
-);
+// Cada solicitud del navegador se confina a la raíz real del PR; el handler
+// también intercepta la navegación, así que el documento inicial pasa por acá.
+// Lo bloqueado se anota contra el mockup en curso y lo vuelve una falla.
+let mockupEnCurso = null;
+const bloqueos = new Map();
+
+function registrarBloqueo(url, motivo) {
+  if (!mockupEnCurso) return;
+  const previos = bloqueos.get(mockupEnCurso) ?? [];
+  // Chromium puede repetir la misma solicitud; una sola entrada por URL y motivo.
+  if (previos.some(b => b.url === url && b.motivo === motivo)) return;
+  previos.push({ url, motivo });
+  bloqueos.set(mockupEnCurso, previos);
+}
+
+await contexto.route('**/*', ruta => {
+  const solicitud = ruta.request();
+  const revision = raiz.revisarSolicitud(solicitud.url(), solicitud.resourceType());
+  if (revision.permitir) return ruta.continue();
+  registrarBloqueo(solicitud.url(), revision.motivo);
+  return ruta.abort();
+});
 
 async function violacionesAxe(pagina) {
   return pagina.evaluate(async etiquetas => {
@@ -240,7 +263,16 @@ async function violacionesAxe(pagina) {
 for (const entrada of inocentes) {
   const archivo = entrada.nombre;
   const esIndex = archivo.toLowerCase() === 'index.html';
-  const url = 'file://' + entrada.real;
+  const url = pathToFileURL(entrada.real).href;
+  // La navegación se confina antes de pedirla, con la misma frontera del handler.
+  const navegacion = raiz.revisarSolicitud(url, 'document');
+  if (!navegacion.permitir) {
+    reporte.fallas++;
+    reporte.archivos[archivo] = { error: `navegación bloqueada: ${navegacion.motivo}` };
+    console.error(`FAIL ${archivo} navegación bloqueada: ${navegacion.motivo} (${url})`);
+    continue;
+  }
+  mockupEnCurso = archivo;
   const pagina = await contexto.newPage();
   try {
     const { violaciones, datos } = await conTimeout(
@@ -381,7 +413,8 @@ for (const entrada of inocentes) {
 
     const justificacionCta = datos.sinCta?.justificacion ?? '';
     const faltaCta = datos.sinCta?.falta ?? false;
-    const falla = violaciones.length || datos.chicos.length || datos.hscroll ||
+    const bloqueadas = bloqueos.get(archivo) ?? [];
+    const falla = bloqueadas.length || violaciones.length || datos.chicos.length || datos.hscroll ||
       datos.tapados.length || datos.sinScroll.length || datos.fijos.length || faltaCta;
 
     reporte.archivos[archivo] = {
@@ -392,12 +425,17 @@ for (const entrada of inocentes) {
       sinScroll: datos.sinScroll,
       fijos: datos.fijos,
       sinCta: justificacionCta || null,
+      bloqueadas,
     };
 
     if (falla) {
       reporte.fallas++;
       const partes = [];
       if (violaciones.length) partes.push('axe: ' + violaciones.map(v => `${v.id}(${v.impacto})x${v.nodos.length}`).join(','));
+      if (bloqueadas.length) {
+        partes.push('recursos bloqueados fuera de la raíz real: ' +
+          bloqueadas.map(b => `${b.motivo} (${b.url})`).join(' | '));
+      }
       if (datos.chicos.length) partes.push('<44px: ' + datos.chicos.join(' | '));
       if (datos.hscroll) partes.push('scroll horizontal');
       if (datos.tapados.length) partes.push('tapados: ' + datos.tapados.join(' | '));
@@ -421,6 +459,7 @@ for (const entrada of inocentes) {
     reporte.archivos[archivo] = { error: error.message };
     console.error(`FAIL ${archivo} error: ${error.message}`);
   } finally {
+    mockupEnCurso = null;
     await pagina.close().catch(() => {});
   }
 }

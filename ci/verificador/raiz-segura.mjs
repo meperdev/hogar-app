@@ -6,8 +6,11 @@
 // real sale de la raíz, y todo enlace roto, se registra como violación y no se
 // entrega al lector. Los tres lectores (lint-md, check-links, a11y-mockups) usan
 // esta misma frontera: un fallo de enlaces no es lo que protege a los demás.
+// `revisarSolicitud` aplica la misma frontera a lo que Chromium pide al cargar un
+// mockup: cada `file:` se resuelve a su ruta real antes de dejar pasar la carga.
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // Directorios que ningún lector recorre.
 export const IGNORAR = new Set(['node_modules', '.git', 'odd', '.atl']);
@@ -128,7 +131,37 @@ export function abrirRaiz(raiz) {
     return { existe: true, entradas, nombres };
   }
 
-  return { raizAbs, raizReal, violaciones, mostrar, dentroReal, resolver, listar };
+  // Confina una solicitud del navegador. No abre nada: solo resuelve el destino
+  // real (fileURLToPath + realpathSync) y decide. Pasa únicamente un file: cuyo
+  // destino real quede dentro de la raíz real y las imágenes en línea (data:).
+  // Todo lo demás —otro file:, http:, data: no imagen, blob:, destinos rotos—
+  // se bloquea para que el lector lo registre y aborte la carga.
+  function revisarSolicitud(url, tipoRecurso = '') {
+    if (url.startsWith('data:')) {
+      return tipoRecurso === 'image'
+        ? { permitir: true }
+        : { permitir: false, motivo: 'data: que no es una imagen en línea' };
+    }
+    if (!url.startsWith('file:')) return { permitir: false, motivo: 'esquema no permitido' };
+    let destino;
+    try {
+      destino = fileURLToPath(url);
+    } catch {
+      return { permitir: false, motivo: 'URL file: inválida' };
+    }
+    let real;
+    try {
+      real = fs.realpathSync(destino);
+    } catch {
+      return { permitir: false, destino, motivo: 'el destino no existe' };
+    }
+    if (!dentroReal(real)) {
+      return { permitir: false, destino: real, motivo: 'el destino real sale de la raíz' };
+    }
+    return { permitir: true, real };
+  }
+
+  return { raizAbs, raizReal, violaciones, mostrar, dentroReal, resolver, listar, revisarSolicitud };
 }
 
 // Imprime las violaciones de contención de forma uniforme y devuelve cuántas hay.
