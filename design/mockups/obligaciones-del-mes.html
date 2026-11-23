@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Obligaciones del mes — hogar-app</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido principal</a>
+
+  <div class="review-bar">
+    <a href="index.html">← Índice de mockups</a>
+    <span>Núcleo 2 · 390px</span>
+  </div>
+
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-left">
+        <div>
+          <h1 class="app-title">Obligaciones del mes</h1>
+          <p class="app-subtitle">Noviembre 2026 · 2 cuotas pendientes</p>
+        </div>
+      </div>
+      <a class="btn btn--secondary btn--sm" href="nueva-tarjeta-credito.html">+ Pasivo</a>
+    </header>
+
+    <main id="contenido" class="app-main app-main--with-action-bar">
+      <!-- 3 conceptos separados: TODOS DERIVADOS, NUNCA se suman entre sí -->
+      <section aria-labelledby="resumen-contable-heading">
+        <h2 id="resumen-contable-heading" class="visually-hidden">Resumen separado de consumo real del hogar, capital pagado de cuotas y costo financiero</h2>
+        <div class="metric-grid-3">
+          <article class="metric-card metric-card--consumo">
+            <span class="metric-card__label">Consumo real (hogar)</span>
+            <span class="metric-card__value">$3.112.000</span>
+            <span class="metric-card__note">Solo hogar · 1 vez por compra</span>
+          </article>
+          <article class="metric-card metric-card--deuda">
+            <span class="metric-card__label">Capital pagado (cuotas)</span>
+            <span class="metric-card__value">$220.000</span>
+            <span class="metric-card__note">Pagado · $450.000 pend.</span>
+          </article>
+          <article class="metric-card metric-card--costo">
+            <span class="metric-card__label">Costo financ.</span>
+            <span class="metric-card__value">$68.799</span>
+            <span class="metric-card__note">$14.500 pag. · $54.299 pend.</span>
+          </article>
+        </div>
+      </section>
+
+      <div class="callout callout--indigo">
+        <span class="callout__icon" aria-hidden="true">ℹ</span>
+        <div>
+          <p><strong>Sin doble conteo:</strong> el capital de cuotas del mes ($670.000) se divide en <strong>$220.000 pagados</strong> (único <em>Pago de deuda</em> real) y <strong>$450.000 pendientes</strong>. Ninguno se suma al consumo real del hogar ($3.112.000), y <em>Costo financiero</em> es un balde aparte.</p>
+          <p><strong>Agenda por periodo vs. gasto por fecha:</strong> esta agenda agrupa obligaciones por su <em>periodo</em> (ej. recibo de nov), mientras el gasto del mes suma cada compra por su <em>fecha</em> de pago; si pagas un recibo de nov el 2 dic, cierra noviembre aquí y suma al gasto de diciembre.</p>
+        </div>
+      </div>
+
+      <!-- Desglose verificable de Consumo real (Compra.ambito = 'hogar') -->
+      <details class="inline-picker">
+        <summary>
+          <span>Ver desglose verificable de Consumo real ($3.112.000)</span>
+          <span aria-hidden="true">▾</span>
+        </summary>
+        <div class="inline-picker__body">
+          <dl class="kv-list">
+            <div class="kv-row">
+              <dt>05 nov · Arriendo apartamento (Santiago)</dt>
+              <dd class="cop">$1.800.000</dd>
+            </div>
+            <div class="kv-row">
+              <dt>10 nov · Mercado Éxito (guardada · Visa 3 cuotas)</dt>
+              <dd class="cop">$300.000</dd>
+            </div>
+            <div class="kv-row">
+              <dt>18 nov · Servicios públicos EPM (Camila)</dt>
+              <dd class="cop">$285.000</dd>
+            </div>
+            <div class="kv-row">
+              <dt>08–15 nov · Mascotas (4 compras hogar · Camila)</dt>
+              <dd class="cop">$245.000</dd>
+            </div>
+            <div class="kv-row">
+              <dt>Nov · Compras diarias del hogar (Camila)</dt>
+              <dd class="cop">$482.000</dd>
+            </div>
+            <div class="kv-row kv-row--total">
+              <dt>Total Consumo real hogar (noviembre)</dt>
+              <dd class="cop">$3.112.000</dd>
+            </div>
+          </dl>
+          <p class="field-help">Filtra <code>Compra.ambito = 'hogar'</code> (excluye compras personales de $140.000 salvo <code>incluir_personales</code>). No incluye borradores sin guardar (como la simulación de $300.000 del 22 nov en <em>Compra a cuotas</em>) ni pagos de deuda.</p>
+        </div>
+      </details>
+
+      <!-- Pendientes por pagar -->
+      <section aria-labelledby="pendientes-heading">
+        <div class="section-header">
+          <h2 id="pendientes-heading" class="section-title">Pendientes este mes</h2>
+          <span class="section-meta cop">$504.299 por pagar</span>
+        </div>
+
+        <ul class="item-list">
+          <li class="item-card card--accent-amber">
+            <div class="item-card__top">
+              <div>
+                <h3 class="item-card__title">Cuota 1/3 · Mercado Éxito (guardada 10 nov)</h3>
+                <p class="item-card__meta">Visa ••4521 · Corte 15 nov · Vence 25 nov (en 3 días)</p>
+              </div>
+              <div class="item-card__amount">
+                <span class="item-card__amount-main">$106.299</span>
+                <span class="item-card__amount-sub">$100.000 cap. + $6.299 int.</span>
+              </div>
+            </div>
+            <div class="badge-row">
+              <span class="badge badge--amber">▲ Vence pronto</span>
+              <span class="badge badge--indigo">Cuota pendiente</span>
+              <span class="badge badge--primary">Hogar · titular Santiago</span>
+            </div>
+            <p class="field-help">Al vencimiento (25 nov), con el interés de $6.299 ya causado, el saldo causado es $306.299 y tras abonar $106.299 pasa a $200.000.</p>
+            <a class="btn btn--secondary btn--full" href="registrar-pago-obligacion.html">Registrar pago</a>
+          </li>
+
+          <li class="item-card card--accent-indigo">
+            <div class="item-card__top">
+              <div>
+                <h3 class="item-card__title">Préstamo remodelación cocina</h3>
+                <p class="item-card__meta">Deuda (Obras &amp; Diseño) · Cuota 6/24 · Vence 28 nov</p>
+              </div>
+              <div class="item-card__amount">
+                <span class="item-card__amount-main">$398.000</span>
+                <span class="item-card__amount-sub">$350.000 cap. + $48.000 int.</span>
+              </div>
+            </div>
+            <div class="badge-row">
+              <span class="badge badge--neutral">◷ Pendiente</span>
+              <span class="badge badge--indigo">Cuota pendiente</span>
+              <span class="badge badge--primary">Hogar · titular Hogar</span>
+            </div>
+            <a class="btn btn--secondary btn--full" href="registrar-pago-obligacion.html">Registrar pago (demo Visa ••4521)</a>
+          </li>
+        </ul>
+      </section>
+
+      <!-- Pagadas este mes -->
+      <section aria-labelledby="pagadas-heading">
+        <div class="section-header">
+          <h2 id="pagadas-heading" class="section-title">Pagadas en noviembre</h2>
+          <span class="section-meta">3 completadas</span>
+        </div>
+
+        <ul class="item-list">
+          <li class="item-card card--muted">
+            <div class="item-card__top">
+              <div>
+                <h3 class="item-card__title">Cuota Mastercard ••8834</h3>
+                <p class="item-card__meta">Hogar · titular Camila · Pagó Santiago (cuenta personal) el 20 nov</p>
+              </div>
+              <div class="item-card__amount">
+                <span class="item-card__amount-main">$234.500</span>
+                <span class="item-card__amount-sub">$220.000 cap. + $14.500 int.</span>
+              </div>
+            </div>
+            <div class="badge-row">
+              <span class="badge badge--primary">✓ Pagado por Santiago</span>
+              <span class="badge badge--neutral">Sin tasa · interés manual</span>
+            </div>
+            <p class="field-help">Al pagar un pasivo de ámbito Hogar desde una cuenta personal, sumó al aporte de Santiago en Balance sin crear deuda entre ustedes.</p>
+          </li>
+
+          <li class="item-card card--muted">
+            <div class="item-card__top">
+              <div>
+                <h3 class="item-card__title">Arriendo apartamento</h3>
+                <p class="item-card__meta">Obligación del hogar · Pagó Santiago el 5 nov</p>
+              </div>
+              <div class="item-card__amount">
+                <span class="item-card__amount-main">$1.800.000</span>
+                <span class="item-card__amount-sub">Consumo · Arriendo</span>
+              </div>
+            </div>
+            <div class="badge-row">
+              <span class="badge badge--primary">✓ Pagado</span>
+              <span class="badge badge--neutral">Obligación del hogar</span>
+            </div>
+          </li>
+
+          <li class="item-card card--muted">
+            <div class="item-card__top">
+              <div>
+                <h3 class="item-card__title">Servicios públicos EPM</h3>
+                <p class="item-card__meta">Agua, luz y gas · Pagó Camila el 18 nov</p>
+              </div>
+              <div class="item-card__amount">
+                <span class="item-card__amount-main">$285.000</span>
+                <span class="item-card__amount-sub">Consumo · Servicios</span>
+              </div>
+            </div>
+            <div class="badge-row">
+              <span class="badge badge--primary">✓ Pagado</span>
+              <span class="badge badge--neutral">Obligación del hogar</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <a class="btn btn--secondary btn--full" href="nueva-tarjeta-credito.html">+ Agregar tarjeta, crédito o deuda</a>
+    </main>
+
+    <!-- CTA principal fijo visible sin scroll encima de la barra inferior -->
+    <div class="action-bar" role="region" aria-label="Acción principal de obligaciones">
+      <a class="btn btn--primary btn--full" href="registrar-pago-obligacion.html" data-sin-scroll>Registrar pago · Cuota 1/3 ($106.299)</a>
+    </div>
+
+    <nav class="bottom-nav" aria-label="Navegación principal">
+      <a class="bottom-nav__link" href="compra-rapida.html">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 8v8M8 12h8"/>
+        </svg>
+        <span>Compra</span>
+      </a>
+      <a class="bottom-nav__link" href="obligaciones-del-mes.html" aria-current="page">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <rect x="4" y="5" width="16" height="15" rx="2"/>
+          <path d="M8 3v4M16 3v4M4 10h16"/>
+        </svg>
+        <span>Obligaciones</span>
+      </a>
+      <a class="bottom-nav__link" href="balance-de-pareja.html">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <circle cx="9" cy="9" r="3"/>
+          <circle cx="16" cy="9" r="3"/>
+          <path d="M3 19c0-3 2.5-5 6-5s6 2 6 5M14 14c3 0 6 1.8 6 5"/>
+        </svg>
+        <span>Balance</span>
+      </a>
+      <a class="bottom-nav__link" href="despensa-mascotas.html">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <circle cx="7" cy="9" r="2"/>
+          <circle cx="12" cy="7" r="2"/>
+          <circle cx="17" cy="9" r="2"/>
+          <path d="M7 16c0-2.5 2.2-4 5-4s5 1.5 5 4c0 1.8-1.4 3-3 3h-4c-1.6 0-3-1.2-3-3z"/>
+        </svg>
+        <span>Mascotas</span>
+      </a>
+    </nav>
+  </div>
+</body>
+</html>

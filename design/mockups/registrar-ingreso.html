@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Registrar ingreso — hogar-app</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido principal</a>
+
+  <div class="review-bar">
+    <a href="index.html">← Índice de mockups</a>
+    <span>Núcleo 3 · Ingreso fijo o variable</span>
+  </div>
+
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-left">
+        <a class="icon-btn" href="balance-de-pareja.html" aria-label="Volver a Balance de pareja">←</a>
+        <div>
+          <h1 class="app-title">Registrar ingreso</h1>
+          <p class="app-subtitle">Fijo (recurrente) o variable</p>
+        </div>
+      </div>
+    </header>
+
+    <main id="contenido" class="app-main app-main--no-nav-action-bar">
+      <div id="ingreso-guardado" class="toast-target" role="status" aria-live="polite">
+        <span>✓ Ingreso guardado: $600.000 (Santiago)</span>
+        <a href="balance-de-pareja.html">Ver balance</a>
+      </div>
+
+      <form class="form-stack" action="#ingreso-guardado">
+        <fieldset class="radio-group">
+          <legend class="fieldset-legend">Miembro del hogar</legend>
+          <div class="radio-options">
+            <label class="radio-card" for="miembro-santiago">
+              <input id="miembro-santiago" type="radio" name="miembro" value="santiago" checked>
+              <span>Santiago</span>
+            </label>
+            <label class="radio-card" for="miembro-camila">
+              <input id="miembro-camila" type="radio" name="miembro" value="camila">
+              <span>Camila</span>
+            </label>
+          </div>
+          <p class="field-help">En este hogar ambos miembros pueden ver los ingresos declarados.</p>
+        </fieldset>
+
+        <fieldset class="radio-group">
+          <legend class="fieldset-legend">Tipo de ingreso</legend>
+          <div class="radio-options">
+            <label class="radio-card" for="tipo-fijo">
+              <input id="tipo-fijo" type="radio" name="tipo-ingreso" value="fijo">
+              <span>Fijo (mensual)</span>
+            </label>
+            <label class="radio-card" for="tipo-variable">
+              <input id="tipo-variable" type="radio" name="tipo-ingreso" value="variable" checked>
+              <span>Variable (al llegar)</span>
+            </label>
+          </div>
+          <p class="field-help">Los ingresos fijos (salario, arriendo recibido) guardan día esperado y se marcan recibidos cada mes (incluso si llega un monto distinto); los variables se registran cuando llegan.</p>
+        </fieldset>
+
+        <div class="field">
+          <label for="concepto-ingreso">Descripción</label>
+          <input id="concepto-ingreso" class="input" type="text" value="Consultoría diseño" placeholder="Ej. Salario, Comisión, Freelance">
+        </div>
+
+        <div class="field">
+          <label for="monto-ingreso">Monto en COP (entero, sin centavos)</label>
+          <input id="monto-ingreso" class="input input--cop" type="text" inputmode="numeric" value="$600.000">
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="fecha-ingreso">Fecha recibido / vigente desde</label>
+            <input id="fecha-ingreso" class="input" type="date" value="2026-11-22">
+          </div>
+          <div class="field">
+            <label for="dia-esperado">Día esperado (solo fijos)</label>
+            <input id="dia-esperado" class="input" type="number" min="1" max="31" placeholder="Ej. 30">
+          </div>
+        </div>
+
+        <div class="callout callout--indigo">
+          <span class="callout__icon" aria-hidden="true">ℹ</span>
+          <p>La vista "% de su ingreso" viene <strong>apagada por defecto</strong> en Balance de pareja y nunca obliga ni calcula aportes mínimos entre ustedes.</p>
+        </div>
+
+        <a class="btn btn--secondary btn--full" href="balance-de-pareja.html">Cancelar</a>
+      </form>
+    </main>
+
+    <!-- CTA principal fijo visible sin scroll -->
+    <div class="action-bar action-bar--bottom" role="region" aria-label="Guardar ingreso">
+      <a class="btn btn--primary btn--full" href="#ingreso-guardado" data-sin-scroll>Guardar ingreso</a>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,136 @@
+{
+  "raiz": "/home/meper/Projects/hogar-app-worktrees/flujos-nucleos",
+  "fallas": 0,
+  "archivos": {
+    "ajustes-exportar.html": {
+      "axe": [],
+      "chicos": [],
+      "hscroll": false,
+      "tapados": [],
+      "sinScroll": [],
+      "fijos": [],
+      "sinCta": null,
+      "bloqueadas": []
+    },
+    "balance-de-pareja.html": {
+      "axe": [],
+      "chicos": [],
+      "hscroll": false,
+      "tapados": [],
+      "sinScroll": [],
+      "fijos": [],
+      "sinCta": null,
+      "bloqueadas": []
+    },
+    "compra-cuotas.html": {
+      "axe": [],
+      "chicos": [],
+      "hscroll": false,
+      "tapados": [],
+      "sinScroll": [],
+      "fijos": [],
+      "sinCta": null,
+      "bloqueadas": []
+    },
+    "compra-rapida.html": {
+      "axe": [],
+      "chicos": [],
+      "hscroll": false,
+      "tapados": [],
+      "sinScroll": [],
+      "fijos": [],
+      "sinCta": null,
+      "bloqueadas": []
+    },
+    "despensa-mascotas.html": {
+      "axe": [],
+      "chicos": [],
+      "hscroll": false,
+      "tapados": [],
+      "sinScroll": [],
+      "fijos": [],
+      "sinCta": null,
+      "bloqueadas": []
+    },
+    "escanear-factura.html": {
+      "axe": [],
+      "chicos": [],
+      "hscroll": false,
+      "tapados": [],
+      "sinScroll": [],
+      "fijos": [],
+      "sinCta": null,
+      "bloqueadas": []
+    },
+    "index.html": {
+      "axe": [],
+      "chicos": [],
+      "hscroll": false,
+      "tapados": [],
+      "sinScroll": [],
+      "fijos": [],
+      "sinCta": null,
+      "bloqueadas": []
+    },
+    "nueva-tarjeta-credito.html": {
+      "axe": [],
+      "chicos": [],
+      "hscroll": false,
+      "tapados": [],
+      "sinScroll": [],
+      "fijos": [],
+      "sinCta": null,
+      "bloqueadas": []
+    },
+    "nuevo-insumo-mascota.html": {
+      "axe": [],
+      "chicos": [],
+      "hscroll": false,
+      "tapados": [],
+      "sinScroll": [],
+      "fijos": [],
+      "sinCta": null,
+      "bloqueadas": []
+    },
+    "obligaciones-del-mes.html": {
+      "axe": [],
+      "chicos": [],
+      "hscroll": false,
+      "tapados": [],
+      "sinScroll": [],
+      "fijos": [],
+      "sinCta": null,
+      "bloqueadas": []
+    },
+    "registrar-ingreso.html": {
+      "axe": [],
+      "chicos": [],
+      "hscroll": false,
+      "tapados": [],
+      "sinScroll": [],
+      "fijos": [],
+      "sinCta": null,
+      "bloqueadas": []
+    },
+    "registrar-pago-obligacion.html": {
+      "axe": [],
+      "chicos": [],
+      "hscroll": false,
+      "tapados": [],
+      "sinScroll": [],
+      "fijos": [],
+      "sinCta": null,
+      "bloqueadas": []
+    },
+    "transferir-fondo-comun.html": {
+      "axe": [],
+      "chicos": [],
+      "hscroll": false,
+      "tapados": [],
+      "sinScroll": [],
+      "fijos": [],
+      "sinCta": null,
+      "bloqueadas": []
+    }
+  }
+}

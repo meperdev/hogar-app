@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nueva tarjeta, crédito o deuda — hogar-app</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido principal</a>
+
+  <div class="review-bar">
+    <a href="index.html">← Índice de mockups</a>
+    <span>Núcleo 2 · Alta con tasa opcional y saldo inicial</span>
+  </div>
+
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-left">
+        <a class="icon-btn" href="obligaciones-del-mes.html" aria-label="Volver a Obligaciones del mes">←</a>
+        <div>
+          <h1 class="app-title">Nuevo pasivo</h1>
+          <p class="app-subtitle">Tarjeta, crédito o deuda en COP</p>
+        </div>
+      </div>
+    </header>
+
+    <main id="contenido" class="app-main app-main--no-nav-action-bar">
+      <div id="tarjeta-guardada" class="toast-target" role="status" aria-live="polite">
+        <span>✓ Guardado: Visa ••4521 (Hogar · titular Santiago · Sin tasa)</span>
+        <a href="obligaciones-del-mes.html">Ver lista</a>
+      </div>
+
+      <form class="form-stack" action="#tarjeta-guardada">
+        <fieldset class="radio-group">
+          <legend class="fieldset-legend">Tipo de pasivo</legend>
+          <div class="radio-options radio-options--3">
+            <label class="radio-card" for="tipo-tc">
+              <input id="tipo-tc" type="radio" name="tipo-instrumento" value="tarjeta" checked>
+              <span>Tarjeta</span>
+            </label>
+            <label class="radio-card" for="tipo-credito">
+              <input id="tipo-credito" type="radio" name="tipo-instrumento" value="credito">
+              <span>Crédito</span>
+            </label>
+            <label class="radio-card" for="tipo-deuda">
+              <input id="tipo-deuda" type="radio" name="tipo-instrumento" value="deuda">
+              <span>Deuda</span>
+            </label>
+          </div>
+          <p class="field-help">Fase 1: Tarjeta y Crédito tienen como titular a un solo miembro. Deuda (informal o no bancaria, ej. remodelación cocina) admite titular miembro u Hogar.</p>
+        </fieldset>
+
+        <fieldset class="radio-group">
+          <legend class="fieldset-legend">Ámbito del pasivo</legend>
+          <div class="radio-options">
+            <label class="radio-card" for="ambito-hogar">
+              <input id="ambito-hogar" type="radio" name="ambito-pasivo" value="hogar" checked>
+              <span>Hogar</span>
+            </label>
+            <label class="radio-card" for="ambito-personal">
+              <input id="ambito-personal" type="radio" name="ambito-pasivo" value="personal">
+              <span>Personal (solo yo)</span>
+            </label>
+          </div>
+          <p class="field-help">Cada pasivo es un libro de un solo ámbito (inmutable cuando tiene movimientos). Si eliges <strong>Personal</strong>, el titular debe ser un miembro y sus pagos no suman como aporte al hogar.</p>
+          <div class="callout callout--indigo">
+            <span class="callout__icon" aria-hidden="true">ℹ</span>
+            <p><strong>Tarjeta usada para ambos ámbitos:</strong> lleva <strong>dos libros</strong> aparte. Crea dos pasivos distintos (ej. <em>Visa ••4521 Hogar</em> y <em>Visa ••4521 Personal</em>) con los mismos últimos 4 dígitos.</p>
+          </div>
+        </fieldset>
+
+        <div class="field">
+          <label for="nombre-tarjeta">Nombre o alias</label>
+          <input id="nombre-tarjeta" class="input" type="text" value="Visa ••4521" placeholder="Ej. Visa ••4521, Crédito vehículo o Préstamo cocina">
+        </div>
+
+        <fieldset class="radio-group">
+          <legend class="fieldset-legend">Titular del pasivo</legend>
+          <div class="radio-options radio-options--3">
+            <label class="radio-card" for="titular-santiago">
+              <input id="titular-santiago" type="radio" name="titular" value="santiago" checked>
+              <span>Santiago</span>
+            </label>
+            <label class="radio-card" for="titular-camila">
+              <input id="titular-camila" type="radio" name="titular" value="camila">
+              <span>Camila</span>
+            </label>
+            <label class="radio-card" for="titular-hogar">
+              <input id="titular-hogar" type="radio" name="titular" value="hogar">
+              <span>Hogar*</span>
+            </label>
+          </div>
+          <p class="field-help">*Titular Hogar disponible solo para <strong>Deuda</strong> en fase 1 (ámbito Hogar). Igual cualquier miembro podrá pagar cualquier pasivo sin crear deuda entre ustedes.</p>
+        </fieldset>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="dia-corte">Día de corte (tarjeta)</label>
+            <input id="dia-corte" class="input" type="number" min="1" max="31" value="15">
+          </div>
+          <div class="field">
+            <label for="dia-pago">Día límite de pago</label>
+            <input id="dia-pago" class="input" type="number" min="1" max="31" value="25">
+          </div>
+        </div>
+
+        <!-- Tasas colombianas E.A. / M.V. OPCIONALES — "Sin tasa" preseleccionado por defecto -->
+        <section class="card form-stack" aria-labelledby="tasa-heading">
+          <div class="section-header" style="margin-bottom: 0;">
+            <h2 id="tasa-heading" class="section-title">Tasa de interés (opcional)</h2>
+            <span class="badge badge--primary">Sin tasa por defecto</span>
+          </div>
+
+          <fieldset class="radio-group">
+            <legend class="visually-hidden">Modalidad de tasa de interés</legend>
+            <div class="radio-options radio-options--3">
+              <label class="radio-card" for="tasa-ninguna">
+                <input id="tasa-ninguna" type="radio" name="tipo-tasa" value="ninguna" checked>
+                <span>Sin tasa</span>
+              </label>
+              <label class="radio-card" for="tasa-ea">
+                <input id="tasa-ea" type="radio" name="tipo-tasa" value="ea">
+                <span>% E.A.</span>
+              </label>
+              <label class="radio-card" for="tasa-mv">
+                <input id="tasa-mv" type="radio" name="tipo-tasa" value="mv">
+                <span>% M.V.</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <div class="field">
+            <label for="valor-tasa">Valor de tasa (solo si eliges % E.A. o % M.V.)</label>
+            <input id="valor-tasa" class="input" type="text" inputmode="decimal" placeholder="Ej. 28,32" aria-describedby="conversion-tasa">
+            <p id="conversion-tasa" class="field-help">
+              Ejemplo de conversión exacta: <strong>28,32 % E.A. ⇄ 2,0997 % M.V.</strong> (MV = (1 + EA)^(1/12) − 1; se redondea solo el interés al peso).
+            </p>
+          </div>
+
+          <div class="callout callout--primary">
+            <span class="callout__icon" aria-hidden="true">ℹ</span>
+            <p>Con <strong>Sin tasa</strong> activo, la app no calcula intereses automáticamente y podrás registrarlos a mano como <em>Costo financiero</em> al pagar tu extracto.</p>
+          </div>
+        </section>
+
+        <div class="field">
+          <label for="cupo-cop">Cupo total de tarjeta en COP (informativo, opcional)</label>
+          <input id="cupo-cop" class="input input--cop" type="text" inputmode="numeric" value="$6.000.000">
+        </div>
+
+        <!-- Alta de crédito / plan de capital (PlanDeCuotas origen='saldo_inicial' o 'desembolso') -->
+        <section class="card card--accent-indigo form-stack" aria-labelledby="saldo-inicial-heading">
+          <div class="section-header" style="margin-bottom: 0;">
+            <h2 id="saldo-inicial-heading" class="section-title">Capital inicial o desembolso</h2>
+            <span class="badge badge--indigo">Plan de cuotas</span>
+          </div>
+          <p class="field-help">Para una deuda previa elige <strong>Saldo inicial</strong> (no financia compras nuevas). Para un préstamo en efectivo (Crédito o Deuda, nunca Tarjeta) elige <strong>Desembolso</strong> y luego vincula las compras con <em>Financiada con préstamo</em> sin crear otro plan.</p>
+
+          <div class="field">
+            <label for="origen-plan">Origen del capital</label>
+            <select id="origen-plan" class="select">
+              <option value="saldo_inicial" selected>Saldo inicial (deuda previa existente)</option>
+              <option value="desembolso">Desembolso (préstamo en efectivo · solo Crédito o Deuda)</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="saldo-inicial-cop">Capital inicial o desembolso en COP</label>
+            <input id="saldo-inicial-cop" class="input input--cop" type="text" inputmode="numeric" placeholder="Ej. $8.400.000">
+          </div>
+
+          <div class="field">
+            <label for="fecha-saldo-inicial">Fecha del saldo inicial o giro</label>
+            <input id="fecha-saldo-inicial" class="input" type="date" value="2026-11-22" aria-describedby="ayuda-fecha-saldo">
+            <p id="ayuda-fecha-saldo" class="field-help">Fecha desde la que se registra la deuda previa (o fecha del desembolso). Define su orden en FIFO.</p>
+          </div>
+
+          <div class="field">
+            <label for="sistema-amortizacion">Sistema de cuotas</label>
+            <select id="sistema-amortizacion" class="select" aria-describedby="ayuda-sistema">
+              <option value="sin_calendario" selected>Sin calendario (por defecto · abonos libres)</option>
+              <option value="capital_fijo">Capital fijo (cuotas iguales de capital)</option>
+              <option value="cuota_fija">Cuota fija (sistema francés)</option>
+            </select>
+            <p id="ayuda-sistema" class="field-help">Por defecto se guarda <strong>sin calendario</strong> (sin inventar cuotas ni fechas). Completa las cuotas solo si conoces el calendario.</p>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="n-cuotas-inicial">N.º cuotas (si hay calendario)</label>
+              <input id="n-cuotas-inicial" class="input" type="number" min="1" max="360" placeholder="Ej. 24">
+            </div>
+            <div class="field">
+              <label for="fecha-primera-cuota">Primera cuota (opcional)</label>
+              <input id="fecha-primera-cuota" class="input" type="date">
+            </div>
+          </div>
+        </section>
+
+        <a class="btn btn--secondary btn--full" href="obligaciones-del-mes.html">Cancelar</a>
+      </form>
+    </main>
+
+    <!-- CTA principal fijo visible sin scroll -->
+    <div class="action-bar action-bar--bottom" role="region" aria-label="Guardar pasivo">
+      <a class="btn btn--primary btn--full" href="#tarjeta-guardada" data-sin-scroll>Guardar pasivo</a>
+    </div>
+  </div>
+</body>
+</html>

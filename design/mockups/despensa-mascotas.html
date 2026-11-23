@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Despensa de mascotas — hogar-app</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido principal</a>
+
+  <div class="review-bar">
+    <a href="index.html">← Índice de mockups</a>
+    <span>Núcleo 4 · 390px</span>
+  </div>
+
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-left">
+        <div>
+          <h1 class="app-title">Despensa de mascotas</h1>
+          <p class="app-subtitle">Luna y Milo · 2 alertas (&lt;= umbral)</p>
+        </div>
+      </div>
+      <a class="btn btn--secondary btn--sm" href="nuevo-insumo-mascota.html">+ Insumo</a>
+    </header>
+
+    <main id="contenido" class="app-main app-main--with-action-bar">
+      <!-- Toast al registrar ajuste de nivel -->
+      <div id="nivel-ajustado" class="toast-target" role="status" aria-live="polite">
+        <span>✓ Ajuste guardado (nivel derivado recalculado)</span>
+        <a href="#contenido">Cerrar</a>
+      </div>
+
+      <!-- Resumen gasto del mes en Mascotas (hogar + categoría Mascotas, 1 vez c/u; mascota_id solo desglose; personales fuera) -->
+      <section class="card card--accent-primary" aria-labelledby="gasto-mascotas-heading">
+        <div class="item-card__top">
+          <div>
+            <h2 id="gasto-mascotas-heading" class="section-title">Gasto en Mascotas (hogar · nov)</h2>
+            <p class="item-card__meta">Derivado · Solo ámbito hogar y categoría Mascotas (1 vez c/u)</p>
+          </div>
+          <span class="item-card__amount-main cop">$245.000</span>
+        </div>
+
+        <details class="inline-picker" style="margin-top: 10px;">
+          <summary>
+            <span>Ver desglose reconciliable de noviembre (4 compras)</span>
+            <span aria-hidden="true">▾</span>
+          </summary>
+          <div class="inline-picker__body">
+            <dl class="kv-list">
+              <div class="kv-row">
+                <dt>15 nov · Concentrado esterilizado (Milo)</dt>
+                <dd class="cop">$68.000</dd>
+              </div>
+              <div class="kv-row">
+                <dt>11 nov · Arena sanitaria 10 kg (Milo)</dt>
+                <dd class="cop">$42.000</dd>
+              </div>
+              <div class="kv-row">
+                <dt>08 nov · Consulta veterinaria (Luna)</dt>
+                <dd class="cop">$115.000</dd>
+              </div>
+              <div class="kv-row">
+                <dt>14 nov · Shampoo y bolsas (sin mascota · compartida)</dt>
+                <dd class="cop">$20.000</dd>
+              </div>
+              <div class="kv-row kv-row--total">
+                <dt>Total hogar · categoría Mascotas (nov)</dt>
+                <dd class="cop">$245.000</dd>
+              </div>
+            </dl>
+            <p class="field-help"><strong>Desglose opcional por <code>mascota_id</code>:</strong> Luna $115.000 · Milo $110.000 · Sin etiqueta $20.000.</p>
+            <p class="field-help"><strong>Excluidas del $245.000:</strong> otra categoría con etiqueta <code>mascota_id</code> (08 nov · Taxi veterinaria $18.000 en <em>Transporte</em>), compras personales (16 nov · Correa personal de Santiago $35.000) y compras de octubre (concentrado de Luna 22 oct y antipulgas 29 oct).</p>
+          </div>
+        </details>
+      </section>
+
+      <!-- Filtros por mascota -->
+      <div class="chip-row" role="group" aria-label="Filtrar despensa por mascota">
+        <button type="button" class="chip chip--active" aria-pressed="true">✓ Todas (4)</button>
+        <button type="button" class="chip" aria-pressed="false">Luna (perra)</button>
+        <button type="button" class="chip" aria-pressed="false">Milo (gato)</button>
+      </div>
+
+      <!-- Lista de insumos priorizada por urgencia (nivel derivado <= umbral_alerta_pct) -->
+      <section aria-labelledby="inventario-heading">
+        <div class="section-header">
+          <h2 id="inventario-heading" class="section-title">Insumos y recurrentes</h2>
+          <span class="section-meta">Hoy: 22 nov · Derivado</span>
+        </div>
+
+        <details class="inline-picker" style="margin-bottom: 12px;">
+          <summary>
+            <span>Cómo bajan los días restantes (fórmula y ejemplo 23 nov)</span>
+            <span aria-hidden="true">▾</span>
+          </summary>
+          <div class="inline-picker__body">
+            <p class="field-help"><strong>Fórmula:</strong> <code>vida_util_dias = floor(nivel_pct × frecuencia_dias / 100)</code> desde la observación; <code>fecha_reposicion = fecha_observacion + vida_util_dias</code> (fija); <code>dias_restantes = max(0, fecha_reposicion − hoy)</code> (mínimo 0).</p>
+            <p class="field-help"><strong>Ejemplo posterior al día observado:</strong> <em>Concentrado adulto</em> observado el <strong>22 nov</strong> con <code>nivel_pct = 15</code> y <code>frecuencia_dias = 35</code> tiene <code>vida_util_dias = 5</code> y <code>fecha_reposicion = 27 nov</code> (fija). El 22 nov muestra <strong>5 días restantes</strong>; al consultar el <strong>23 nov</strong> baja a <strong>4 días restantes</strong> y la fecha estimada <strong>27 nov</strong> no cambia.</p>
+          </div>
+        </details>
+
+        <ul class="item-list">
+          <!-- Urgente: nivel 15% <= umbral 20% -->
+          <li class="item-card card--accent-danger">
+            <div class="item-card__top">
+              <div>
+                <h3 class="item-card__title">Concentrado adulto 12 kg</h3>
+                <p class="item-card__meta">Luna · Comida · Última compra: 22 oct ($165.000 · no suma a nov)</p>
+              </div>
+              <span class="badge badge--danger">▲ Por acabarse</span>
+            </div>
+
+            <div>
+              <div class="progress-track" role="progressbar" aria-label="Nivel observado de concentrado de Luna" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-fill--danger" style="width: 15%;"></div>
+              </div>
+              <div class="legend-row">
+                <span><strong>15 % obs.</strong> · <strong>5 días rest.</strong></span>
+                <span>Reposición: <strong>27 nov</strong></span>
+              </div>
+              <p class="field-help" style="margin-top: 4px;">Obs. 22 nov · Vida útil: 5 días · Frec.: 35 días · Umbral: 20 % · El 23 nov muestra 4 días rest. (27 nov fija)</p>
+            </div>
+
+            <a class="btn btn--secondary btn--sm btn--full" href="compra-rapida.html">Recomprar $165.000</a>
+
+            <details class="inline-picker">
+              <summary>
+                <span>Ajustar nivel observado</span>
+                <span aria-hidden="true">▾</span>
+              </summary>
+              <div class="inline-picker__body">
+                <div class="field">
+                  <label for="nivel-luna-concentrado">Nivel observado hoy (% restante, 0–100)</label>
+                  <input id="nivel-luna-concentrado" class="input" type="number" min="0" max="100" value="15">
+                </div>
+                <p class="field-help">Guarda una observación hoy y recalcula <code>vida_util_dias</code>, <code>fecha_reposicion</code> fija y <code>dias_restantes</code>.</p>
+                <a class="btn btn--secondary btn--sm btn--full" href="#nivel-ajustado">Guardar ajuste de nivel</a>
+              </div>
+            </details>
+          </li>
+
+          <!-- Alerta justa en umbral: 20% <= 20% (siempre es alerta Por acabarse) -->
+          <li class="item-card card--accent-danger">
+            <div class="item-card__top">
+              <div>
+                <h3 class="item-card__title">Antipulgas mensual</h3>
+                <p class="item-card__meta">Todas (compartido) · Salud · Última compra: 29 oct ($95.000 · no suma a nov)</p>
+              </div>
+              <span class="badge badge--danger">▲ Por acabarse</span>
+            </div>
+
+            <div>
+              <div class="progress-track" role="progressbar" aria-label="Nivel observado de antipulgas mensual" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-fill--danger" style="width: 20%;"></div>
+              </div>
+              <div class="legend-row">
+                <span><strong>20 % obs.</strong> · <strong>6 días rest.</strong></span>
+                <span>Reposición: <strong>28 nov</strong></span>
+              </div>
+              <p class="field-help" style="margin-top: 4px;">Obs. 22 nov · Vida útil: 6 días · Frec.: 30 días · Umbral: 20 %</p>
+            </div>
+
+            <div class="btn-row">
+              <a class="btn btn--secondary btn--sm" href="compra-rapida.html">Recomprar $95.000</a>
+              <a class="btn btn--secondary btn--sm" href="#nivel-ajustado">Ajustar nivel</a>
+            </div>
+          </li>
+
+          <!-- Nivel medio (observado el 20 nov: 2 días antes de hoy 22 nov; 13 -> 11 días restantes) -->
+          <li class="item-card card--accent-indigo">
+            <div class="item-card__top">
+              <div>
+                <h3 class="item-card__title">Arena sanitaria 10 kg</h3>
+                <p class="item-card__meta">Milo · Higiene · Comprada: 11 nov ($42.000)</p>
+              </div>
+              <span class="badge badge--indigo">● Media</span>
+            </div>
+            <div>
+              <div class="progress-track" role="progressbar" aria-label="Nivel observado de arena sanitaria de Milo" aria-valuenow="52" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-fill--indigo" style="width: 52%;"></div>
+              </div>
+              <div class="legend-row">
+                <span><strong>52 % obs.</strong> · <strong>11 días rest.</strong></span>
+                <span>Reposición: <strong>3 dic</strong></span>
+              </div>
+              <p class="field-help" style="margin-top: 4px;">Obs. 20 nov · Vida útil: 13 días (al 22 nov bajan a 11) · Frec.: 25 días · Umbral: 20 %</p>
+            </div>
+          </li>
+
+          <!-- Nivel bien (observado el 20 nov: 2 días antes de hoy 22 nov; 24 -> 22 días restantes) -->
+          <li class="item-card card--accent-primary">
+            <div class="item-card__top">
+              <div>
+                <h3 class="item-card__title">Concentrado gato esterilizado 3 kg</h3>
+                <p class="item-card__meta">Milo · Comida · Comprado: 15 nov ($68.000)</p>
+              </div>
+              <span class="badge badge--primary">✓ Bien</span>
+            </div>
+            <div>
+              <div class="progress-track" role="progressbar" aria-label="Nivel observado de concentrado de Milo" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-fill--primary" style="width: 80%;"></div>
+              </div>
+              <div class="legend-row">
+                <span><strong>80 % obs.</strong> · <strong>22 días rest.</strong></span>
+                <span>Reposición: <strong>14 dic</strong></span>
+              </div>
+              <p class="field-help" style="margin-top: 4px;">Obs. 20 nov · Vida útil: 24 días (al 22 nov bajan a 22) · Frec.: 30 días · Umbral: 20 %</p>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <a class="btn btn--secondary btn--full" href="nuevo-insumo-mascota.html">+ Agregar insumo o gasto recurrente</a>
+    </main>
+
+    <!-- CTA principal fijo visible sin scroll encima de la barra inferior -->
+    <div class="action-bar" role="region" aria-label="Acción principal de despensa de mascotas">
+      <a class="btn btn--primary btn--full" href="compra-rapida.html" data-sin-scroll>Recomprar concentrado ($165.000)</a>
+    </div>
+
+    <nav class="bottom-nav" aria-label="Navegación principal">
+      <a class="bottom-nav__link" href="compra-rapida.html">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 8v8M8 12h8"/>
+        </svg>
+        <span>Compra</span>
+      </a>
+      <a class="bottom-nav__link" href="obligaciones-del-mes.html">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <rect x="4" y="5" width="16" height="15" rx="2"/>
+          <path d="M8 3v4M16 3v4M4 10h16"/>
+        </svg>
+        <span>Obligaciones</span>
+      </a>
+      <a class="bottom-nav__link" href="balance-de-pareja.html">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <circle cx="9" cy="9" r="3"/>
+          <circle cx="16" cy="9" r="3"/>
+          <path d="M3 19c0-3 2.5-5 6-5s6 2 6 5M14 14c3 0 6 1.8 6 5"/>
+        </svg>
+        <span>Balance</span>
+      </a>
+      <a class="bottom-nav__link" href="despensa-mascotas.html" aria-current="page">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <circle cx="7" cy="9" r="2"/>
+          <circle cx="12" cy="7" r="2"/>
+          <circle cx="17" cy="9" r="2"/>
+          <path d="M7 16c0-2.5 2.2-4 5-4s5 1.5 5 4c0 1.8-1.4 3-3 3h-4c-1.6 0-3-1.2-3-3z"/>
+        </svg>
+        <span>Mascotas</span>
+      </a>
+    </nav>
+  </div>
+</body>
+</html>

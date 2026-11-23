@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Balance de pareja — hogar-app</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido principal</a>
+
+  <div class="review-bar">
+    <a href="index.html">← Índice de mockups</a>
+    <span>Núcleo 3 · Aporte libre · 390px</span>
+  </div>
+
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-left">
+        <div>
+          <h1 class="app-title">Balance de pareja</h1>
+          <p class="app-subtitle">Hogar Santiago y Camila</p>
+        </div>
+      </div>
+      <a class="btn btn--secondary btn--sm" href="ajustes-exportar.html">Ajustes</a>
+    </header>
+
+    <main id="contenido" class="app-main app-main--with-action-bar">
+      <!-- Toast al marcar recibido un ingreso fijo -->
+      <div id="ingreso-recibido" class="toast-target" role="status" aria-live="polite">
+        <span>✓ Salario Santiago marcado como recibido en noviembre</span>
+        <a href="#contenido">Cerrar</a>
+      </div>
+
+      <!-- Navegador de mes calendario -->
+      <div class="month-nav" role="group" aria-label="Cambiar mes calendario del balance">
+        <button type="button" class="icon-btn" aria-label="Mes anterior: octubre 2026">‹</button>
+        <div style="text-align: center;">
+          <span class="month-nav__label">Noviembre 2026</span>
+          <div class="section-meta" style="font-size: 0.75rem;">Mes calendario · 1–30 nov</div>
+        </div>
+        <button type="button" class="icon-btn" aria-label="Mes siguiente: diciembre 2026">›</button>
+      </div>
+
+      <!-- Regla de aporte libre visible siempre -->
+      <div class="callout callout--primary">
+        <span class="callout__icon" aria-hidden="true">✓</span>
+        <p><strong>Aporte libre:</strong> cada quien aporta lo que quiere o puede al hogar (incluye transferencias al fondo común). Nunca se generan saldos ni deudas entre ustedes.</p>
+      </div>
+
+      <!-- Controles de vista (ambos APAGADOS por defecto) -->
+      <section aria-labelledby="preferencias-vista-heading">
+        <h2 id="preferencias-vista-heading" class="visually-hidden">Preferencias de vista del balance</h2>
+        <div class="toggle-list">
+          <div class="toggle-item">
+            <div class="toggle-item__text">
+              <label class="toggle-item__label" for="toggle-pct-ingreso">Mostrar % de su ingreso</label>
+              <p class="toggle-item__help">Apagado por defecto. Actívalo si quieren ver el aporte frente al ingreso de cada uno.</p>
+            </div>
+            <input id="toggle-pct-ingreso" class="toggle-switch" type="checkbox" role="switch">
+          </div>
+
+          <div class="toggle-item">
+            <div class="toggle-item__text">
+              <label class="toggle-item__label" for="toggle-personales">Incluir mis gastos personales</label>
+              <p class="toggle-item__help">Apagado por defecto. Lo personal se excluye del balance y nunca suma como aporte al hogar.</p>
+            </div>
+            <input id="toggle-personales" class="toggle-switch" type="checkbox" role="switch">
+          </div>
+        </div>
+      </section>
+
+      <!-- Aviso visible solo cuando el usuario activa incluir personales -->
+      <div class="callout callout--amber personales-only">
+        <span class="callout__icon" aria-hidden="true">ℹ</span>
+        <p><strong>Vista con gastos personales propios:</strong> solo ves tus compras personales de noviembre ($140.000). Siguen sin contarse como aporte al hogar.</p>
+      </div>
+
+      <!-- Resumen de aportes en pesos y porcentaje con 1 decimal (DERIVADO) -->
+      <section class="card" aria-labelledby="aportes-heading">
+        <div class="section-header">
+          <h2 id="aportes-heading" class="section-title">Aportes del mes al hogar</h2>
+          <span class="cop">$3.600.000</span>
+        </div>
+
+        <!-- Barra proporcional con color + patrón diagonal (no solo color) -->
+        <div class="progress-track" role="img" aria-label="Distribución de aportes: Santiago 58,0 por ciento, Camila 42,0 por ciento">
+          <div class="progress-fill--primary" style="width: 58%;"></div>
+          <div class="progress-fill--indigo" style="width: 42%;"></div>
+        </div>
+        <div class="legend-row">
+          <span><span class="swatch swatch--primary" aria-hidden="true"></span><strong>Santiago</strong> · 58,0 %</span>
+          <span><span class="swatch swatch--indigo" aria-hidden="true"></span><strong>Camila</strong> · 42,0 %</span>
+        </div>
+
+        <ul class="item-list" style="margin-top: 14px;">
+          <li class="item-card card--accent-primary">
+            <div class="item-card__top">
+              <div>
+                <h3 class="item-card__title">Santiago</h3>
+                <p class="item-card__meta pct-ingreso-off-note">Solo aportes al hogar (compras, pagos a pasivos de ámbito Hogar y fondo común)</p>
+                <p class="item-card__meta pct-ingreso-only"><strong>40,9 %</strong> de sus ingresos de noviembre ($5.100.000)</p>
+              </div>
+              <div class="item-card__amount">
+                <span class="item-card__amount-main">$2.088.000</span>
+                <span class="item-card__amount-sub">58,0 % del total</span>
+              </div>
+            </div>
+            <p class="field-help">Arriendo ($1.800.000), cuota Mastercard ••8834 (Hogar · titular Camila, $234.500) y transferencia al fondo común ($53.500).</p>
+          </li>
+
+          <li class="item-card card--accent-indigo">
+            <div class="item-card__top">
+              <div>
+                <h3 class="item-card__title">Camila</h3>
+                <p class="item-card__meta pct-ingreso-off-note">Solo aportes al hogar (compras, pagos a pasivos de ámbito Hogar y fondo común)</p>
+                <p class="item-card__meta pct-ingreso-only"><strong>35,6 %</strong> de sus ingresos de noviembre ($4.250.000)</p>
+              </div>
+              <div class="item-card__amount">
+                <span class="item-card__amount-main">$1.512.000</span>
+                <span class="item-card__amount-sub">42,0 % del total</span>
+              </div>
+            </div>
+            <p class="field-help">Transferencia al fondo común ($500.000), servicios EPM ($285.000), mascotas ($245.000) y compras del hogar ($482.000).</p>
+          </li>
+        </ul>
+
+        <div class="btn-row" style="margin-top: 12px;">
+          <a class="btn btn--secondary btn--full" href="registrar-ingreso.html">+ Registrar ingreso</a>
+        </div>
+      </section>
+
+      <!-- Ingresos fijos vs variables (visibles para ambos miembros) -->
+      <section class="card" aria-labelledby="ingresos-heading">
+        <div class="section-header">
+          <h2 id="ingresos-heading" class="section-title">Ingresos: fijos vs variables</h2>
+          <span class="cop">$9.350.000</span>
+        </div>
+
+        <dl class="kv-list" style="margin-bottom: 12px;">
+          <div class="kv-row">
+            <dt>Total ingresos fijos del hogar</dt>
+            <dd class="cop">$8.300.000 (88,8 %)</dd>
+          </div>
+          <div class="kv-row">
+            <dt>Total ingresos variables recibidos</dt>
+            <dd class="cop">$1.050.000 (11,2 %)</dd>
+          </div>
+        </dl>
+
+        <ul class="item-list">
+          <!-- Ingreso fijo ESPERADO con acción "Marcar recibido" y monto recibido editable -->
+          <li class="item-card card--accent-amber">
+            <div class="item-card__top">
+              <div>
+                <h3 class="item-card__title">Salario Santiago</h3>
+                <p class="item-card__meta">Fijo · Día esperado: 30 nov</p>
+              </div>
+              <div class="item-card__amount">
+                <span class="item-card__amount-main">$4.500.000</span>
+                <span class="badge badge--amber">◷ Esperado</span>
+              </div>
+            </div>
+            <details class="inline-picker">
+              <summary>
+                <span>Marcar recibido (puede variar el monto)</span>
+                <span aria-hidden="true">▾</span>
+              </summary>
+              <div class="inline-picker__body">
+                <div class="field-row">
+                  <div class="field">
+                    <label for="monto-recibido-santiago">Monto recibido (COP)</label>
+                    <input id="monto-recibido-santiago" class="input" type="text" inputmode="numeric" value="$4.500.000">
+                  </div>
+                  <div class="field">
+                    <label for="fecha-recibido-santiago">Fecha recepción</label>
+                    <input id="fecha-recibido-santiago" class="input" type="date" value="2026-11-30">
+                  </div>
+                </div>
+                <p class="field-help">Si llegó un valor distinto al esperado, el balance usará el monto recibido sin cambiar tu salario base de otros meses.</p>
+                <a class="btn btn--primary btn--sm btn--full" href="#ingreso-recibido">Confirmar recibido</a>
+              </div>
+            </details>
+          </li>
+
+          <li class="item-card card--muted">
+            <div class="item-card__top">
+              <div>
+                <h3 class="item-card__title">Consultoría diseño · Santiago</h3>
+                <p class="item-card__meta">Variable · Registrado el 12 nov</p>
+              </div>
+              <div class="item-card__amount">
+                <span class="item-card__amount-main">$600.000</span>
+                <span class="badge badge--indigo">Variable</span>
+              </div>
+            </div>
+          </li>
+
+          <!-- Ingreso fijo RECIBIDO con monto distinto al base -->
+          <li class="item-card card--muted">
+            <div class="item-card__top">
+              <div>
+                <h3 class="item-card__title">Salario Camila</h3>
+                <p class="item-card__meta">Fijo · Día esperado: 15 nov · Base: $3.750.000</p>
+              </div>
+              <div class="item-card__amount">
+                <span class="item-card__amount-main">$3.800.000</span>
+                <span class="badge badge--primary">✓ Recibido 15 nov</span>
+              </div>
+            </div>
+            <p class="field-help">Recibido con monto distinto al esperado (+$50.000). El balance usa el monto recibido ($3.800.000).</p>
+          </li>
+
+          <li class="item-card card--muted">
+            <div class="item-card__top">
+              <div>
+                <h3 class="item-card__title">Taller fotografía · Camila</h3>
+                <p class="item-card__meta">Variable · Registrado el 18 nov</p>
+              </div>
+              <div class="item-card__amount">
+                <span class="item-card__amount-main">$450.000</span>
+                <span class="badge badge--indigo">Variable</span>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </section>
+    </main>
+
+    <!-- CTA principal fijo visible sin scroll encima de la barra inferior -->
+    <div class="action-bar" role="region" aria-label="Acción principal de balance de pareja">
+      <a class="btn btn--primary btn--full" href="transferir-fondo-comun.html" data-sin-scroll>Transferir al fondo común</a>
+    </div>
+
+    <nav class="bottom-nav" aria-label="Navegación principal">
+      <a class="bottom-nav__link" href="compra-rapida.html">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 8v8M8 12h8"/>
+        </svg>
+        <span>Compra</span>
+      </a>
+      <a class="bottom-nav__link" href="obligaciones-del-mes.html">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <rect x="4" y="5" width="16" height="15" rx="2"/>
+          <path d="M8 3v4M16 3v4M4 10h16"/>
+        </svg>
+        <span>Obligaciones</span>
+      </a>
+      <a class="bottom-nav__link" href="balance-de-pareja.html" aria-current="page">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <circle cx="9" cy="9" r="3"/>
+          <circle cx="16" cy="9" r="3"/>
+          <path d="M3 19c0-3 2.5-5 6-5s6 2 6 5M14 14c3 0 6 1.8 6 5"/>
+        </svg>
+        <span>Balance</span>
+      </a>
+      <a class="bottom-nav__link" href="despensa-mascotas.html">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <circle cx="7" cy="9" r="2"/>
+          <circle cx="12" cy="7" r="2"/>
+          <circle cx="17" cy="9" r="2"/>
+          <path d="M7 16c0-2.5 2.2-4 5-4s5 1.5 5 4c0 1.8-1.4 3-3 3h-4c-1.6 0-3-1.2-3-3z"/>
+        </svg>
+        <span>Mascotas</span>
+      </a>
+    </nav>
+  </div>
+</body>
+</html>

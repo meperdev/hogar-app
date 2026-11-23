@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Compra rápida — hogar-app</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido principal</a>
+
+  <div class="review-bar">
+    <a href="index.html">← Índice de mockups</a>
+    <span>Núcleo 1 · 390px</span>
+  </div>
+
+  <div class="app-shell">
+    <header class="app-header" style="padding: 8px 14px;">
+      <div class="header-left">
+        <div>
+          <h1 class="app-title">Compra rápida</h1>
+          <p class="app-subtitle"><strong>Santiago</strong> · Hoy, 22 nov</p>
+        </div>
+      </div>
+      <a class="btn btn--secondary btn--sm" href="escanear-factura.html" aria-label="Escanear factura electrónica con QR DIAN">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <rect x="3" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/>
+          <path d="M14 14h3v3h-3zM19 19h2v2h-2zM14 20h3"/>
+        </svg>
+        <span>Escanear</span>
+      </a>
+    </header>
+
+    <main id="contenido" class="app-main app-main--compact">
+      <!-- Confirmación no bloqueante al guardar (activada con #guardado) -->
+      <div id="guardado" class="toast-target" role="status" aria-live="polite">
+        <span>✓ Guardado: Hogar · Mercado $85.000 · Visa ••4521</span>
+        <a href="#contenido">Deshacer</a>
+      </div>
+
+      <!-- Ámbito: Hogar | Personal (default Hogar, 0 toques extra) -->
+      <section aria-labelledby="ambito-heading">
+        <h2 id="ambito-heading" class="visually-hidden">Ámbito de la compra</h2>
+        <div class="segmented" role="group" aria-label="Ámbito de la compra: Hogar o Personal">
+          <button type="button" class="segmented__btn" aria-pressed="true">✓ Hogar</button>
+          <button type="button" class="segmented__btn" aria-pressed="false">Personal (solo yo)</button>
+        </div>
+      </section>
+
+      <!-- Paso 1: Monto entero COP -->
+      <section aria-labelledby="monto-heading">
+        <h2 id="monto-heading" class="visually-hidden">Paso 1: Monto en pesos colombianos</h2>
+        <div class="amount-display" style="padding: 6px 12px;">
+          <div class="amount-display__label">
+            <label for="monto-input">Monto en COP (sin centavos)</label>
+            <span class="badge badge--neutral">1 cuota</span>
+          </div>
+          <input
+            id="monto-input"
+            class="amount-display__input"
+            type="text"
+            inputmode="numeric"
+            value="$85.000"
+            aria-describedby="monto-ayuda"
+          >
+          <p id="monto-ayuda" class="field-help" style="text-align: right;">
+            Consumo único en noviembre · Hogar
+          </p>
+        </div>
+      </section>
+
+      <!-- Paso 2: Categoría con chips de las 6 más usadas -->
+      <section aria-labelledby="categoria-heading">
+        <div class="section-header" style="margin-bottom: 4px;">
+          <h2 id="categoria-heading" class="section-title">Categoría (más usadas)</h2>
+          <span class="section-meta">1 toque</span>
+        </div>
+        <div class="chip-grid" style="gap: 6px;" role="group" aria-label="Categorías frecuentes">
+          <button type="button" class="chip chip--active" aria-pressed="true">✓ Mercado</button>
+          <button type="button" class="chip" aria-pressed="false">Mascotas</button>
+          <button type="button" class="chip" aria-pressed="false">Transporte</button>
+          <button type="button" class="chip" aria-pressed="false">Arriendo</button>
+          <button type="button" class="chip" aria-pressed="false">Servicios</button>
+          <button type="button" class="chip" aria-pressed="false">Hogar</button>
+        </div>
+      </section>
+
+      <!-- Medio de pago recordado localmente + opción financiada con préstamo + cuotas 1/3/6/12/Otro -->
+      <section aria-labelledby="medio-heading" style="display: flex; flex-direction: column; gap: 6px;">
+        <h2 id="medio-heading" class="visually-hidden">Medio de pago, préstamo y cuotas</h2>
+
+        <details class="inline-picker">
+          <summary>
+            <span>Medio: <strong>Visa ••4521</strong> · Santiago</span>
+            <span class="badge badge--neutral">Local ▾</span>
+          </summary>
+          <div class="inline-picker__body">
+            <p class="field-help">Último medio recordado en este dispositivo (preferencia local por miembro, no se sincroniza).</p>
+            <div class="chip-row" role="group" aria-label="Elegir medio de pago o pasivo">
+              <button type="button" class="chip chip--active" aria-pressed="true">✓ Visa ••4521 (Hogar · titular Santiago)</button>
+              <button type="button" class="chip" aria-pressed="false">Bancolombia débito</button>
+              <button type="button" class="chip" aria-pressed="false">Efectivo</button>
+              <button type="button" class="chip" aria-pressed="false">Fondo común (Hogar)</button>
+            </div>
+            <div class="field" style="margin-top: 4px;">
+              <label for="prestamo-origen">O compra financiada con préstamo en efectivo</label>
+              <select id="prestamo-origen" class="select" aria-describedby="ayuda-prestamo">
+                <option value="" selected>No — pago con el medio elegido</option>
+                <option value="cocina">Financiada con préstamo: Remodelación cocina (Hogar · titular Hogar)</option>
+              </select>
+              <p id="ayuda-prestamo" class="field-help">Vincula la compra al plan de desembolso del préstamo sin crear otro plan de cuotas. No suma aporte hoy; aporta al pagar cargos del hogar.</p>
+            </div>
+            <a class="btn btn--secondary btn--sm" href="nueva-tarjeta-credito.html">+ Agregar tarjeta, crédito o deuda</a>
+          </div>
+        </details>
+
+        <div class="chip-row--5" role="group" aria-label="Número de cuotas en Visa">
+          <a class="chip chip--active" href="compra-rapida.html" aria-current="true" aria-label="1 cuota">✓ 1</a>
+          <a class="chip" href="compra-cuotas.html" aria-label="3 cuotas">3</a>
+          <a class="chip" href="compra-cuotas.html" aria-label="6 cuotas">6</a>
+          <a class="chip" href="compra-cuotas.html" aria-label="12 cuotas">12</a>
+          <a class="chip" href="compra-cuotas.html#otro-cuotas" aria-label="Otro número de cuotas">Otro</a>
+        </div>
+      </section>
+
+      <!-- Teclado numérico grande COP con tecla 000 -->
+      <section aria-labelledby="teclado-heading">
+        <h2 id="teclado-heading" class="visually-hidden">Teclado numérico en pesos colombianos</h2>
+        <div class="keypad" style="gap: 5px;" role="group" aria-label="Teclado numérico COP">
+          <button type="button" class="keypad__key">1</button>
+          <button type="button" class="keypad__key">2</button>
+          <button type="button" class="keypad__key">3</button>
+          <button type="button" class="keypad__key">4</button>
+          <button type="button" class="keypad__key">5</button>
+          <button type="button" class="keypad__key">6</button>
+          <button type="button" class="keypad__key">7</button>
+          <button type="button" class="keypad__key">8</button>
+          <button type="button" class="keypad__key">9</button>
+          <button type="button" class="keypad__key keypad__key--accent" aria-label="Agregar tres ceros (miles)">000</button>
+          <button type="button" class="keypad__key">0</button>
+          <button type="button" class="keypad__key keypad__key--util" aria-label="Borrar último dígito">⌫</button>
+        </div>
+      </section>
+
+      <!-- Nota, comercio y fecha opcionales colapsados para no añadir fricción -->
+      <details class="inline-picker">
+        <summary>
+          <span>Nota, comercio o fecha (opcional)</span>
+          <span aria-hidden="true">▾</span>
+        </summary>
+        <div class="inline-picker__body">
+          <div class="field">
+            <label for="nota-compra">Descripción o comercio</label>
+            <input id="nota-compra" class="input" type="text" placeholder="Ej. Almacenes Éxito (sugiere Mercado)">
+          </div>
+          <div class="field">
+            <label for="fecha-compra">Fecha civil del consumo</label>
+            <input id="fecha-compra" class="input" type="date" value="2026-11-22">
+          </div>
+        </div>
+      </details>
+    </main>
+
+    <!-- Paso 3: CTA fijo visible sin scroll encima de la barra inferior -->
+    <div class="action-bar" role="region" aria-label="Guardar compra rápida">
+      <a class="btn btn--primary btn--full" href="#guardado" data-sin-scroll>Guardar $85.000</a>
+    </div>
+
+    <nav class="bottom-nav" aria-label="Navegación principal">
+      <a class="bottom-nav__link" href="compra-rapida.html" aria-current="page">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 8v8M8 12h8"/>
+        </svg>
+        <span>Compra</span>
+      </a>
+      <a class="bottom-nav__link" href="obligaciones-del-mes.html">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <rect x="4" y="5" width="16" height="15" rx="2"/>
+          <path d="M8 3v4M16 3v4M4 10h16"/>
+        </svg>
+        <span>Obligaciones</span>
+      </a>
+      <a class="bottom-nav__link" href="balance-de-pareja.html">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <circle cx="9" cy="9" r="3"/>
+          <circle cx="16" cy="9" r="3"/>
+          <path d="M3 19c0-3 2.5-5 6-5s6 2 6 5M14 14c3 0 6 1.8 6 5"/>
+        </svg>
+        <span>Balance</span>
+      </a>
+      <a class="bottom-nav__link" href="despensa-mascotas.html">
+        <svg class="bottom-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false">
+          <circle cx="7" cy="9" r="2"/>
+          <circle cx="12" cy="7" r="2"/>
+          <circle cx="17" cy="9" r="2"/>
+          <path d="M7 16c0-2.5 2.2-4 5-4s5 1.5 5 4c0 1.8-1.4 3-3 3h-4c-1.6 0-3-1.2-3-3z"/>
+        </svg>
+        <span>Mascotas</span>
+      </a>
+    </nav>
+  </div>
+</body>
+</html>

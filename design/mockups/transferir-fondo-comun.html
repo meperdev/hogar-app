@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Transferir al fondo común — hogar-app</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido principal</a>
+
+  <div class="review-bar">
+    <a href="index.html">← Índice de mockups</a>
+    <span>Núcleo 3 · Aporte al fondo común</span>
+  </div>
+
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-left">
+        <a class="icon-btn" href="balance-de-pareja.html" aria-label="Volver a Balance de pareja">←</a>
+        <div>
+          <h1 class="app-title">Transferir al fondo común</h1>
+          <p class="app-subtitle">Aporte de un miembro al medio del hogar</p>
+        </div>
+      </div>
+      <span class="badge badge--primary">Aporte</span>
+    </header>
+
+    <main id="contenido" class="app-main app-main--no-nav-action-bar">
+      <div id="aporte-guardado" class="toast-target" role="status" aria-live="polite">
+        <span>✓ Aporte registrado: Camila $500.000 → Cuenta común</span>
+        <a href="balance-de-pareja.html">Ver balance</a>
+      </div>
+
+      <div class="callout callout--primary">
+        <span class="callout__icon" aria-hidden="true">✓</span>
+        <p><strong>Sin doble conteo:</strong> esta transferencia suma al <strong>aporte de Camila</strong> en el Balance de pareja y no cuenta como consumo. Cuando después paguen un gasto desde la cuenta común del hogar, no volverá a sumarse como aporte de nadie.</p>
+      </div>
+
+      <form class="form-stack" action="#aporte-guardado">
+        <div class="field">
+          <label for="medio-origen">Medio de origen (de un miembro)</label>
+          <select id="medio-origen" class="select" aria-describedby="ayuda-origen">
+            <option value="nequi-camila" selected>Nequi · Camila (miembro)</option>
+            <option value="bancolombia-santiago">Bancolombia ahorros · Santiago (miembro)</option>
+            <option value="efectivo-camila">Efectivo · Camila (miembro)</option>
+            <option value="efectivo-santiago">Efectivo · Santiago (miembro)</option>
+          </select>
+          <p id="ayuda-origen" class="field-help">El aportante siempre se deriva del dueño del medio de origen.</p>
+        </div>
+
+        <div class="field">
+          <label for="medio-destino">Medio de destino (del hogar)</label>
+          <select id="medio-destino" class="select" aria-describedby="ayuda-destino">
+            <option value="cuenta-comun" selected>Cuenta común Bancolombia · Hogar</option>
+            <option value="caja-comun">Efectivo caja común · Hogar</option>
+          </select>
+          <p id="ayuda-destino" class="field-help">Solo aparecen medios cuyo dueño es el hogar. Las transferencias entre miembros no se registran como deuda ni aporte.</p>
+        </div>
+
+        <div class="field">
+          <label for="monto-aporte">Monto a transferir en COP (entero)</label>
+          <input id="monto-aporte" class="input input--cop" type="text" inputmode="numeric" value="$500.000">
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="fecha-aporte">Fecha civil</label>
+            <input id="fecha-aporte" class="input" type="date" value="2026-11-22">
+          </div>
+          <div class="field">
+            <label for="nota-aporte">Nota (opcional)</label>
+            <input id="nota-aporte" class="input" type="text" value="Aporte quincena" placeholder="Ej. Quincena nov">
+          </div>
+        </div>
+
+        <section class="card card--muted" aria-labelledby="resumen-aporte-heading">
+          <h2 id="resumen-aporte-heading" class="section-title" style="margin-bottom: 8px;">Resumen de la transferencia</h2>
+          <dl class="kv-list">
+            <div class="kv-row">
+              <dt>Aportante (dueño del origen)</dt>
+              <dd>Camila</dd>
+            </div>
+            <div class="kv-row">
+              <dt>Destino (fondo común)</dt>
+              <dd>Cuenta común Bancolombia</dd>
+            </div>
+            <div class="kv-row kv-row--total">
+              <dt>Suma al aporte de noviembre</dt>
+              <dd class="cop">$500.000</dd>
+            </div>
+          </dl>
+        </section>
+
+        <a class="btn btn--secondary btn--full" href="balance-de-pareja.html">Cancelar</a>
+      </form>
+    </main>
+
+    <!-- CTA principal fijo visible sin scroll -->
+    <div class="action-bar action-bar--bottom" role="region" aria-label="Registrar transferencia al fondo común">
+      <a class="btn btn--primary btn--full" href="#aporte-guardado" data-sin-scroll>Registrar transferencia ($500.000)</a>
+    </div>
+  </div>
+</body>
+</html>
