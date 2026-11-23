@@ -1,59 +1,39 @@
 // Verifica que los enlaces relativos y las anclas de .md y .html bajo <raiz> sean válidos.
 // El contenido del PR es solo dato: no se ejecuta nada, solo se lee texto.
-// La contención se valida sobre el destino real (fs.realpathSync): un enlace
-// simbólico que sale de la raíz es una falla, igual que un archivo que lo es.
+// La contención corre antes de leer, con raiz-segura.mjs: se resuelve el destino
+// real (fs.realpathSync) de la raíz y de cada entrada, y un enlace simbólico que
+// sale de la raíz (o roto) es una falla que detiene la lectura. Además, todo
+// destino de enlace se valida también sobre su ruta real.
 import fs from 'node:fs';
 import path from 'node:path';
+import { abrirRaiz, reportarViolaciones } from './raiz-segura.mjs';
 
-const IGNORAR = new Set(['node_modules', '.git', 'odd', '.atl']);
-const raiz = process.argv[2];
+const raizTexto = process.argv[2];
 
-if (!raiz) {
+if (!raizTexto) {
   console.error('Uso: node check-links.mjs <raiz>');
   process.exit(2);
 }
-const raizAbs = path.resolve(raiz);
-if (!fs.existsSync(raizAbs) || !fs.statSync(raizAbs).isDirectory()) {
-  console.error(`No existe la raíz: ${raiz}`);
+
+let raiz;
+try {
+  raiz = abrirRaiz(raizTexto);
+} catch (error) {
+  console.error(error.message);
   process.exit(2);
 }
-const raizReal = fs.realpathSync(raizAbs);
+const raizAbs = raiz.raizAbs;
+const mostrar = raiz.mostrar;
 
-const archivos = [];
-const rotos = [];
-const mostrar = abs => path.join(raiz, path.relative(raizAbs, abs)) || raiz;
+const { entradas } = raiz.listar({ extensiones: ['.md', '.html'] });
 
-function dentroDeRaizReal(p) {
-  const rel = path.relative(raizReal, p);
-  return rel === '' || (!rel.startsWith('..' + path.sep) && rel !== '..' && !path.isAbsolute(rel));
+if (reportarViolaciones(raiz.violaciones)) {
+  console.error(`${raiz.violaciones.length} entrada(s) fuera de la raíz; no se leyó ningún archivo`);
+  process.exit(1);
 }
 
-(function recorrer(dir) {
-  for (const entrada of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (IGNORAR.has(entrada.name)) continue;
-    const p = path.join(dir, entrada.name);
-    if (entrada.isSymbolicLink()) {
-      let real;
-      try {
-        real = fs.realpathSync(p);
-      } catch {
-        rotos.push({ archivo: mostrar(p), destino: fs.readlinkSync(p), motivo: 'enlace simbólico roto' });
-        continue;
-      }
-      if (!dentroDeRaizReal(real)) {
-        rotos.push({ archivo: mostrar(p), destino: fs.readlinkSync(p), motivo: 'el enlace simbólico sale de la raíz' });
-        continue;
-      }
-      // Un directorio enlazado no se recorre: evita ciclos y caminos repetidos.
-      if (fs.statSync(real).isDirectory()) continue;
-      if (/\.(md|html)$/i.test(entrada.name)) archivos.push(p);
-      continue;
-    }
-    if (entrada.isDirectory()) recorrer(p);
-    else if (/\.(md|html)$/i.test(entrada.name)) archivos.push(p);
-  }
-})(raizAbs);
-archivos.sort();
+const archivos = entradas.map(e => e.real);
+const rotos = [];
 
 // --- Extracción de texto y enlaces -------------------------------------------
 
@@ -223,7 +203,7 @@ function validar(archivo, destinoCrudo) {
     rotos.push({ archivo: etiqueta, destino: destinoCrudo, motivo: 'el destino real no se puede resolver' });
     return;
   }
-  if (!dentroDeRaizReal(destinoReal)) {
+  if (!raiz.dentroReal(destinoReal)) {
     rotos.push({ archivo: etiqueta, destino: destinoCrudo, motivo: 'el destino real sale de la raíz (enlace simbólico)' });
     return;
   }

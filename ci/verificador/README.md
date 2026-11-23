@@ -9,23 +9,32 @@ verificador, desde un commit fijo de la rama `ci/verificador`.
 - **El contenido del PR es dato.** Se checkoutea en `pr/` con
   `persist-credentials: false` y no se ejecuta nunca: no hay `npm install` en `pr/`,
   ni scripts, ni hooks del PR.
-- **Nada del mockup se ejecuta.** Antes de abrir el navegador, `a11y-mockups.mjs`
-  falla cualquier HTML con `<script>`, atributos `on*` (`onclick`, `onload`, ...),
-  `href`/`src` con `javascript:` o `<iframe>`/`<object>`/`<embed>`.
-- **Las medidas corren con JavaScript deshabilitado.** El contexto de Playwright usa
-  `javaScriptEnabled: false` y los service workers están bloqueados. `page.evaluate`
-  sigue funcionando (va por CDP) y el script solo usa APIs síncronas del DOM:
-  `getBoundingClientRect`, `getComputedStyle`, `elementFromPoint`, `scrollIntoView`.
-- **axe corre en un contexto aparte.** axe-core necesita `setTimeout` y
-  `requestAnimationFrame`, y Chromium suspende ambos cuando la ejecución de scripts
-  está deshabilitada. Por eso axe usa un segundo contexto con JS habilitado, que recibe
-  únicamente documentos ya aprobados por el preflight estático (sin código ejecutable) y
-  además exige en el DOM cero `script`/`iframe`/`object`/`embed`. axe-core se inyecta
-  desde el verificador con `page.evaluate(axe.source)`: es código nuestro, fijado por
-  lockfile, no un `<script>` del mockup.
-- **Sin red, solo `file:`.** Ambos contextos abren los mockups desde `file://` y
-  `context.route` aborta cualquier solicitud que no sea `file:`. No hay credenciales ni
-  secretos en el job.
+- **Contención antes de leer (`raiz-segura.mjs`).** Los tres lectores usan la misma
+  frontera: se resuelve el destino real (`fs.realpathSync`) de la raíz, de
+  `design/mockups` y de cada archivo antes de abrirlo. Un enlace simbólico —o un
+  archivo enlazado— cuyo destino real sale de la raíz, y todo enlace roto, es una
+  falla que detiene la lectura sin entregar el archivo al lector. No depende de que
+  otro chequeo haya pasado: `lint-md`, `check-links` y `a11y-mockups` aplican la
+  contención por separado, cada uno antes de su primera lectura.
+- **El documento del PR nunca se carga con JavaScript habilitado.** `a11y-mockups.mjs`
+  abre un único contexto con `javaScriptEnabled: false`, service workers bloqueados y
+  `context.route` que aborta toda solicitud que no sea `file:`. Las medidas usan solo
+  APIs síncronas del DOM por CDP: `getBoundingClientRect`, `getComputedStyle`,
+  `elementFromPoint`, `scrollIntoView`.
+- **axe se inyecta desde el verificador.** `axe-core` (fijado por lockfile) entra con
+  `page.evaluate(axe.source)`: es código nuestro por CDP, no un `<script>` de la
+  página, y corre aunque los scripts de la página estén deshabilitados. Como Chromium
+  suspende `setTimeout`/`setInterval`/`requestAnimationFrame` con JS deshabilitado,
+  `axe.run` se ejecuta con una cola de timers que el mismo `evaluate` vacía de forma
+  síncrona y cede a las microtareas entre vueltas (`run` con `performanceTimer: false`
+  e `iframes: false`). Se verificó que no se cuelga (cada archivo tiene timeout de
+  30 s) y que sigue detectando violaciones reales (`label`, `color-contrast`). Se
+  prefirió esto a copiar el HTML y servirlo con CSP porque así el documento del PR no
+  se interpreta con JS habilitado en ningún momento.
+- **Preflight estático.** Antes de abrir el navegador, `a11y-mockups.mjs` rechaza HTML
+  con `<script>`, atributos `on*` (`onclick`, `onload`, ...), `href`/`src` con
+  `javascript:` o `<iframe>`/`<object>`/`<embed>`. Es un lint de mockups estáticos: la
+  garantía la da el contexto sin JS, no el regex.
 - **Lo que se ejecuta sale del SHA fijo** (`env.VERIFICADOR_SHA`) de `ci/verificador`,
   con `contents: read` y sin secretos. Un PR no puede cambiar el código que lo revisa:
   solo puede cambiar los datos que se revisan.
@@ -39,11 +48,12 @@ verificador, desde un commit fijo de la rama `ci/verificador`.
 ## Qué valida
 
 - `lint-md.mjs <raiz>`: Markdown con las reglas de `reglas-markdownlint.json`
-  (ignora `node_modules`, `.git`, `odd` y `.atl`).
+  (ignora `node_modules`, `.git`, `odd` y `.atl`). La contención valida cada `.md`
+  antes de que markdownlint lo lea.
 - `check-links.mjs <raiz>`: enlaces relativos, anclas estilo GitHub en `.md` (ATX y
   Setext), `id`/`name` en `.html`, enlaces de referencia y rutas que escapan de la raíz.
-  La contención se valida sobre el destino real (`fs.realpathSync`): un enlace simbólico
-  —o un archivo enlazado— que sale de la raíz es una falla.
+  La contención corre antes de leer y, además, cada destino de enlace se valida sobre
+  su ruta real: un enlace simbólico que sale de la raíz es una falla.
 - `a11y-mockups.mjs <raiz>`: mockups de `design/mockups` a 390x844 con axe (WCAG 2.2 AA)
   sobre un documento sin código, objetivos táctiles de 44x44, scroll horizontal, controles
   tapados y CTA principal `[data-sin-scroll]` visible sin scroll. Una pantalla sin CTA
@@ -61,10 +71,13 @@ verificador, desde un commit fijo de la rama `ci/verificador`.
    de los PRs (plantilla `ci/workflow-prs.yml`).
 3. El PR que toca `.github/workflows/` va con **semáforo rojo**: lo revisa una persona.
 
-## Límite conocido: el workflow lo define el PR (`pull_request`); se mitiga con semáforo rojo para cambios en `.github/` y queda pendiente decisión de Santiago sobre CODEOWNERS/ruleset
+## Límite conocido y aceptado: el workflow lo define el PR (`pull_request`)
 
-El SHA fijo separa el verificador del checkout del PR, pero con `pull_request` GitHub
-evalúa la definición del workflow que viene en el merge del PR: un cambio al YAML puede
-alterar qué corre o qué reporta cada job. Mientras la definición no viva fuera del PR,
-todo cambio en `.github/` va con semáforo rojo y revisión humana, y queda pendiente la
-decisión de Santiago sobre exigirlo con CODEOWNERS y la protección de rama o ruleset.
+Santiago aceptó la **opción C** el **2026-11-22**: se mantiene `pull_request` con el
+workflow que trae el PR, como límite conocido. No se agregan CODEOWNERS ni rulesets y
+la protección de rama no cambia. La mitigación es de proceso: todo PR que toque
+`.github/` (workflows, acciones, `VERIFICADOR_SHA`) lleva `semaforo:rojo` y necesita
+revisión humana antes del merge; esa revisión compara el diff de
+`.github/workflows/ci.yml` contra el de `main` (mismos nombres de job, mismos pasos y
+SHA del verificador). Un check en verde no prueba nada en un PR que cambia el workflow.
+El registro canónico está en `docs/ci.md` de los PRs (PR1 y PR2).
