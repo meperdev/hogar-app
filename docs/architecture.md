@@ -156,7 +156,9 @@ Por qué no una secuencia global: una secuencia asigna el número al insertar, p
 
 ### 5.3 Push
 
-La RPC `sync_push(lote)` aplica un lote (una intención) en una sola transacción: todo o nada. Cada lote lleva un `lote_id` (UUIDv7 del cliente); el servidor guarda los `lote_id` aplicados con su resultado en la tabla solo-servidor `lote_aplicado`. Si llega un `lote_id` ya aplicado (el cliente perdió la respuesta y reintenta), devuelve el resultado guardado sin volver a evaluar `base_seq`: un reintento nunca se confunde con un conflicto.
+La RPC `sync_push(lote)` aplica un lote (una intención) en una sola transacción: todo o nada. Cada lote lleva un `lote_id` (UUIDv7 del cliente); el servidor guarda los lotes aplicados con su autor autenticado y resultado en la tabla solo-servidor `lote_aplicado`.
+
+**Reintento.** Antes de devolver un resultado guardado, `sync_push` comprueba que `auth.uid()` corresponde a un miembro activo del hogar y busca el lote por `(hogar_id, autor_miembro_id, lote_id)`, con el autor resuelto por el servidor, nunca desde el cuerpo de la petición. Solo si hay coincidencia devuelve el resultado sin volver a evaluar `base_seq` (I13). Si no coincide el autor o la membresía no está activa, el lote se trata como desconocido: se aplican las validaciones normales sin resultado guardado, metadatos ni señal de existencia. Un `lote_id` de otro autor no causa conflicto de unicidad ni altera la respuesta.
 
 | Caso | `base_seq` | Resultado |
 | --- | --- | --- |
@@ -213,7 +215,7 @@ En iOS no existe Background Sync: el `outbox` solo se vacía con la app abierta.
 - `sync_push` es `SECURITY DEFINER` y verifica, registro por registro, dos cosas: membresía activa de `auth.uid()` en el `hogar_id` y propiedad de toda fila personal mediante el mismo alcance de §5.9 (dueño de la `Compra` o del `Pasivo` del que depende la fila). En cambios se comprueban la fila vigente y la propuesta; una fila personal ajena se rechaza con `no_autorizado` sin exponer sus datos.
 - Los clientes **no** escriben tablas directamente; solo tienen `SELECT` por RLS de membresía y de propiedad de lo personal.
 - Postgres valida con FKs, CHECK, únicos parciales (`WHERE eliminado_en IS NULL`) y triggers diferidos para las reglas entre filas: capital del plan = monto de la compra; si el plan es `sin_calendario`, cero cuotas; en los demás sistemas, cuotas contiguas `1..n_cuotas` cuya suma de capital es el capital del plan.
-- **Deuda bajo lock.** En la misma transacción del lote, `sync_push` bloquea el pasivo (`SELECT ... FOR UPDATE` o advisory lock por `pasivo_id`), recalcula el FIFO con las filas del lote y las ya confirmadas, y rechaza el lote si alguna fecha histórica quedaría con saldo negativo; el exceso explícito va como `PagoDeDeuda.tipo='saldo_a_favor'`. Dos pagos offline de la misma cuota se serializan: el segundo ve al primero. Es la regla I20 y la misma que valida `domain/`.
+- **Deuda bajo lock.** En la misma transacción del lote, `sync_push` bloquea el pasivo (`SELECT ... FOR UPDATE` o advisory lock por `pasivo_id`), recalcula con las filas del lote y las ya confirmadas, y aplica el único tope de `abono`: el saldo causado a la fecha del pago, antes del abono y sin interés futuro. El FIFO ordena la asignación a cargos programados, no aumenta el tope. Se rechaza el lote si supera el tope o si deja algún saldo histórico negativo; el exceso solo se registra como `PagoDeDeuda.tipo='saldo_a_favor'` con confirmación explícita. Dos pagos offline de la misma cuota se serializan: el segundo ve al primero. Es la regla I20 y la misma que valida `domain/`.
 - El servidor no calcula **ningún estado normal de la app**: saldos, aportes y totales se derivan en `domain/` con las filas visibles del actor. La única excepción, que no persiste nada, es la exportación (§9), que comparte fixtures con el dominio (R4).
 
 ### 5.8 Versionado del esquema
@@ -236,6 +238,7 @@ El predicado `puede_ver(actor, fila)` vive en una única función SQL y lo usan 
 | --- | --- | --- |
 | RLS de lectura | `puede_ver` en cada tabla; el rol no exime de la propiedad | `pgTAP` o `supabase test db`: otro miembro y el admin reciben 0 filas personales ajenas |
 | Escritura | Solo `sync_push`, `SECURITY DEFINER`, con membresía activa y propiedad de cada fila personal | Lote con una compra personal ajena se rechaza con `no_autorizado` |
+| Reintento | Antes de devolver un resultado guardado, `sync_push` comprueba autor y membresía activa en ese hogar (§5.3) | El reintento por otro miembro de un lote solo personal coincide con el de un lote desconocido: sin resultado, cambios ni aviso (T-j-3) |
 | Pull | Mismo predicado; si `sync_pull` es `SECURITY DEFINER`, reaplica `puede_ver` fila por fila | El conjunto del pull es idéntico al de RLS para el mismo actor |
 | Conflictos | Solo se muestran versiones de filas visibles; una fila personal ajena se rechaza antes y nunca llega a borrador | Un lote en conflicto no crea borrador de fila personal ajena |
 | Realtime | El aviso del hogar transporta `(hogar_id, ultimo_seq)` y solo se emite cuando cambia `hogar_seq`; lo personal no se difunde ni mueve el carril compartido | Un miembro suscrito al canal del hogar no recibe datos de compras personales del otro ni un aviso por un lote solo personal (I25) |
@@ -388,33 +391,33 @@ El detalle de líneas no entra en fase 1: el QR no lo trae y el tiquete obliga a
 
 ## 9. Exportación y respaldo
 
-Decisión D4 (§11): se acepta Supabase gratis y el respaldo no depende de que alguien se acuerde. La copia del hogar se genera sola cada semana y cada dispositivo mantiene una réplica local completa del alcance que su sesión puede ver.
+Decisión D4 (§11): se acepta Supabase gratis y el respaldo no depende de que alguien se acuerde. Las copias del hogar y de sus miembros activos se generan solas cada semana. Cada dispositivo mantiene una réplica local completa del alcance que su sesión puede ver.
 
 ### 9.1 Qué se exporta
 
 - **Hechos, no derivados.** Las tablas replicadas con sus columnas de sync (§5.1): ids, fechas, montos y tombstones. Saldos, aportes, niveles de despensa, totales y estados no viajan: se recalculan con [data-model.md](data-model.md) §8. Un export no es una segunda fuente de verdad.
-- **Dos ZIP descargables por miembro, y el contrato es exactamente ese:**
+- **Dos ZIP descargables por miembro** (no dos archivos por ejecución del job):
   - **Hogar** (`hogar/<hogar_id>/<AAAA-MM-DD>/hogar.zip`): un archivo común a todos los miembros, con las filas compartidas y sus dependientes. No incluye ninguna fila personal, ni siquiera la de quien descarga.
   - **Personal** (`personal/<hogar_id>/<miembro_id>/<AAAA-MM-DD>/personal.zip`): un archivo con solo las filas personales de ese miembro y sus dependientes. No incluye filas compartidas ni personales ajenas.
-- **Formato.** Cada ZIP lleva el JSON de todas las filas de su alcance y un CSV por tabla. Ambas representaciones se generan a partir de las mismas filas; no hay un tercer archivo ni un ZIP extra por tabla o por ámbito.
+- **Formato.** Cada ZIP lleva el JSON de todas las filas de su alcance y un CSV por tabla. Ambas representaciones se generan a partir de las mismas filas; no hay descargas separadas por formato ni por tabla.
 - **Dos funciones, un solo camino.** El job y el botón usan las mismas dos funciones, una por alcance:
 
 ```
 exportar_hogar(hogar_id, fecha)                  # ZIP compartido; no depende de un actor
-exportar_personal(hogar_id, miembro_id, fecha)   # ZIP personal; actor explícito: puede_ver + ámbito personal
+exportar_personal(hogar_id, miembro_id, fecha)   # ZIP del miembro indicado por el servidor
 
-job semanal: exportar_hogar(hogar_id) y, por cada miembro activo M, exportar_personal(hogar_id, M.id, fecha)
+job semanal: exportar_hogar(hogar_id, fecha) y, por cada miembro activo M, exportar_personal(hogar_id, M.id, fecha)
 "Exportar ahora" de A: el compartido de hoy (si falta) + exportar_personal(hogar_id, A.id, fecha)
                       → dos URLs firmadas: hogar.zip y el personal.zip de A
 ```
 
-El job semanal deja en Storage `1 + N` archivos —el compartido y uno por miembro activo, cada uno en su prefijo—, pero cada miembro descarga dos. `miembro_id` sale del actor autenticado, nunca del cuerpo de la petición; el job con service role solo escribe en el prefijo del dueño. No hay una lista de tablas copiada a mano.
+Por hogar y por ejecución, el job semanal genera **`1 + N` archivos en Storage**: un ZIP del hogar y uno personal por cada uno de sus `N` miembros activos, en sus respectivos prefijos. Para una pareja son tres archivos, aunque cada miembro solo puede descargar dos: el compartido y el propio. El job con service role obtiene los destinatarios de la membresía activa; en "Exportar ahora", `miembro_id` sale del actor autenticado, nunca del cuerpo de la petición. No hay una lista de tablas copiada a mano.
 
 ### 9.2 Cómo se genera y cómo se descarga
 
 | Disparador | Qué corre | Qué obtiene el actor |
 | --- | --- | --- |
-| Semanal (`pg_cron`) | `exportar_hogar(hogar_id)`: el compartido una vez y un archivo personal por miembro activo, cada uno en su prefijo | Nada automático: los archivos quedan en Storage, privados |
+| Semanal (`pg_cron`) | `exportar_hogar` una vez y `exportar_personal` una vez por miembro activo: `1 + N` ZIP en Storage | Nada automático: los archivos quedan en Storage, privados |
 | "Exportar ahora" (Ajustes) | La misma función y las mismas reglas, con la fecha de hoy | Dos URLs firmadas, una para el archivo del hogar y otra para el personal propio |
 
 Semanal y a pedido son **el mismo camino**: cambia el disparador, no el generador ni las reglas de alcance. El botón no puede pedir el personal de otro miembro ni el export de otro hogar.
@@ -446,7 +449,7 @@ Cada dispositivo guarda una **réplica completa autorizada** de su hogar más lo
 | R6 | Reloj del cliente desfasado | Orden incorrecto de eventos y totales raros | El orden lo fija `seq` del servidor; `creado_en` y `actualizado_en` son informativos y no ordenan ni calculan |
 | R7 | Datos locales sin cifrar | Quien acceda al teléfono desbloqueado ve las finanzas del hogar | Riesgo aceptado en fase 1; depende del bloqueo del dispositivo. Cifrar el almacenamiento local queda como decisión nueva para una fase posterior |
 | R8 | Cliente viejo después de un cambio de esquema | Escrituras con campos que el servidor ya no acepta | `schema_version` en el lote, rechazo con `actualizar_app`, service worker que fuerza la actualización y `outbox` conservado hasta actualizar |
-| R9 | Fuga de compras personales por un camino lateral | Otro miembro, un enlace de Storage o un aviso de Realtime expone datos personales | Un solo `puede_ver` (§5.9), RLS, push con propiedad por fila, pull con el mismo predicado, aviso Realtime sin payload, bucket privado con prefijos y export compartido sin personales con test que lo afirma; los libros personales son de un solo ámbito (§5.10) y no hay agregado que los revele |
+| R9 | Fuga de compras personales por un camino lateral | Otro miembro, un enlace de Storage o un aviso de Realtime expone datos personales | Un solo `puede_ver` (§5.9), RLS, push con propiedad por fila y reintento limitado al autor activo, pull con el mismo predicado, aviso Realtime sin payload, bucket privado con prefijos y export compartido sin personales con test que lo afirma; los libros personales son de un solo ámbito (§5.10) y no hay agregado que los revele |
 | R10 | Réplica local mezclada entre miembros en un mismo teléfono | Un miembro ve lo personal del otro en el dispositivo | Base Dexie por `(hogar_id, actor)`, cierre al cambiar de sesión y preferencias por actor (§9.3); sin cifrado local (R7) |
 | R11 | Retiros y reembolsos desde el fondo común no modelados | El saldo del fondo en la app se separa del banco y no hay registro que lo explique | Aceptado en D6: se mantiene el default de fase 1 y se revisa más adelante con una entidad propia; no se simula con una compra ni con un aporte negativo |
 

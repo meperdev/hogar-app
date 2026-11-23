@@ -1087,10 +1087,10 @@ parcial `(cuota_id)` de **I20**, porque `cuota-1` ya tiene un pago completo enla
 misma cuota no pueden coexistir. La validación FIFO del mismo lote también falla, porque la cuota declarada ya
 estaba cubierta.
 
-Sin `cuota_id`, el mismo registro no es imposible: el FIFO lo aplicaría a la cuota 2 (`$104.157`) y a `$2.078` de la
-cuota 3, y el saldo quedaría en `$93.765`. Eso es un adelanto de cuotas, no un dato inválido, así que el modelo lo
-acepta; el aviso de posible duplicado de [data-model.md](data-model.md) §3.7.1 es una ayuda, no un rechazo duro. Lo
-que sí es duro es el saldo negativo, que aparece en el caso siguiente.
+Sin `cuota_id`, el mismo monto no supera el saldo causado de `$200.000` y puede aceptarse como adelanto. Una vez
+aceptado, el FIFO lo aplicaría a la cuota 2 (`$104.157`) y a `$2.078` de la cuota 3; el saldo a esa fecha quedaría
+en `$93.765`. El aviso de posible duplicado de [data-model.md](data-model.md) §3.7.1 es una ayuda, no un rechazo
+duro. El FIFO no fija el tope; el caso siguiente muestra un monto que sí lo supera.
 
 ### 4. Caso 2 — lo rechaza el guardián de saldo no negativo
 
@@ -1107,9 +1107,11 @@ Después de `pago-2` (2027-01-10, `$104.157`) el saldo es `300.000 + 10.392 − 
 | saldo si entrara | `100.000 − 104.157 = −$4.157` |
 | resultado | **rechazado**: "posible pago duplicado o sobrepago" |
 
-Ningún enlace de cuota y ningún índice único: lo que lo frena es el saldo negativo (**I20**). La app ofrece
-dividirlo en dos filas del mismo lote: `abono $100.000` (deja el saldo en `$0`) y `saldo_a_favor $4.157` (crédito
-explícito, ni capital ni costo financiero).
+El **25/01 el abono máximo es `$100.000`**, el saldo causado a la fecha (**I20**). La cola FIFO aún tiene
+`$102.078` programados, pero los `$2.078` de interés de febrero no se aceptan como abono por encima del tope. No
+interviene el único de `cuota_id`. Solo con confirmación explícita se registran dos filas en el mismo lote:
+`abono $100.000` (saldo `$0`) y `saldo_a_favor $4.157` (crédito, ni capital ni costo financiero). Sin confirmación
+no se registra ninguna de las dos.
 
 El saldo a favor no aplicado **no es aporte**. El 2027-02-10 se causa el interés de la cuota 3 (`$2.078`), que sí cae
 sobre ese crédito: ese `$2.078` es aporte del dueño del medio en febrero y quedan `$2.079` sin aplicar.
@@ -1128,37 +1130,40 @@ sobre ese crédito: ese `$2.078` es aporte del dueño del medio en febrero y que
 
 ### 5. Caso 3 — el reintento idempotente no es un pago nuevo
 
-Reenviar el lote del primer pago (mismo `lote_id`, mismo `id`, mismo `base_seq`) devuelve el resultado guardado en
-`lote_aplicado` sin volver a evaluar `base_seq` (**I13**): queda un solo `PagoDeDeuda`, el saldo no se mueve y no
-aparece ningún aviso de duplicado. La diferencia está en la identidad del registro: mismo `id` + mismo `lote_id` es
-un reintento; un `id` nuevo es un pago nuevo, y ahí sí actúan el único de `cuota_id` y el guardián de saldo.
+Si Ana reenvía el lote del primer pago (mismo `lote_id`, mismo `id`, mismo `base_seq`) y sigue siendo miembro
+activo del hogar, recibe el resultado guardado en `lote_aplicado` sin volver a evaluar `base_seq` (**I13**): queda
+un solo `PagoDeDeuda`, el saldo no se mueve y no aparece ningún aviso de duplicado. Un pago nuevo, en otro lote y
+con otro `id`, sí pasa por el único de `cuota_id` y el guardián de saldo.
 
-Dos pagos offline de la misma cuota se serializan igual: `sync_push` bloquea el pasivo, recalcula con las filas del
-lote y las ya confirmadas, y rechaza el segundo o lo convierte en `saldo_a_favor` (**I20**).
+Dos pagos offline de la misma cuota se serializan igual: `sync_push` bloquea el pasivo y recalcula con las filas
+del lote y las ya confirmadas. Si el segundo excede el tope, lo rechaza; el exceso solo se registra como
+`saldo_a_favor` con confirmación explícita (**I20**).
 
 ### 6. Invariantes que lo protegen
 
 - **I10** — Estado de cuota y saldo derivados; el enlace `cuota_id` no reasigna pagos.
-- **I13** — Reenviar el mismo lote no duplica: la idempotencia es por `lote_id`, no por monto ni por fecha.
+- **I13** — El autor activo puede reenviar el mismo lote sin duplicarlo: la idempotencia es por hogar, autor y
+  `lote_id`, no por monto ni por fecha.
 - **I16** — La conservación resta el saldo a favor no aplicado.
 - **I6** — El saldo a favor no aplicado no es aporte; cuando cubre un cargo del hogar, el monto aplicado sí lo es.
-- **I20** — Saldo nunca negativo; `cuota_id` solo en pago completo y único por cuota; el exceso va como
-  `saldo_a_favor`.
+- **I20** — Saldo nunca negativo; abono hasta el saldo causado a la fecha del pago; `cuota_id` solo en pago
+  completo y único por cuota. El exceso solo va como `saldo_a_favor` con confirmación explícita.
 
 ### 7. Test de fase 2 (descripción)
 
 - **T-h-1 (doble enlace).** *Given* a2 con `pago-1` enlazado a `cuota-1`. *When* llega `pago-1-bis` por `106235`
   con `cuota_id='cuota-1'`. *Then* la escritura se rechaza con aviso de posible duplicado, no se crea ningún
   `PagoDeDeuda` y el saldo sigue en `200000`.
-- **T-h-2 (sobrepago).** *Given* a2 con las cuotas 1 y 2 pagadas (saldo `100000`). *When* se intenta un `abono` de
-  `104157`. *Then* se rechaza con aviso de posible duplicado o sobrepago; al aceptar la división en el mismo lote
-  existe un `abono` de `100000` y un `saldo_a_favor` de `4157`, el saldo es `0` y el aporte del mes no incluye el
-  saldo a favor no aplicado.
-- **T-h-3 (idempotencia).** *Given* el lote del primer pago. *When* se reenvía dos veces con el mismo `lote_id`.
-  *Then* existe exactamente un `PagoDeDeuda`, la respuesta es la misma y no aparece aviso de duplicado.
-- **T-h-4 (propiedad).** Para cualquier secuencia de pagos sobre un pasivo, ningún saldo histórico es negativo, la
-  suma de `abono` aceptados nunca supera capital más costos y nunca coexisten dos enlaces completos a la misma
-  cuota.
+- **T-h-2 (tope y sobrepago).** *Given* el saldo causado de `100000` al 2027-01-25, con interés futuro de `2078`.
+  *When* se intenta un `abono` en escenarios independientes. *Then* `100000` se acepta y deja saldo `0`; `100001`,
+  `102078` y `104157` se rechazan con aviso de posible pago duplicado o sobrepago y sin crear pagos. Solo al
+  confirmar la división de `104157` se registran en el mismo lote `100000` de `abono` y `4157` de `saldo_a_favor`;
+  el saldo queda en `0` y el aporte del mes no incluye el crédito no aplicado.
+- **T-h-3 (idempotencia).** *Given* el lote del primer pago. *When* Ana, su autora y miembro activo, lo reenvía dos
+  veces con el mismo `lote_id`. *Then* existe un solo `PagoDeDeuda`, la respuesta es la misma y no hay aviso de duplicado.
+- **T-h-4 (propiedad).** Para cualquier secuencia de pagos sobre un pasivo, ningún saldo histórico es negativo,
+  ningún `abono` supera el saldo causado a su fecha antes de aplicarlo y nunca coexisten dos enlaces completos a
+  la misma cuota.
 
 ---
 
@@ -1303,13 +1308,22 @@ versión anterior en la serie.
 | 2026-11 | la vigente el 2026-11-30 | $3.000.000 | no hay versión para el día 1: aplica la del último día |
 | 2026-12 | la misma (abierta) | $3.000.000 | el día 1 de diciembre ya cae en ella |
 
+Si esa misma serie se cierra el 2026-11-25 sin versión siguiente, el extremo efectivo de su última versión para
+seleccionar es el 2026-11-30, aunque su cierre guardado siga siendo el día 25:
+
+| mes | versión aplicable | sin recibo | con recibo de noviembre por $3.200.000 |
+| --- | --- | --- | --- |
+| 2026-11 | una, la última versión | $3.000.000 | $3.200.000 (aceptado; sustituye al esperado) |
+| 2026-12 | ninguna | $0 | $0 (noviembre no se arrastra; un recibo de diciembre se rechaza) |
+
 ### 4. Lo que NO pasa
 
 - El cambio de monto **no** crea un ingreso nuevo: crea otra versión de la misma serie (`serie_id` estable).
 - El cambio de día **no** adelanta ni duplica el sueldo de noviembre: el día de pago no decide el mes.
 - Un recibo **no** se duplica por tener dos versiones: el único es `(serie_id, periodo)`, no `(ingreso_id, periodo)`.
 - Un mes anterior al inicio de la serie **no** se estima ni se prorratea: aporta `0`.
-- El cierre a mitad de mes **no** borra el mes en curso: el día 1 ya estaba cubierto por la versión.
+- El cierre a mitad de mes **no** borra el mes en curso: el día 1 ya estaba cubierto, o si la serie arrancó después
+  del día 1 de ese mismo mes, la última versión se extiende hasta fin de mes solo para la selección.
 
 ### 5. Invariantes que lo protegen
 
@@ -1326,9 +1340,9 @@ versión anterior en la serie.
 - **T-i-6 (arranque a mitad de mes y cierre terminal en el mismo mes).** *Given* una serie que arranca el
   2026-11-20. *Then* octubre da `0` y noviembre da el monto de la versión vigente el 2026-11-30. *Given además* una
   serie que arranca el 2026-11-20 y se cierra el 2026-11-25, sin versión siguiente. *Then* noviembre da **un solo**
-  importe (el cierre terminal se toma vigente hasta el 2026-11-30 para la selección) y diciembre da `0`. Una serie
-  que arranca en octubre y se cierra el 2026-11-25 sigue dando noviembre con su importe, sin aplicar la regla del
-  cierre en el mismo mes.
+  importe de `3000000` sin recibo; al registrar un recibo de noviembre por `3200000`, lo acepta y devuelve
+  solo ese importe. Diciembre da `0` y no admite recibo. Una serie que arranca en octubre y se cierra el 2026-11-25
+  sigue dando noviembre con su importe, sin aplicar la regla del cierre en el mismo mes.
 - **T-i-7 (recibo: precedencia, mes activo y unicidad entre versiones).** *Given* la serie con dos versiones en
   noviembre. *When* se registra un recibo de `2026-11` por `4700000` apuntando a la versión vieja y luego otro para
   la nueva con el mismo periodo. *Then* el primero deja el ingreso de noviembre en `4700000` y el segundo se rechaza
@@ -1414,6 +1428,12 @@ pull vacío repite `0` filas y `8`.
   `siguiente_seq` `41`, `42` y `43`; la cuarta página devuelve `0` filas con `siguiente_seq = 43`; la unión es
   `[41, 42, 43]` sin huecos ni repetidos y ninguna página guarda el agua con filas pendientes. *And* el mismo test
   con el carril vacío (`desde_seq = 43`) devuelve `siguiente_seq = 43` y no atasca.
+- **T-j-3 (reintento sin señal).** *Given* el lote 3, solo personal de Ana, ya aplicado. *When* Beto, miembro activo
+  del mismo hogar, reenvía ese lote con su `lote_id` o con un ID desconocido, sin cambiar el resto del lote. *Then*
+  ambas respuestas tienen el mismo estado y cuerpo de `no_autorizado`: sin resultado guardado, datos ni indicio
+  de que ese ID existe. Ningún intento cambia filas, contadores o cursores ni emite avisos. *And* Ana, mientras es
+  miembro activo, obtiene su resultado sin reescrituras; si deja de serlo, su reintento y el de un ID desconocido
+  devuelven el mismo rechazo sin resultado.
 
 ---
 
@@ -1432,7 +1452,7 @@ pull vacío repite `0` filas y `8`.
 | h | pago duplicado rechazado: único de cuota, saldo no negativo y reintento idempotente | I6, I10, I13, I16, I20 | T-h-1, T-h-2, T-h-3, T-h-4 (propiedad) |
 | i | ingreso fijo recibido por un monto distinto: cambia el denominador, no los aportes | I1, I6, I7, I12, I22 | T-i-1, T-i-2, T-i-3, T-i-4 (propiedad) |
 | i bis | cambio de monto y de día a mitad de mes: un solo importe por serie y mes calendario | I1, I12, I22, I24 | T-i-5, T-i-6, T-i-7, T-i-8 (propiedad y unicidad) |
-| j | lote solo personal: carriles, cursores y avisos aislados; pull truncado sin saltos | I25 | T-j-1, T-j-2 (paginación truncada y vacía) |
+| j | lote solo personal: carriles, cursores y avisos aislados; pull truncado sin saltos; reintento sin señal | I13, I25 | T-j-1, T-j-2, T-j-3 |
 
 Los property-based tests de a1, a2, c, d, e, f, g, h e i cubren la identidad de conservación **I16** desde ángulos
 distintos: sin tasa, con tasa, con pagos parciales, con salidas del fondo común, con compras personales, con un
