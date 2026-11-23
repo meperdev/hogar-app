@@ -140,6 +140,7 @@ summary {
   margin: 0 auto;
   padding: 0 12px;
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 8px;
@@ -297,6 +298,7 @@ summary {
 /* Tipografía y secciones */
 .section-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -308,17 +310,23 @@ summary {
   font-size: 0.9375rem;
   font-weight: 750;
   color: var(--text);
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 
 .section-meta {
   font-size: 0.8125rem;
   color: var(--text-muted);
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 
 .cop {
   font-variant-numeric: tabular-nums;
   font-weight: 750;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 /* Tarjetas */
@@ -327,6 +335,8 @@ summary {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 14px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .card--muted {
@@ -393,6 +403,12 @@ summary {
 
 .callout p {
   margin: 0;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.callout > div {
+  min-width: 0;
 }
 
 .callout p + p {
@@ -410,6 +426,9 @@ summary {
   font-weight: 700;
   border: 1px solid transparent;
   line-height: 1.3;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .badge--primary {
@@ -448,17 +467,22 @@ summary {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  box-sizing: border-box;
   min-height: 44px;
   min-width: 44px;
+  max-width: 100%;
   padding: 10px 16px;
   border-radius: var(--radius-md);
   font-family: inherit;
   font-size: 0.9375rem;
   font-weight: 700;
+  line-height: 1.25;
   text-decoration: none;
   cursor: pointer;
   border: 2px solid transparent;
   text-align: center;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .btn--primary {
@@ -493,7 +517,11 @@ summary {
 }
 
 .btn--full {
+  box-sizing: border-box;
   width: 100%;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .btn--sm {
@@ -515,7 +543,7 @@ summary {
 /* Chips seleccionables (>= 44px alto) */
 .chip-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -707,7 +735,7 @@ summary {
 /* KPI / Resumen triple separado (sin doble conteo) */
 .metric-grid-3 {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -720,6 +748,7 @@ summary {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .metric-card--consumo {
@@ -746,6 +775,7 @@ summary {
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: var(--text);
+  overflow-wrap: break-word;
 }
 
 .metric-card__note {
@@ -776,9 +806,15 @@ summary {
 
 .item-card__top {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: flex-start;
   gap: 10px;
+}
+
+.item-card__top > :first-child {
+  min-width: 0;
+  flex: 1 1 160px;
 }
 
 .item-card__title {
@@ -863,6 +899,7 @@ summary {
 
 .legend-row {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 8px;
   font-size: 0.8125rem;
@@ -905,11 +942,12 @@ summary {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
 .field-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -918,17 +956,21 @@ summary {
   font-size: 0.875rem;
   font-weight: 700;
   color: var(--text);
+  overflow-wrap: break-word;
 }
 
 .field-help {
   margin: 0;
   font-size: 0.8125rem;
   color: var(--text-muted);
+  overflow-wrap: break-word;
 }
 
 .input,
 .select {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: 46px;
   padding: 10px 12px;
   border-radius: var(--radius-md);
@@ -956,12 +998,12 @@ fieldset.radio-group {
 
 .radio-options {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
 .radio-options--3 {
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .radio-card {
@@ -1000,25 +1042,37 @@ fieldset.radio-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .kv-row {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: baseline;
-  gap: 12px;
+  gap: 4px 12px;
   font-size: 0.875rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .kv-row dt {
   color: var(--text-muted);
+  min-width: 0;
+  flex: 1 1 120px;
+  overflow-wrap: break-word;
 }
 
 .kv-row dd {
-  margin: 0;
+  margin: 0 0 0 auto;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   text-align: right;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .kv-row--total {
@@ -1045,7 +1099,7 @@ fieldset.radio-group {
   background: var(--surface);
   border-top: 1.5px solid var(--border-subtle);
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   z-index: 30;
 }
 
@@ -1063,12 +1117,15 @@ fieldset.radio-group {
   gap: 3px;
   min-height: 44px;
   min-width: 44px;
+  max-width: 100%;
   padding: 6px 4px;
   color: var(--text-muted);
   text-decoration: none;
   font-size: 0.75rem;
   font-weight: 650;
   border-top: 3px solid transparent;
+  text-align: center;
+  overflow-wrap: break-word;
 }
 
 .bottom-nav__link:hover {
@@ -1185,7 +1242,7 @@ fieldset.radio-group {
 /* Tabs de estados (grilla 2x2 en 390px para garantizar >= 44x44px amplios) */
 .state-tabs {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -1280,7 +1337,7 @@ fieldset.radio-group {
 /* Selector segmentado accesible (ej. Hogar | Personal) */
 .segmented {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px;
   padding: 3px;
   background: var(--surface-muted);
@@ -1319,7 +1376,7 @@ fieldset.radio-group {
 /* Fila fija de 5 chips (cuotas 1 / 3 / 6 / 12 / Otro) */
 .chip-row--5 {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 6px;
 }
 
