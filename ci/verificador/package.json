@@ -1,0 +1,17 @@
+{
+  "name": "verificador-hogar-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Verificador del CI de hogar-app: Markdown, enlaces y accesibilidad de mockups. El contenido del PR se trata solo como datos.",
+  "scripts": {
+    "lint-md": "node lint-md.mjs",
+    "check-links": "node check-links.mjs",
+    "a11y": "node a11y-mockups.mjs"
+  },
+  "dependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "markdownlint": "0.37.4",
+    "playwright": "1.65.1"
+  }
+}
