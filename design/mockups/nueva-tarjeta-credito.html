@@ -25,7 +25,7 @@
       </div>
     </header>
 
-    <main id="contenido" class="app-main app-main--no-nav">
+    <main id="contenido" class="app-main app-main--no-nav-action-bar">
       <div id="tarjeta-guardada" class="toast-target" role="status" aria-live="polite">
         <span>✓ Guardado: Visa ••4521 (Hogar · Santiago · Sin tasa)</span>
         <a href="obligaciones-del-mes.html">Ver lista</a>
@@ -198,12 +198,14 @@
           </div>
         </section>
 
-        <div class="btn-row">
-          <a class="btn btn--primary btn--full" href="#tarjeta-guardada">Guardar pasivo</a>
-          <a class="btn btn--secondary btn--full" href="obligaciones-del-mes.html">Cancelar</a>
-        </div>
+        <a class="btn btn--secondary btn--full" href="obligaciones-del-mes.html">Cancelar</a>
       </form>
     </main>
+
+    <!-- CTA principal fijo visible sin scroll -->
+    <div class="action-bar action-bar--bottom" role="region" aria-label="Guardar pasivo">
+      <a class="btn btn--primary btn--full" href="#tarjeta-guardada" data-sin-scroll>Guardar pasivo</a>
+    </div>
   </div>
 </body>
 </html>

@@ -25,7 +25,7 @@
       </div>
     </header>
 
-    <main id="contenido" class="app-main app-main--no-nav">
+    <main id="contenido" class="app-main app-main--no-nav-action-bar">
       <div id="insumo-guardado" class="toast-target" role="status" aria-live="polite">
         <span>✓ Insumo agregado a la despensa</span>
         <a href="despensa-mascotas.html">Ver despensa</a>
@@ -96,12 +96,14 @@
           <p id="ayuda-precio-insumo" class="field-help">Referencia para prellenar Compra rápida al tocar Recomprar. No suma al gasto hasta que registres una compra.</p>
         </div>
 
-        <div class="btn-row">
-          <a class="btn btn--primary btn--full" href="#insumo-guardado">Guardar insumo</a>
-          <a class="btn btn--secondary btn--full" href="despensa-mascotas.html">Cancelar</a>
-        </div>
+        <a class="btn btn--secondary btn--full" href="despensa-mascotas.html">Cancelar</a>
       </form>
     </main>
+
+    <!-- CTA principal fijo visible sin scroll -->
+    <div class="action-bar action-bar--bottom" role="region" aria-label="Guardar insumo">
+      <a class="btn btn--primary btn--full" href="#insumo-guardado" data-sin-scroll>Guardar insumo</a>
+    </div>
   </div>
 </body>
 </html>

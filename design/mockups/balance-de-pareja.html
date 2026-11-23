@@ -25,7 +25,7 @@
       <a class="btn btn--secondary btn--sm" href="ajustes-exportar.html">Ajustes</a>
     </header>
 
-    <main id="contenido" class="app-main">
+    <main id="contenido" class="app-main app-main--with-action-bar">
       <!-- Toast al marcar recibido un ingreso fijo -->
       <div id="ingreso-recibido" class="toast-target" role="status" aria-live="polite">
         <span>✓ Salario Santiago marcado como recibido en noviembre</span>
@@ -126,8 +126,7 @@
         </ul>
 
         <div class="btn-row" style="margin-top: 12px;">
-          <a class="btn btn--primary btn--sm" href="transferir-fondo-comun.html">Transferir al fondo común</a>
-          <a class="btn btn--secondary btn--sm" href="registrar-ingreso.html">+ Registrar ingreso</a>
+          <a class="btn btn--secondary btn--full" href="registrar-ingreso.html">+ Registrar ingreso</a>
         </div>
       </section>
 
@@ -227,6 +226,11 @@
         </ul>
       </section>
     </main>
+
+    <!-- CTA principal fijo visible sin scroll encima de la barra inferior -->
+    <div class="action-bar" role="region" aria-label="Acción principal de balance de pareja">
+      <a class="btn btn--primary btn--full" href="transferir-fondo-comun.html" data-sin-scroll>Transferir al fondo común</a>
+    </div>
 
     <nav class="bottom-nav" aria-label="Navegación principal">
       <a class="bottom-nav__link" href="compra-rapida.html">

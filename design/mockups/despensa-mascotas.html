@@ -25,26 +25,26 @@
       <a class="btn btn--secondary btn--sm" href="nuevo-insumo-mascota.html">+ Insumo</a>
     </header>
 
-    <main id="contenido" class="app-main">
+    <main id="contenido" class="app-main app-main--with-action-bar">
       <!-- Toast al registrar ajuste de nivel -->
       <div id="nivel-ajustado" class="toast-target" role="status" aria-live="polite">
         <span>✓ Ajuste guardado (nivel derivado recalculado)</span>
         <a href="#contenido">Cerrar</a>
       </div>
 
-      <!-- Resumen gasto del mes en Mascotas (100% reconciliable: solo compras con fecha de noviembre) -->
+      <!-- Resumen gasto del mes en Mascotas (hogar + categoría Mascotas, 1 vez c/u; mascota_id solo desglose; personales fuera) -->
       <section class="card card--accent-primary" aria-labelledby="gasto-mascotas-heading">
         <div class="item-card__top">
           <div>
-            <h2 id="gasto-mascotas-heading" class="section-title">Gasto en Mascotas (noviembre)</h2>
-            <p class="item-card__meta">Derivado · Solo compras con fecha 1–30 nov</p>
+            <h2 id="gasto-mascotas-heading" class="section-title">Gasto en Mascotas (hogar · nov)</h2>
+            <p class="item-card__meta">Derivado · Solo ámbito hogar y categoría Mascotas (1 vez c/u)</p>
           </div>
           <span class="item-card__amount-main cop">$245.000</span>
         </div>
 
         <details class="inline-picker" style="margin-top: 10px;">
           <summary>
-            <span>Ver desglose reconciliable de noviembre (3 compras)</span>
+            <span>Ver desglose reconciliable de noviembre (4 compras)</span>
             <span aria-hidden="true">▾</span>
           </summary>
           <div class="inline-picker__body">
@@ -59,14 +59,19 @@
               </div>
               <div class="kv-row">
                 <dt>08 nov · Consulta veterinaria (Luna)</dt>
-                <dd class="cop">$135.000</dd>
+                <dd class="cop">$115.000</dd>
+              </div>
+              <div class="kv-row">
+                <dt>14 nov · Shampoo y bolsas (sin mascota · compartida)</dt>
+                <dd class="cop">$20.000</dd>
               </div>
               <div class="kv-row kv-row--total">
-                <dt>Total compras Mascotas en noviembre</dt>
+                <dt>Total hogar · categoría Mascotas (nov)</dt>
                 <dd class="cop">$245.000</dd>
               </div>
             </dl>
-            <p class="field-help">Las compras hechas en octubre (concentrado de Luna del 22 oct y antipulgas del 29 oct) no suman a noviembre.</p>
+            <p class="field-help"><strong>Desglose opcional por <code>mascota_id</code>:</strong> Luna $115.000 · Milo $110.000 · Sin etiqueta $20.000.</p>
+            <p class="field-help"><strong>Excluidas del $245.000:</strong> otra categoría con etiqueta <code>mascota_id</code> (08 nov · Taxi veterinaria $18.000 en <em>Transporte</em>), compras personales (16 nov · Correa personal de Santiago $35.000) y compras de octubre (concentrado de Luna 22 oct y antipulgas 29 oct).</p>
           </div>
         </details>
       </section>
@@ -107,7 +112,7 @@
               <p class="field-help" style="margin-top: 4px;">Obs. 22 nov · Frecuencia: 35 días · Umbral de alerta: 20 %</p>
             </div>
 
-            <a class="btn btn--primary btn--sm btn--full" href="compra-rapida.html">Recomprar $165.000</a>
+            <a class="btn btn--secondary btn--sm btn--full" href="compra-rapida.html">Recomprar $165.000</a>
 
             <details class="inline-picker">
               <summary>
@@ -198,6 +203,11 @@
 
       <a class="btn btn--secondary btn--full" href="nuevo-insumo-mascota.html">+ Agregar insumo o gasto recurrente</a>
     </main>
+
+    <!-- CTA principal fijo visible sin scroll encima de la barra inferior -->
+    <div class="action-bar" role="region" aria-label="Acción principal de despensa de mascotas">
+      <a class="btn btn--primary btn--full" href="compra-rapida.html" data-sin-scroll>Recomprar concentrado ($165.000)</a>
+    </div>
 
     <nav class="bottom-nav" aria-label="Navegación principal">
       <a class="bottom-nav__link" href="compra-rapida.html">

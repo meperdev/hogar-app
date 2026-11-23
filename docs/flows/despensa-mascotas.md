@@ -7,7 +7,7 @@ Controlar comida, higiene, salud y otros insumos recurrentes de cada `Mascota` d
 - Anticipar cuándo se acaba un insumo mediante nivel restante **DERIVADO**, umbral de alerta configurable (`ItemDespensa.umbral_alerta_pct`, default `20 %`) y próxima compra estimada.
 - Permitir registrar ajustes manuales de inventario (`Ajustar nivel` → nuevo hecho `NivelDespensa` con `origen = 'ajuste'`) sin guardar columnas mutables de saldo.
 - Conectar la reposición directamente con **Compra rápida** (`Recomprar` en 1 toque), generando en un lote atómico la `Compra` y un hecho `NivelDespensa(origen = 'compra', compra_id = Compra.id, fecha = Compra.fecha, nivel_pct = 100)`.
-- Mostrar un **Gasto en Mascotas del mes** reconciliable peso a peso: suma únicamente las `Compra` con `categoria = Mascotas` (o etiquetadas con `mascota_id`) cuya `fecha` cae dentro del mes calendario en curso.
+- Mostrar un **Gasto en Mascotas del mes (hogar)** reconciliable peso a peso: suma únicamente las `Compra` con **`ambito = 'hogar'`** y **`categoria = Mascotas`** cuya `fecha` cae dentro del mes calendario en curso, contando cada compra **una sola vez**. `mascota_id` es una etiqueta opcional usada **solo para el desglose/filtro por mascota**; las compras con `ambito = 'personal'` nunca entran en la vista compartida.
 
 ## Pantallas
 
@@ -21,12 +21,17 @@ Controlar comida, higiene, salud y otros insumos recurrentes de cada `Mascota` d
 ### 1. Revisar la despensa, alertas y total reconciliable del mes
 
 1. El usuario toca **Mascotas** en la barra de navegación inferior.
-2. En la parte superior ve el **Gasto en Mascotas (noviembre 2026)** (valor **DERIVADO**), con desglose reconciliable de **solo las compras con `fecha` dentro de noviembre**:
-   - `15 nov · Concentrado gato esterilizado 3 kg (Milo)`: `$68.000`
-   - `11 nov · Arena sanitaria 10 kg (Milo)`: `$42.000`
-   - `08 nov · Consulta veterinaria vacuna (Luna, gasto puntual)`: `$135.000`
-   - **Total noviembre:** **`$245.000`** (`$68.000 + $42.000 + $135.000`).
-   - Las compras de insumos hechas en **octubre** (ej. concentrado de Luna del `22 oct · $165.000` o antipulgas del `29 oct · $95.000`) se muestran en cada tarjeta como referencia de última compra (`monto_habitual`), dejando explícito que **no suman a noviembre**.
+2. En la parte superior ve la tarjeta **Gasto en Mascotas (hogar · noviembre 2026)** (valor **DERIVADO**), que suma **únicamente compras con `ambito = 'hogar'`, `categoria = Mascotas` y `fecha` en noviembre**, contando cada compra **una sola vez** (`mascota_id` es etiqueta opcional solo para el desglose por mascota; las compras personales nunca entran en la vista compartida):
+   - **Incluidas en el total (`$245.000`, 4 compras del hogar en categoría `Mascotas`):**
+     - `15 nov · Concentrado gato esterilizado 3 kg` (`ambito = 'hogar'`, `categoria = Mascotas`, `mascota_id = Milo`): `$68.000`
+     - `11 nov · Arena sanitaria 10 kg` (`ambito = 'hogar'`, `categoria = Mascotas`, `mascota_id = Milo`): `$42.000`
+     - `08 nov · Consulta veterinaria vacuna` (`ambito = 'hogar'`, `categoria = Mascotas`, `mascota_id = Luna`, gasto puntual sin `ItemDespensa`): `$115.000`
+     - `14 nov · Shampoo y bolsas higiénicas` (`ambito = 'hogar'`, `categoria = Mascotas`, **`mascota_id = null`** — sin mascota específica / compartida): `$20.000`
+     - **Total tarjeta "Mascotas" del hogar (noviembre):** **`$245.000`** (`$68.000 + $42.000 + $115.000 + $20.000`). Desglose opcional por `mascota_id`: Luna `$115.000`, Milo `$110.000`, sin etiqueta / compartidas `$20.000`.
+   - **Casos excluidos explícitamente del `$245.000` (fixture verificable):**
+     - **Otra categoría con etiqueta `mascota_id`:** `08 nov · Taxi a veterinaria` (`ambito = 'hogar'`, `categoria = Transporte`, `mascota_id = Luna`, `$18.000`) suma solo a `Transporte` (dentro de las compras diarias del hogar `$482.000`), **no** a la tarjeta "Mascotas" (cada compra cuenta una sola vez en su categoría).
+     - **Compra personal en categoría `Mascotas`:** `16 nov · Correa y placa personal` (`ambito = 'personal'`, `miembro_id = Santiago`, `categoria = Mascotas`, `mascota_id = Luna`, `$35.000`, dentro de sus compras personales de `$140.000`) **nunca entra** en la vista compartida del hogar.
+     - **Compras de meses anteriores:** las compras de insumos hechas en **octubre** (ej. concentrado de Luna del `22 oct · $165.000` o antipulgas del `29 oct · $95.000`) se muestran en cada tarjeta como referencia de última compra (`monto_habitual`), dejando explícito que **no suman a noviembre**.
 3. Debajo aparecen los chips de filtro por `Mascota`: `Todas`, `Luna (perra)`, `Milo (gato)`.
 4. La lista prioriza automáticamente los `ItemDespensa` donde **`nivel_derivado <= umbral_alerta_pct`** arriba (alerta), seguidos por nivel medio y bien.
 5. Cada tarjeta de `ItemDespensa` comunica el estado sin depender solo del color:
@@ -78,16 +83,17 @@ Controlar comida, higiene, salud y otros insumos recurrentes de cada `Mascota` d
 | **El insumo rindió más días de lo esperado** | Cuando el nivel derivado llega a `0 %` sin nueva compra, muestra `▲ Revisar nivel (0 %)` con acciones `Ajustar nivel` y `Recomprar` (nunca asume una compra automática). |
 | **Compra de insumo hecha el mes anterior (ej. 22 oct)** | Muestra `Última compra: 22 oct · $165.000 (no suma a nov)` y **no** entra en el total del mes de noviembre (`$245.000`). |
 | **Compra de un bulto a cuotas (ej. `$300.000` en 3 cuotas)** | Pasa por *Compra rápida*: el consumo de `$300.000` suma una sola vez a `Mascotas` en la fecha de compra y sus cuotas van a *Obligaciones del mes*. |
-| **Insumo compartido (`mascota_id = null`)** | Se etiqueta `Compartido (todas las mascotas)` y aparece al filtrar por Luna o por Milo sin duplicar su monto en el gasto del mes. |
-| **Gasto eventual de veterinario (sin `ItemDespensa`)** | Se registra desde *Compra rápida* con `categoria_id = Mascotas` y `mascota_id = Luna`; suma automáticamente al total reconciliable del mes (`$135.000`). |
-| **Compra de un ítem marcada como personal (`ambito = 'personal'`)** | Nunca actualiza filas compartidas (`ItemDespensa.monto_habitual` permanece intacto). Su `NivelDespensa(origen = 'compra', compra_id = Compra.id)` hereda la visibilidad privada de la compra y no altera el cálculo compartido del hogar. |
+| **Compra del hogar en `Mascotas` sin `mascota_id` (`mascota_id = null`, ej. `$20.000`)** | **Sí suma** al total de la tarjeta "Mascotas" del hogar (`$245.000`), una sola vez; aparece en el desglose opcional bajo *Sin mascota / compartidas*. |
+| **Compra del hogar en otra categoría con `mascota_id` (ej. `Transporte` `$18.000` con `mascota_id = Luna`)** | **No suma** a la tarjeta "Mascotas" del hogar: cuenta únicamente en su categoría (`Transporte`) para evitar doble conteo; `mascota_id` es solo etiqueta opcional para desglose/filtro. |
+| **Gasto eventual de veterinario (sin `ItemDespensa`)** | Se registra desde *Compra rápida* con `ambito = 'hogar'`, `categoria_id = Mascotas` y `mascota_id = Luna`; suma automáticamente al total reconciliable del mes (`$115.000`). |
+| **Compra marcada como personal (`ambito = 'personal'`, ej. `$35.000` en `Mascotas`)** | **Nunca entra** en la tarjeta compartida "Mascotas" del hogar (`$245.000`) ni actualiza filas compartidas (`ItemDespensa.monto_habitual` permanece intacto). Si apunta a un ítem, su `NivelDespensa(origen = 'compra', compra_id = Compra.id)` hereda la visibilidad privada de la compra y no altera el cálculo compartido del hogar. |
 | **Umbral fuera de rango (`< 0` o `> 100`) o `frecuencia_dias <= 0`** | Validación inline accesible junto al campo afectado antes de guardar. |
 
 ## Diagrama de flujo
 
 ```mermaid
 flowchart TD
-    A["Abrir Despensa de mascotas"] --> B["Derivar gasto mensual Mascotas (solo Compra con fecha del mes) y nivel/proxima compra desde NivelDespensa"]
+    A["Abrir Despensa de mascotas"] --> B["Derivar gasto mensual Mascotas (ambito='hogar' y categoria=Mascotas, 1 vez c/u) y nivel desde NivelDespensa"]
     B --> C{"Accion del usuario"}
     C -- "Filtrar por Mascota" --> D["Mostrar ItemDespensa de esa mascota + compartidos (mascota_id null)"]
     C -- "Ajustar nivel" --> E["Registrar hecho NivelDespensa(nivel_pct, fecha, origen='ajuste')"]
@@ -108,8 +114,8 @@ Nombres canónicos alineados con `docs/data-model.md` y [docs/decisiones-2026-11
 
 | Entidad / Concepto | Tipo | Operación | Campos principales | Regla aplicada |
 | --- | --- | --- | --- | --- |
-| **`Mascota`** | Hecho (tabla replicada) | Lectura / Escritura | `id`, `hogar_id`, `nombre`, `especie` (`'perro' \| 'gato' \| 'otro'`), `fecha_nacimiento`, `activa` | Pertenece al hogar. No guarda gasto propio; su gasto se deriva de `Compra.mascota_id`. |
+| **`Mascota`** | Hecho (tabla replicada) | Lectura / Escritura | `id`, `hogar_id`, `nombre`, `especie` (`'perro' \| 'gato' \| 'otro'`), `fecha_nacimiento`, `activa` | Pertenece al hogar. No guarda gasto propio; `Compra.mascota_id` es etiqueta opcional solo para el desglose/filtro por mascota. |
 | **`ItemDespensa`** | Hecho (tabla replicada) | Lectura / Escritura | `id`, `hogar_id`, `mascota_id` (`null` = todas), `nombre`, `tipo` (`'comida' \| 'higiene' \| 'salud' \| 'otro'`), `categoria_id`, `frecuencia_dias`, `umbral_alerta_pct` (`0..100`, default `20`), `monto_habitual`, `activo` | Define el producto, tipo, frecuencia y umbral de alerta. Nunca guarda nivel restante ni fecha de próxima compra. `monto_habitual` es fila compartida del hogar: una compra con `ambito = 'personal'` nunca la modifica. |
 | **`NivelDespensa`** | Hecho (tabla replicada) | Lectura / Escritura | `id`, `hogar_id`, `item_despensa_id`, `compra_id` (nullable), `fecha`, `nivel_pct` (`0..100`), `origen` (`'compra' \| 'ajuste'`) | Registra observaciones como hechos inmutables. Toda compra del ítem crea en el mismo lote atómico `NivelDespensa(origen = 'compra', compra_id = Compra.id, fecha = Compra.fecha, nivel_pct = 100)` (`compra_id` único entre activas; enlaza ciclo de vida y visibilidad); `Ajustar nivel` crea `origen = 'ajuste'` con `compra_id = null`. |
-| **`Compra`** | Hecho (tabla replicada) | Lectura / Escritura (vía *Compra rápida*) | `id`, `fecha`, `monto_total`, `categoria_id`, `ambito`, `mascota_id`, `item_despensa_id`, `pago_tipo`, `medio_de_pago_id`, `registrado_por` | Solo las compras con `fecha` dentro del mes calendario suman al gasto mensual de Mascotas (reconciliable). |
+| **`Compra`** | Hecho (tabla replicada) | Lectura / Escritura (vía *Compra rápida*) | `id`, `fecha`, `monto_total`, `categoria_id`, `ambito`, `mascota_id`, `item_despensa_id`, `pago_tipo`, `medio_de_pago_id`, `registrado_por` | La tarjeta "Mascotas" del hogar suma únicamente compras con `ambito = 'hogar'`, `categoria = Mascotas` y `fecha` en el mes, contando cada compra una sola vez. `mascota_id` es etiqueta opcional para desglose por mascota; las compras `personal` nunca entran en la vista compartida. |
 | **Nivel actual, días restantes, alerta (`<= umbral_alerta_pct`), próxima compra estimada, gasto mensual Mascotas** | **DERIVADO (nunca guardado)** | Solo lectura calculada | `nivel_actual_pct`, `dias_restantes`, `en_alerta`, `proxima_compra_estimada`, `gasto_mascotas(mes)` | Siempre calculados en el dispositivo desde `ItemDespensa`, `NivelDespensa` y `Compra`. Nunca se almacenan en base de datos. |

@@ -26,9 +26,9 @@
       <span class="badge badge--indigo">Deuda</span>
     </header>
 
-    <main id="contenido" class="app-main app-main--no-nav">
+    <main id="contenido" class="app-main app-main--no-nav-action-bar">
       <div id="pago-registrado" class="toast-target" role="status" aria-live="polite">
-        <span>✓ Pago registrado por Camila ($106.299)</span>
+        <span>✓ Abono registrado: $106.299 ($100.000 cap. + $6.299 int. · aporte Camila desde Nequi)</span>
         <a href="obligaciones-del-mes.html">Volver</a>
       </div>
 
@@ -57,32 +57,44 @@
           </div>
         </fieldset>
 
-        <!-- Regla de dominio: pagar deuda de otro miembro -->
+        <!-- Regla de dominio: pago de cuota con interés y aporte según medio de origen -->
         <div class="callout callout--primary">
           <span class="callout__icon" aria-hidden="true">✓</span>
-          <p><strong>Aporte libre (pasivo del hogar):</strong> esta tarjeta es un pasivo con ámbito del hogar a nombre de Santiago. Al pagarla <strong>Camila</strong> como <em>abono</em> desde su medio, el abono completo ($106.299) cuenta como aporte de Camila y <strong>no genera deuda entre ustedes</strong>.</p>
+          <p><strong>Aporte libre (pasivo del hogar):</strong> el abono que cubre la cuota es <strong>$106.299</strong> (capital $100.000 + interés $6.299 cargado al pasivo). Cuenta como aporte individual de <strong>Camila ($106.299)</strong> solo si se paga desde una cuenta personal (ej. <em>Nequi · Camila</em>), sin generar deuda entre ustedes. Desde <strong>«Cuenta común · Hogar»</strong> el pago es por los mismos $106.299, pero <strong>no hay aporte individual</strong>.</p>
         </div>
 
-        <!-- Desglose editable: Capital (Pago de deuda) vs Intereses (Costo financiero) -->
+        <!-- Desglose editable: Capital aplicado + Interés cargado al pasivo = Abono total -->
         <div class="card form-stack">
           <h2 class="section-title">Desglose del pago (COP enteros)</h2>
 
           <div class="field">
-            <label for="pago-capital">Capital · Pago de deuda (no suma al consumo)</label>
+            <label for="pago-capital">Capital aplicado a la cuota (no suma al consumo)</label>
             <input id="pago-capital" class="input input--cop" type="text" inputmode="numeric" value="$100.000" aria-describedby="ayuda-capital">
-            <p id="ayuda-capital" class="field-help">Editable si haces un pago parcial o abono extra a capital.</p>
+            <p id="ayuda-capital" class="field-help">Capital de la cuota 1/3 ($100.000). Editable si haces un pago parcial (sin enlazar cuota) o abono extra a capital.</p>
           </div>
 
           <div class="field">
-            <label for="pago-intereses">Intereses / seguros · Costo financiero (balde aparte)</label>
+            <label for="pago-intereses">Interés ligado a la cuota · Costo financiero (cargado al pasivo)</label>
             <input id="pago-intereses" class="input input--cop" type="text" inputmode="numeric" value="$6.299" aria-describedby="ayuda-intereses">
-            <p id="ayuda-intereses" class="field-help">Estimado exacto con 28,32 % E.A. → 2,0997 % M.V. (redondeado solo el interés al peso). Ajusta al extracto real o deja en $0.</p>
+            <p id="ayuda-intereses" class="field-help">Cargado a Visa ••4521 con <code>cuota_id</code> (balde aparte Costo financiero; 28,32 % E.A. → 2,0997 % M.V., redondeado al peso). Ajusta contra el extracto real si cambió.</p>
           </div>
 
           <dl class="kv-list">
+            <div class="kv-row">
+              <dt>Capital aplicado (baja capital de $300.000 a $200.000)</dt>
+              <dd class="cop">$100.000</dd>
+            </div>
+            <div class="kv-row">
+              <dt>Interés cargado al pasivo (Costo financiero)</dt>
+              <dd class="cop">$6.299</dd>
+            </div>
             <div class="kv-row kv-row--total">
-              <dt>Total que sale hoy</dt>
+              <dt>Abono total (PagoDeDeuda · cubre cuota 1/3)</dt>
               <dd class="cop">$106.299</dd>
+            </div>
+            <div class="kv-row">
+              <dt>Aporte individual (solo desde cuenta personal)</dt>
+              <dd class="cop">$106.299 · Camila ($0 fondo común)</dd>
             </div>
           </dl>
         </div>
@@ -90,12 +102,13 @@
         <div class="field-row">
           <div class="field">
             <label for="cuenta-origen">Medio de origen</label>
-            <select id="cuenta-origen" class="select">
+            <select id="cuenta-origen" class="select" aria-describedby="ayuda-origen-pago">
               <option value="nequi" selected>Nequi · Camila</option>
               <option value="bancolombia">Bancolombia · Santiago</option>
               <option value="fondo-comun">Cuenta común · Hogar</option>
-              <option value="efectivo">Efectivo</option>
+              <option value="efectivo">Efectivo · Camila</option>
             </select>
+            <p id="ayuda-origen-pago" class="field-help">Cuenta personal: aporta $106.299 al dueño del medio. Cuenta común · Hogar: salida del fondo común, sin aporte individual.</p>
           </div>
           <div class="field">
             <label for="fecha-pago">Fecha de pago</label>
@@ -103,10 +116,7 @@
           </div>
         </div>
 
-        <div class="btn-row">
-          <a class="btn btn--primary btn--full" href="#pago-registrado">Confirmar pago ($106.299)</a>
-          <a class="btn btn--secondary btn--full" href="obligaciones-del-mes.html">Cancelar</a>
-        </div>
+        <a class="btn btn--secondary btn--full" href="obligaciones-del-mes.html">Cancelar</a>
       </form>
 
       <!-- Estado de protección: aviso de posible pago duplicado o sobrepago -->
@@ -128,6 +138,11 @@
         </div>
       </section>
     </main>
+
+    <!-- CTA principal fijo visible sin scroll -->
+    <div class="action-bar action-bar--bottom" role="region" aria-label="Confirmar pago de obligación">
+      <a class="btn btn--primary btn--full" href="#pago-registrado" data-sin-scroll>Confirmar pago ($106.299)</a>
+    </div>
   </div>
 </body>
 </html>

@@ -86,7 +86,7 @@ Meta: **abrir → escanear → confirmar categoría → guardar** (sin escribir 
    - **Nunca cuenta como aporte al hogar**, incluso si se pagó con un `MedioDePago` del miembro.
    - **Deduplicación de CUFE por alcance de visibilidad:** existen dos índices únicos parciales entre no eliminadas —`(hogar_id, cufe)` para compras del hogar y `(hogar_id, miembro_id, cufe)` para compras personales—. El escaneo solo detecta duplicados entre compras del hogar y compras personales del mismo dueño; una compra personal ajena **no se detecta ni se insinúa** (ni siquiera con un aviso de «ya está registrada»).
    - **Sin escritura en filas compartidas:** guardar una compra con `ambito = 'personal'` **nunca** crea ni actualiza filas compartidas del hogar —ni `AliasComercio` ni `ItemDespensa.monto_habitual`—, y tampoco liquida una `Obligacion` compartida.
-   - **Exportación separada por alcance:** en *Ajustes*, cada miembro tiene dos descargas separadas: **«Hogar (compartido)»** (sin ninguna fila personal) y **«Mis personales»** (solo las propias, nunca las del otro miembro).
+   - **Exportación separada por alcance:** en *Ajustes*, cada miembro tiene exactamente dos descargas ZIP separadas (cada ZIP con JSON + CSV de su alcance): **«Hogar (compartido)»** (sin ninguna fila personal) y **«Mis personales»** (solo las propias, nunca las del otro miembro).
 
 ### Variante: compra financiada con préstamo en efectivo (`Compra.financiada_por_pasivo_id`)
 

@@ -25,7 +25,7 @@
       </div>
     </header>
 
-    <main id="contenido" class="app-main app-main--no-nav">
+    <main id="contenido" class="app-main app-main--no-nav-action-bar">
       <div id="ingreso-guardado" class="toast-target" role="status" aria-live="polite">
         <span>✓ Ingreso guardado: $600.000 (Santiago)</span>
         <a href="balance-de-pareja.html">Ver balance</a>
@@ -88,12 +88,14 @@
           <p>La vista "% de su ingreso" viene <strong>apagada por defecto</strong> en Balance de pareja y nunca obliga ni calcula aportes mínimos entre ustedes.</p>
         </div>
 
-        <div class="btn-row">
-          <a class="btn btn--primary btn--full" href="#ingreso-guardado">Guardar ingreso</a>
-          <a class="btn btn--secondary btn--full" href="balance-de-pareja.html">Cancelar</a>
-        </div>
+        <a class="btn btn--secondary btn--full" href="balance-de-pareja.html">Cancelar</a>
       </form>
     </main>
+
+    <!-- CTA principal fijo visible sin scroll -->
+    <div class="action-bar action-bar--bottom" role="region" aria-label="Guardar ingreso">
+      <a class="btn btn--primary btn--full" href="#ingreso-guardado" data-sin-scroll>Guardar ingreso</a>
+    </div>
   </div>
 </body>
 </html>
