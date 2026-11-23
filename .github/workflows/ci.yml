@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  VERIFICADOR_SHA: "7b27ba06a0ae71a9b78ad0b8e99fc2f4eeccd794"
+  VERIFICADOR_SHA: "5898a3eb3c81fd0c75c07b849e61df67e6004ecd"
 
 jobs:
   docs:
