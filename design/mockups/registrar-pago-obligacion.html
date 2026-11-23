@@ -28,7 +28,7 @@
 
     <main id="contenido" class="app-main app-main--no-nav-action-bar">
       <div id="pago-registrado" class="toast-target" role="status" aria-live="polite">
-        <span>✓ Abono registrado: $106.299 ($100.000 cap. + $6.299 int. · aporte Camila desde Nequi)</span>
+        <span>✓ Abono registrado el 25 nov: $106.299 ($100.000 cap. + $6.299 int. · saldo $306.299 → $200.000 · aporte Camila desde Nequi)</span>
         <a href="obligaciones-del-mes.html">Volver</a>
       </div>
 
@@ -38,7 +38,7 @@
           <h2 id="detalle-obligacion-heading" class="section-title">Visa ••4521 · Vence 25 nov</h2>
           <span class="badge badge--primary">Hogar · titular Santiago</span>
         </div>
-        <p class="field-help">Pasivo de ámbito Hogar (titular Santiago). Compra original: Mercado $300.000 (registrada una sola vez como consumo el 10 nov; corte 15 nov). Este pago abona el pasivo y no suma al consumo.</p>
+        <p class="field-help">Pasivo de ámbito Hogar (titular Santiago). Compra original: Mercado $300.000 (registrada una sola vez como consumo el 10 nov; corte 15 nov). Al vencimiento (25 nov) el interés de $6.299 ya está causado: el saldo causado antes del pago es $306.299 y este abono lo baja a $200.000 sin sumar al consumo.</p>
       </section>
 
       <form class="form-stack" action="#pago-registrado">
@@ -60,12 +60,12 @@
         <!-- Regla de dominio: pago de cuota con interés y aporte según medio de origen -->
         <div class="callout callout--primary">
           <span class="callout__icon" aria-hidden="true">✓</span>
-          <p><strong>Aporte libre (ámbito Hogar · titular Santiago):</strong> el abono que cubre la cuota es <strong>$106.299</strong> (capital $100.000 + interés $6.299 cargado al pasivo). Cuenta como aporte individual de <strong>Camila ($106.299)</strong> solo si paga desde una cuenta personal (ej. <em>Nequi · Camila</em>), sin generar deuda entre ustedes. Desde <strong>«Cuenta común · Hogar»</strong> el pago es por los mismos $106.299, pero <strong>no hay aporte individual</strong>.</p>
+          <p><strong>Aporte libre (ámbito Hogar · titular Santiago):</strong> el abono al vencimiento (25 nov) es <strong>$106.299</strong> (capital $100.000 + interés $6.299 ya causado y cargado al pasivo; saldo $306.299 → $200.000). Cuenta como aporte individual de <strong>Camila ($106.299)</strong> solo si paga desde una cuenta personal (ej. <em>Nequi · Camila</em>), sin generar deuda entre ustedes. Desde <strong>«Cuenta común · Hogar»</strong> el pago es por los mismos $106.299, pero <strong>no hay aporte individual</strong>.</p>
         </div>
 
         <!-- Desglose editable: Capital aplicado + Interés cargado al pasivo = Abono total -->
         <div class="card form-stack">
-          <h2 class="section-title">Desglose del pago (COP enteros)</h2>
+          <h2 class="section-title">Desglose del pago (COP enteros · 25 nov)</h2>
 
           <div class="field">
             <label for="pago-capital">Capital aplicado a la cuota (no suma al consumo)</label>
@@ -76,21 +76,29 @@
           <div class="field">
             <label for="pago-intereses">Interés ligado a la cuota · Costo financiero (cargado al pasivo)</label>
             <input id="pago-intereses" class="input input--cop" type="text" inputmode="numeric" value="$6.299" aria-describedby="ayuda-intereses">
-            <p id="ayuda-intereses" class="field-help">Cargado a Visa ••4521 con <code>cuota_id</code> (balde aparte Costo financiero; 28,32 % E.A. → 2,0997 % M.V., redondeado al peso). Ajusta contra el extracto real si cambió.</p>
+            <p id="ayuda-intereses" class="field-help">Causado el 25 nov (vencimiento) y cargado a Visa ••4521 con <code>cuota_id</code> (balde aparte Costo financiero; 28,32 % E.A. → 2,0997 % M.V., redondeado al peso). Ajusta contra el extracto real si cambió.</p>
           </div>
 
           <dl class="kv-list">
+            <div class="kv-row">
+              <dt>Saldo causado al 25 nov (tope único del abono: $300.000 + $6.299)</dt>
+              <dd class="cop">$306.299</dd>
+            </div>
             <div class="kv-row">
               <dt>Capital aplicado (baja capital de $300.000 a $200.000)</dt>
               <dd class="cop">$100.000</dd>
             </div>
             <div class="kv-row">
-              <dt>Interés cargado al pasivo (Costo financiero)</dt>
+              <dt>Interés causado el 25 nov (Costo financiero cargado al pasivo)</dt>
               <dd class="cop">$6.299</dd>
             </div>
             <div class="kv-row kv-row--total">
-              <dt>Abono total (PagoDeDeuda · cubre cuota 1/3)</dt>
+              <dt>Abono total el 25 nov (PagoDeDeuda · cubre cuota 1/3)</dt>
               <dd class="cop">$106.299</dd>
+            </div>
+            <div class="kv-row">
+              <dt>Saldo derivado después del pago ($306.299 − $106.299)</dt>
+              <dd class="cop">$200.000</dd>
             </div>
             <div class="kv-row">
               <dt>Aporte individual (solo desde cuenta personal)</dt>
@@ -112,7 +120,8 @@
           </div>
           <div class="field">
             <label for="fecha-pago">Fecha de pago</label>
-            <input id="fecha-pago" class="input" type="date" value="2026-11-22">
+            <input id="fecha-pago" class="input" type="date" value="2026-11-25" aria-describedby="ayuda-fecha-pago">
+            <p id="ayuda-fecha-pago" class="field-help">Vencimiento (25 nov): el interés de $6.299 ya está causado (saldo causado $306.299).</p>
           </div>
         </div>
 
@@ -129,7 +138,7 @@
           <span class="callout__icon" aria-hidden="true">▲</span>
           <div>
             <p><strong>Posible pago duplicado o sobrepago detectado.</strong></p>
-            <p>Si esta cuota ya tiene un abono completo registrado (o el monto excede lo debido del pasivo), la app detiene el registro automático. Al confirmar, divide el pago en <em>abono</em> por lo debido y <em>saldo a favor</em> solo por el excedente (no reduce capital ni suma aporte hasta aplicarse a un cargo futuro del hogar).</p>
+            <p>Si esta cuota ya tiene un abono completo registrado o el monto supera el tope único (saldo causado a la fecha del pago: $306.299 al 25 nov, sin interés ni costos futuros), la app detiene el registro automático. Al confirmar, divide el pago en <em>abono</em> hasta ese tope y <em>saldo a favor</em> solo por el excedente (no reduce capital ni costos ni suma aporte hasta aplicarse a un cargo futuro del hogar).</p>
           </div>
         </div>
         <div class="btn-row" style="margin-top: 10px;">
