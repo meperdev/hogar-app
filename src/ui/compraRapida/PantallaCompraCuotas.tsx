@@ -114,10 +114,12 @@ export function PantallaCompraCuotas() {
     navigate('/compra')
   }
 
-  const textoTasa =
-    tarjetaCompatible?.tasa && desglose?.tasaMensualPct !== null && desglose
+  const tieneTasa = Boolean(tarjetaCompatible?.tasa)
+  const textoTasa = tarjetaCompatible?.tasa
+    ? desglose?.tasaMensualPct !== null && desglose
       ? `${formatearPorcentajeEs(tarjetaCompatible.tasa.ppm / 10_000, 2)} ${tarjetaCompatible.tasa.tipo === 'EA' ? 'E.A.' : 'M.V.'} → ${formatearPorcentajeEs(desglose.tasaMensualPct, 4)} M.V.`
-      : 'Sin tasa configurada'
+      : `${formatearPorcentajeEs(tarjetaCompatible.tasa.ppm / 10_000, 2)} ${tarjetaCompatible.tasa.tipo === 'EA' ? 'E.A.' : 'M.V.'}`
+    : 'Sin tasa configurada'
 
   const mesTexto = nombreMesEs(borrador.fecha) || 'este mes'
   const ejemploSinDobleConteo =
@@ -378,7 +380,9 @@ export function PantallaCompraCuotas() {
                 <dd className="hogar-cop m-0 font-bold text-hogar-tinta">
                   {primeraCuotaInteres !== null
                     ? formatearCop(primeraCuotaInteres)
-                    : 'Sin tasa (a mano)'}
+                    : tieneTasa
+                      ? '—'
+                      : 'Sin tasa (a mano)'}
                 </dd>
               </div>
             </dl>
@@ -392,7 +396,7 @@ export function PantallaCompraCuotas() {
                   </strong>
                   {borrador.monto > 0 ? `, nunca ${ejemploSinDobleConteo}.` : '.'}
                 </p>
-                {desglose?.interesTotal === null ? (
+                {!tieneTasa ? (
                   <p>Sin tasa: registrarás intereses a mano en Obligaciones.</p>
                 ) : (
                   <p>
@@ -444,7 +448,12 @@ export function PantallaCompraCuotas() {
                 ) : null}
               </dl>
             </Tarjeta>
-          ) : null}
+          ) : (
+            <p className={claseAyudaCampo}>
+              Ingresá un monto mayor o igual a {cuotasEfectivas} COP para ver el calendario de
+              cuotas.
+            </p>
+          )}
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="nota-cuotas" className={claseEtiquetaCampo}>

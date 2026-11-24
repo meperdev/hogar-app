@@ -123,6 +123,10 @@ export function PantallaCompraRapida() {
 
   const montoInputRef = useRef<HTMLInputElement>(null)
   const primerChipCategoriaRef = useRef<HTMLButtonElement>(null)
+  const medioDetailsRef = useRef<HTMLDetailsElement>(null)
+  const notaDetailsRef = useRef<HTMLDetailsElement>(null)
+  const notaInputRef = useRef<HTMLInputElement>(null)
+  const fechaInputRef = useRef<HTMLInputElement>(null)
   const recompraAplicadaRef = useRef(false)
 
   // Soporte de entrada desde Despensa de mascotas ("Recomprar")
@@ -219,6 +223,14 @@ export function PantallaCompraRapida() {
         montoInputRef.current?.focus()
       } else if (resultado.error.campo === 'categoria') {
         primerChipCategoriaRef.current?.focus()
+      } else if (resultado.error.campo === 'medio') {
+        if (medioDetailsRef.current) medioDetailsRef.current.open = true
+      } else if (resultado.error.campo === 'descripcion') {
+        if (notaDetailsRef.current) notaDetailsRef.current.open = true
+        notaInputRef.current?.focus()
+      } else if (resultado.error.campo === 'fecha') {
+        if (notaDetailsRef.current) notaDetailsRef.current.open = true
+        fechaInputRef.current?.focus()
       }
       return
     }
@@ -482,7 +494,10 @@ export function PantallaCompraRapida() {
           Medio de pago, préstamo y cuotas
         </h2>
 
-        <details className="overflow-hidden rounded-xl border-[1.5px] border-hogar-borde-fuerte bg-hogar-superficie">
+        <details
+          ref={medioDetailsRef}
+          className="overflow-hidden rounded-xl border-[1.5px] border-hogar-borde-fuerte bg-hogar-superficie"
+        >
           <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-sm font-semibold text-hogar-tinta">
             <span className="min-w-0 truncate">
               Medio: <strong>{medioSeleccionado?.nombre ?? 'Sin seleccionar'}</strong>
@@ -639,7 +654,10 @@ export function PantallaCompraRapida() {
       </section>
 
       {/* Nota, comercio y fecha opcionales colapsados */}
-      <details className="overflow-hidden rounded-xl border-[1.5px] border-hogar-borde-fuerte bg-hogar-superficie">
+      <details
+        ref={notaDetailsRef}
+        className="overflow-hidden rounded-xl border-[1.5px] border-hogar-borde-fuerte bg-hogar-superficie"
+      >
         <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-sm font-semibold text-hogar-tinta">
           <span>Nota, comercio o fecha (opcional)</span>
           <span aria-hidden="true">▾</span>
@@ -650,6 +668,7 @@ export function PantallaCompraRapida() {
               Descripción o comercio
             </label>
             <input
+              ref={notaInputRef}
               id="nota-compra"
               className={claseCampoTexto}
               type="text"
@@ -665,6 +684,7 @@ export function PantallaCompraRapida() {
               Fecha civil del consumo
             </label>
             <input
+              ref={fechaInputRef}
               id="fecha-compra"
               className={claseCampoTexto}
               type="date"

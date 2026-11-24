@@ -386,4 +386,38 @@ describe('Compra rápida UI (Núcleo 1)', () => {
       'c4b18e09f21a90c1882a44a2',
     )
   })
+
+  it('no muestra "Sin tasa configurada" cuando desglose retorna null por monto $0 y enfoca nota si falla descripcion', async () => {
+    const hogar = hogarDePrueba()
+    const base = crearControladorFalsoCompraRapida(hogar)
+    const controlador: ControladorCompraRapida = {
+      ...base,
+      desglose: () => null,
+      validar: () => ({ campo: 'descripcion', mensaje: 'Descripción demasiado larga' }),
+    }
+
+    const { contenedor } = await montarApp({
+      rutaInicial: '/compra/cuotas',
+      comprasFactory: () => controlador,
+    })
+
+    expect(contenedor.querySelector('h1')?.textContent).toBe('Compra a cuotas')
+    expect(contenedor.textContent).not.toContain('Sin tasa configurada')
+    expect(contenedor.textContent).not.toContain('Sin tasa: registrarás intereses')
+    expect(contenedor.textContent).toContain('28,32 % E.A.')
+    expect(contenedor.textContent).toContain('Ingresá un monto mayor o igual a')
+
+    await act(async () => {
+      contenedor.querySelector<HTMLAnchorElement>('a[aria-label="Volver a Compra rápida a 1 cuota"]')?.click()
+    })
+    expect(contenedor.querySelector('h1')?.textContent).toBe('Compra rápida')
+
+    await act(async () => {
+      contenedor.querySelector<HTMLButtonElement>('button[data-sin-scroll]')?.click()
+    })
+    expect(contenedor.querySelector('[role="alert"]')?.textContent).toContain(
+      'Descripción demasiado larga',
+    )
+    expect(document.activeElement?.id).toBe('nota-compra')
+  })
 })
