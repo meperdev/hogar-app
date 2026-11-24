@@ -1,13 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   VENTANA_DESHACER_MS,
   type AlcanceCompra,
@@ -22,26 +13,20 @@ import {
 } from '../../app/compraRapida'
 import type { Hogar } from '../../app/fundacion'
 
-export type ToastGuardado = {
-  loteId: string
-  resumen: string
-  conCuotas: boolean
-}
-
+export type ToastGuardado = { loteId: string; resumen: string; conCuotas: boolean }
 export type DatosRecompra = {
   monto?: number | undefined
   categoriaId?: string | null | undefined
   descripcion?: string | undefined
   ambito?: Ambito | undefined
 }
-
-type ResultadoIntentoGuardar =
+type ResultadoGuardarUI =
   | { estado: 'guardado'; toast: ToastGuardado }
   | { estado: 'error'; error: ErrorBorrador }
   | { estado: 'confirmar_duplicado' }
   | { estado: 'fallo'; mensaje: string }
 
-type ValorContextoCompraRapida = {
+type ValorContexto = {
   hogar: Hogar
   controlador: ControladorCompraRapida
   catalogo: CatalogoCompra | null
@@ -59,9 +44,7 @@ type ValorContextoCompraRapida = {
   setBorrador: React.Dispatch<React.SetStateAction<BorradorCompra>>
   cambiarAmbito: (ambito: Ambito) => void
   seleccionarMedio: (medioId: string) => void
-  seleccionarCategoria: (categoriaId: string) => void
-  seleccionarCuotas: (cuotas: number) => void
-  aplicarDatosFactura: (params: {
+  aplicarDatosFactura: (p: {
     factura: DatosFactura
     categoriaId?: string | null | undefined
     nombreComercio?: string | null | undefined
@@ -70,29 +53,18 @@ type ValorContextoCompraRapida = {
     fecha?: string | undefined
   }) => void
   aplicarRecompra: (datos: DatosRecompra) => void
-  guardarBorrador: (
-    borradorExplicito?: BorradorCompra,
-    opciones?: { ignorarDuplicadoInmediato?: boolean },
-  ) => Promise<ResultadoIntentoGuardar>
+  guardarBorrador: (b?: BorradorCompra, opts?: { ignorarDuplicadoInmediato?: boolean }) => Promise<ResultadoGuardarUI>
   descartarConfirmacionDuplicado: () => void
   deshacerUltimoGuardado: () => Promise<void>
   anunciarEstado: (texto: string) => void
 }
 
-const ContextoCompraRapida = createContext<ValorContextoCompraRapida | null>(null)
+const ContextoCompraRapida = createContext<ValorContexto | null>(null)
 
-function elegirMedioCompatible(
-  controlador: ControladorCompraRapida,
-  catalogo: CatalogoCompra,
-  ambito: Ambito,
-  preferidoId: string | null,
-): string | null {
-  const compatibles = controlador.mediosPara(catalogo, ambito)
-  if (preferidoId && compatibles.some((m) => m.id === preferidoId)) {
-    return preferidoId
-  }
-  const tarjeta = compatibles.find((m) => m.tipo === 'tarjeta')
-  return tarjeta?.id ?? compatibles[0]?.id ?? null
+function medioCompatible(ctrl: ControladorCompraRapida, cat: CatalogoCompra, ambito: Ambito, preferido: string | null) {
+  const compatibles = ctrl.mediosPara(cat, ambito)
+  if (preferido && compatibles.some((m) => m.id === preferido)) return preferido
+  return compatibles.find((m) => m.tipo === 'tarjeta')?.id ?? compatibles[0]?.id ?? null
 }
 
 export function ProveedorCompraRapida({
@@ -106,11 +78,7 @@ export function ProveedorCompraRapida({
 }) {
   const hogarId = hogar.id
   const miembroId = hogar.miembroActual.id
-
-  const controlador = useMemo(
-    () => crearControlador({ hogarId, miembroId }),
-    [crearControlador, hogarId, miembroId],
-  )
+  const controlador = useMemo(() => crearControlador({ hogarId, miembroId }), [crearControlador, hogarId, miembroId])
 
   const [catalogo, setCatalogo] = useState<CatalogoCompra | null>(null)
   const [cargando, setCargando] = useState(true)
@@ -118,24 +86,28 @@ export function ProveedorCompraRapida({
   const [guardando, setGuardando] = useState(false)
   const [revision, setRevision] = useState(0)
   const [ultimoMedioId, setUltimoMedioId] = useState<string | null>(null)
-  const [borrador, setBorrador] = useState<BorradorCompra>(() =>
-    controlador.borradorInicial(null),
-  )
+  const [borrador, setBorrador] = useState<BorradorCompra>(() => controlador.borradorInicial(null))
   const [toastGuardado, setToastGuardado] = useState<ToastGuardado | null>(null)
   const [avisoEstado, setAvisoEstado] = useState('')
   const [confirmacionDuplicado, setConfirmacionDuplicado] = useState(false)
   const [sync, setSync] = useState<EstadoSincronizacion | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const timerToastRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const limpiarTimerToast = useCallback(() => {
-    if (timerToastRef.current !== null) {
-      clearTimeout(timerToastRef.current)
-      timerToastRef.current = null
+  const limpiarTimer = useCallback(() => {
+    if (timerRef.current !== null) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
     }
   }, [])
+  useEffect(() => limpiarTimer, [limpiarTimer])
 
-  useEffect(() => limpiarTimerToast, [limpiarTimerToast])
+  const refrescarSync = useCallback(async () => {
+    try {
+      setSync(await controlador.sincronizacion())
+    } catch {
+      // informativo
+    }
+  }, [controlador])
 
   useEffect(() => {
     let vigente = true
@@ -143,45 +115,30 @@ export function ProveedorCompraRapida({
     setErrorCarga('')
     void controlador
       .cargar()
-      .then(async ({ catalogo: cat, ultimoMedioId: medioRecordado }) => {
+      .then(async ({ catalogo: cat, ultimoMedioId: med }) => {
         if (!vigente) return
         setCatalogo(cat)
-        setUltimoMedioId(medioRecordado)
-        const inicial = controlador.borradorInicial(medioRecordado)
-        const medioValido = elegirMedioCompatible(
-          controlador,
-          cat,
-          inicial.ambito,
-          inicial.medioId,
-        )
-        setBorrador({ ...inicial, medioId: medioValido })
+        setUltimoMedioId(med)
+        const ini = controlador.borradorInicial(med)
+        setBorrador({ ...ini, medioId: medioCompatible(controlador, cat, ini.ambito, ini.medioId) })
         setCargando(false)
-        try {
-          const estadoSync = await controlador.sincronizacion()
-          if (vigente) setSync(estadoSync)
-        } catch {
-          // El estado de sincronización es informativo y no bloquea la carga
-        }
+        await refrescarSync()
       })
       .catch(() => {
-        if (!vigente) return
-        setErrorCarga('No pudimos cargar categorías y medios de pago.')
-        setCargando(false)
+        if (vigente) {
+          setErrorCarga('No pudimos cargar categorías y medios de pago.')
+          setCargando(false)
+        }
       })
     return () => {
       vigente = false
     }
-  }, [controlador, revision])
+  }, [controlador, refrescarSync, revision])
 
-  const recargarCatalogo = useCallback(() => {
-    setRevision((n) => n + 1)
-  }, [])
-
-  const mediosDisponibles = useMemo(() => {
-    if (!catalogo) return []
-    return controlador.mediosPara(catalogo, borrador.ambito)
-  }, [catalogo, controlador, borrador.ambito])
-
+  const mediosDisponibles = useMemo(
+    () => (catalogo ? controlador.mediosPara(catalogo, borrador.ambito) : []),
+    [catalogo, controlador, borrador.ambito],
+  )
   const medioSeleccionado = useMemo(
     () => mediosDisponibles.find((m) => m.id === borrador.medioId) ?? null,
     [mediosDisponibles, borrador.medioId],
@@ -193,17 +150,12 @@ export function ProveedorCompraRapida({
       setBorrador((prev) => {
         if (!catalogo) return { ...prev, ambito }
         const compatibles = controlador.mediosPara(catalogo, ambito)
-        const sigueValido = prev.medioId && compatibles.some((m) => m.id === prev.medioId)
-        const medioId = sigueValido
-          ? prev.medioId
-          : elegirMedioCompatible(controlador, catalogo, ambito, ultimoMedioId)
-        const medioElegido = compatibles.find((m) => m.id === medioId)
-        return {
-          ...prev,
-          ambito,
-          medioId,
-          cuotas: medioElegido?.tipo === 'tarjeta' ? prev.cuotas : 1,
-        }
+        const medioId =
+          prev.medioId && compatibles.some((m) => m.id === prev.medioId)
+            ? prev.medioId
+            : medioCompatible(controlador, catalogo, ambito, ultimoMedioId)
+        const elegido = compatibles.find((m) => m.id === medioId)
+        return { ...prev, ambito, medioId, cuotas: elegido?.tipo === 'tarjeta' ? prev.cuotas : 1 }
       })
     },
     [catalogo, controlador, ultimoMedioId],
@@ -213,29 +165,15 @@ export function ProveedorCompraRapida({
     (medioId: string) => {
       setConfirmacionDuplicado(false)
       setBorrador((prev) => {
-        const medioElegido = mediosDisponibles.find((m) => m.id === medioId)
-        return {
-          ...prev,
-          medioId,
-          cuotas: medioElegido?.tipo === 'tarjeta' ? prev.cuotas : 1,
-        }
+        const elegido = mediosDisponibles.find((m) => m.id === medioId)
+        return { ...prev, medioId, cuotas: elegido?.tipo === 'tarjeta' ? prev.cuotas : 1 }
       })
     },
     [mediosDisponibles],
   )
 
-  const seleccionarCategoria = useCallback((categoriaId: string) => {
-    setConfirmacionDuplicado(false)
-    setBorrador((prev) => ({ ...prev, categoriaId }))
-  }, [])
-
-  const seleccionarCuotas = useCallback((cuotas: number) => {
-    setConfirmacionDuplicado(false)
-    setBorrador((prev) => ({ ...prev, cuotas }))
-  }, [])
-
   const aplicarDatosFactura = useCallback(
-    (params: {
+    (p: {
       factura: DatosFactura
       categoriaId?: string | null | undefined
       nombreComercio?: string | null | undefined
@@ -245,192 +183,126 @@ export function ProveedorCompraRapida({
     }) => {
       setConfirmacionDuplicado(false)
       setBorrador((prev) => {
-        const ambitoFinal = params.ambito ?? prev.ambito
-        const medioId = catalogo
-          ? elegirMedioCompatible(controlador, catalogo, ambitoFinal, prev.medioId)
-          : prev.medioId
+        const ambito = p.ambito ?? prev.ambito
         return {
           ...prev,
-          ambito: ambitoFinal,
-          medioId,
-          monto: params.monto ?? params.factura.montoTotal ?? prev.monto,
-          fecha: params.fecha ?? params.factura.fecha ?? prev.fecha,
-          categoriaId:
-            params.categoriaId !== undefined ? params.categoriaId : prev.categoriaId,
-          factura: params.factura,
-          nombreComercio:
-            params.nombreComercio !== undefined
-              ? params.nombreComercio
-              : prev.nombreComercio,
-          descripcion:
-            prev.descripcion || (params.nombreComercio ? params.nombreComercio : ''),
+          ambito,
+          medioId: catalogo ? medioCompatible(controlador, catalogo, ambito, prev.medioId) : prev.medioId,
+          monto: p.monto ?? p.factura.montoTotal ?? prev.monto,
+          fecha: p.fecha ?? p.factura.fecha ?? prev.fecha,
+          categoriaId: p.categoriaId !== undefined ? p.categoriaId : prev.categoriaId,
+          factura: p.factura,
+          nombreComercio: p.nombreComercio !== undefined ? p.nombreComercio : prev.nombreComercio,
+          descripcion: prev.descripcion || p.nombreComercio || '',
         }
       })
     },
     [catalogo, controlador],
   )
 
-  const aplicarRecompra = useCallback(
-    (datos: DatosRecompra) => {
-      setConfirmacionDuplicado(false)
-      setBorrador((prev) => ({
-        ...prev,
-        ambito: datos.ambito ?? 'hogar',
-        monto: datos.monto ?? prev.monto,
-        categoriaId: datos.categoriaId !== undefined ? datos.categoriaId : prev.categoriaId,
-        descripcion: datos.descripcion ?? prev.descripcion,
-      }))
-    },
-    [],
-  )
-
-  const anunciarEstado = useCallback((texto: string) => {
-    setAvisoEstado(texto)
+  const aplicarRecompra = useCallback((d: DatosRecompra) => {
+    setConfirmacionDuplicado(false)
+    setBorrador((prev) => ({
+      ...prev,
+      ambito: d.ambito ?? 'hogar',
+      monto: d.monto ?? prev.monto,
+      categoriaId: d.categoriaId !== undefined ? d.categoriaId : prev.categoriaId,
+      descripcion: d.descripcion ?? prev.descripcion,
+    }))
   }, [])
 
   const guardarBorrador = useCallback(
-    async (
-      borradorExplicito?: BorradorCompra,
-      opciones?: { ignorarDuplicadoInmediato?: boolean },
-    ): Promise<ResultadoIntentoGuardar> => {
-      if (!catalogo) {
-        return { estado: 'fallo', mensaje: 'Todavía están cargando los datos del hogar.' }
-      }
-      const objetivo = borradorExplicito ?? borrador
-      const error = controlador.validar(objetivo, catalogo)
+    async (b?: BorradorCompra, opts?: { ignorarDuplicadoInmediato?: boolean }): Promise<ResultadoGuardarUI> => {
+      if (!catalogo) return { estado: 'fallo', mensaje: 'Todavía están cargando los datos del hogar.' }
+      const obj = b ?? borrador
+      const error = controlador.validar(obj, catalogo)
       if (error) {
         setAvisoEstado(error.mensaje)
         return { estado: 'error', error }
       }
-
-      if (!opciones?.ignorarDuplicadoInmediato) {
-        const esDuplicado = await controlador.posibleDuplicado(objetivo)
-        if (esDuplicado) {
-          setConfirmacionDuplicado(true)
-          setAvisoEstado(
-            'Ya registraste una compra igual hace menos de un minuto. Confirmá si querés guardarla de nuevo.',
-          )
-          return { estado: 'confirmar_duplicado' }
-        }
+      if (!opts?.ignorarDuplicadoInmediato && (await controlador.posibleDuplicado(obj))) {
+        setConfirmacionDuplicado(true)
+        setAvisoEstado('Posible compra duplicada. Confirmá si querés guardarla de nuevo.')
+        return { estado: 'confirmar_duplicado' }
       }
-
       setGuardando(true)
       setConfirmacionDuplicado(false)
       try {
-        const resultado = await controlador.guardar(objetivo, catalogo)
-        const medioUsado = controlador
-          .mediosPara(catalogo, objetivo.ambito)
-          .find((m) => m.id === objetivo.medioId)
-        const toast: ToastGuardado = {
-          loteId: resultado.loteId,
-          resumen: resultado.resumen,
-          conCuotas: medioUsado?.tipo === 'tarjeta' && objetivo.cuotas > 1,
-        }
-
-        setUltimoMedioId(objetivo.medioId)
-        const siguiente = controlador.borradorInicial(objetivo.medioId)
-        const medioSiguiente = elegirMedioCompatible(
-          controlador,
-          catalogo,
-          siguiente.ambito,
-          siguiente.medioId,
-        )
-        setBorrador({ ...siguiente, medioId: medioSiguiente })
-
-        limpiarTimerToast()
+        const res = await controlador.guardar(obj, catalogo)
+        const usado = controlador.mediosPara(catalogo, obj.ambito).find((m) => m.id === obj.medioId)
+        const toast: ToastGuardado = { loteId: res.loteId, resumen: res.resumen, conCuotas: usado?.tipo === 'tarjeta' && obj.cuotas > 1 }
+        setUltimoMedioId(obj.medioId)
+        const sig = controlador.borradorInicial(obj.medioId)
+        setBorrador({ ...sig, medioId: medioCompatible(controlador, catalogo, sig.ambito, sig.medioId) })
+        limpiarTimer()
         setToastGuardado(toast)
-        setAvisoEstado(resultado.resumen)
-        timerToastRef.current = setTimeout(() => {
+        setAvisoEstado(res.resumen)
+        timerRef.current = setTimeout(() => {
           setToastGuardado(null)
-          timerToastRef.current = null
+          timerRef.current = null
         }, VENTANA_DESHACER_MS)
-
-        try {
-          const estadoSync = await controlador.sincronizacion()
-          setSync(estadoSync)
-        } catch {
-          // informativo
-        }
-
+        await refrescarSync()
         return { estado: 'guardado', toast }
       } catch (causa) {
-        const texto =
-          causa instanceof Error && causa.message
-            ? causa.message
-            : 'No pudimos guardar la compra. Intentá de nuevo.'
-        setAvisoEstado(texto)
-        return { estado: 'fallo', mensaje: texto }
+        const mensaje = causa instanceof Error && causa.message ? causa.message : 'No pudimos guardar la compra.'
+        setAvisoEstado(mensaje)
+        return { estado: 'fallo', mensaje }
       } finally {
         setGuardando(false)
       }
     },
-    [borrador, catalogo, controlador, limpiarTimerToast],
+    [borrador, catalogo, controlador, limpiarTimer, refrescarSync],
   )
-
-  const descartarConfirmacionDuplicado = useCallback(() => {
-    setConfirmacionDuplicado(false)
-  }, [])
 
   const deshacerUltimoGuardado = useCallback(async () => {
     if (!toastGuardado) return
     const { loteId } = toastGuardado
-    limpiarTimerToast()
+    limpiarTimer()
     setToastGuardado(null)
     try {
       await controlador.deshacer(loteId)
       setAvisoEstado('Compra deshecha.')
-      try {
-        const estadoSync = await controlador.sincronizacion()
-        setSync(estadoSync)
-      } catch {
-        // informativo
-      }
+      await refrescarSync()
     } catch (causa) {
-      const texto =
-        causa instanceof Error && causa.message
-          ? causa.message
-          : 'No pudimos deshacer la compra.'
-      setAvisoEstado(texto)
+      setAvisoEstado(causa instanceof Error && causa.message ? causa.message : 'No pudimos deshacer la compra.')
     }
-  }, [controlador, limpiarTimerToast, toastGuardado])
-
-  const valor: ValorContextoCompraRapida = {
-    hogar,
-    controlador,
-    catalogo,
-    cargando,
-    errorCarga,
-    guardando,
-    borrador,
-    mediosDisponibles,
-    medioSeleccionado,
-    toastGuardado,
-    avisoEstado,
-    confirmacionDuplicado,
-    sync,
-    recargarCatalogo,
-    setBorrador,
-    cambiarAmbito,
-    seleccionarMedio,
-    seleccionarCategoria,
-    seleccionarCuotas,
-    aplicarDatosFactura,
-    aplicarRecompra,
-    guardarBorrador,
-    descartarConfirmacionDuplicado,
-    deshacerUltimoGuardado,
-    anunciarEstado,
-  }
+  }, [controlador, limpiarTimer, refrescarSync, toastGuardado])
 
   return (
-    <ContextoCompraRapida.Provider value={valor}>{children}</ContextoCompraRapida.Provider>
+    <ContextoCompraRapida.Provider
+      value={{
+        hogar,
+        controlador,
+        catalogo,
+        cargando,
+        errorCarga,
+        guardando,
+        borrador,
+        mediosDisponibles,
+        medioSeleccionado,
+        toastGuardado,
+        avisoEstado,
+        confirmacionDuplicado,
+        sync,
+        recargarCatalogo: () => setRevision((n) => n + 1),
+        setBorrador,
+        cambiarAmbito,
+        seleccionarMedio,
+        aplicarDatosFactura,
+        aplicarRecompra,
+        guardarBorrador,
+        descartarConfirmacionDuplicado: () => setConfirmacionDuplicado(false),
+        deshacerUltimoGuardado,
+        anunciarEstado: setAvisoEstado,
+      }}
+    >
+      {children}
+    </ContextoCompraRapida.Provider>
   )
 }
 
-export function useCompraRapida(): ValorContextoCompraRapida {
+export function useCompraRapida(): ValorContexto {
   const ctx = useContext(ContextoCompraRapida)
-  if (!ctx) {
-    throw new Error('useCompraRapida debe usarse dentro de ProveedorCompraRapida')
-  }
+  if (!ctx) throw new Error('useCompraRapida debe usarse dentro de ProveedorCompraRapida')
   return ctx
 }
