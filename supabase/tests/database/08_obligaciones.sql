@@ -10,7 +10,7 @@
 -- auth: …00000000a101/b102/c103
 begin;
 set search_path = public, extensions;
-select plan(98);
+select plan(100);
 
 -- Helpers de id. Fixture: pg_temp.fx('101') → 88…-000000000101. Por caso:
 -- pg_temp.fid('0101') → 88…-010100000000, con caso en 2 dígitos hex y rol en 2.
@@ -423,6 +423,21 @@ select pg_temp.push('r3a', 'caro');
 select pg_temp.push('r3b', 'caro');
 select is(pg_temp.motivo('r3a'), 'invalido', 'R3: una obligación ajena se rechaza');
 select is(pg_temp.res('r3a'), pg_temp.res('r3b'), 'R3: el periodo de una obligación ajena no cambia la respuesta');
+
+-- R4: un rechazo dentro de la RPC no deja la transacción en modo inmediato
+-- (el abort de la subtransacción restaura SET CONSTRAINTS).
+select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-00000000b102","role":"authenticated"}', true);
+set local role authenticated;
+select is(public.sync_push_obligaciones(pg_temp.lote(pg_temp.fid('4509'), 'pago', jsonb_build_object('pago_de_deuda',
+  jsonb_build_array(pg_temp.pago(pg_temp.fid('4501'), pg_temp.fx('401'), 999999999, '2026-11-30'))))) ->> 'motivo',
+  'invalido', 'R4: el sobrepago se rechaza dentro de la RPC');
+reset role;
+savepoint r4;
+select lives_ok($$insert into public.compra (id, hogar_id, fecha, descripcion, monto_total, categoria_id, pago_tipo, registrado_por, actualizado_por)
+  values ('88888888-8888-4888-8888-460100000000', '88888888-8888-4888-8888-000000000001', '2026-11-30', 'x', 1000,
+          '88888888-8888-4888-8888-000000000201', 'financiado', '88888888-8888-4888-8888-000000000101', '88888888-8888-4888-8888-000000000101')$$,
+  'R4: tras un rechazo las reglas entre filas siguen diferidas');
+rollback to savepoint r4;
 
 -- RLS: Beto ve lo del hogar y no lo personal ajeno; Caro no ve el hogar A.
 select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-00000000b102","role":"authenticated"}', true);
