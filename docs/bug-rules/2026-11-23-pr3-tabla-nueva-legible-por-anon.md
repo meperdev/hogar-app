@@ -10,4 +10,4 @@
   cada tabla concede su `SELECT` a `authenticated` de forma explícita. `supabase/tests/database/01_esquema.sql`
   crea una tabla nueva y afirma que ni `anon` ni `authenticated` pueden leerla sin grant, y
   `04_privacidad_personal.sql` afirma `42501` para `anon`.
-- PR: fundación (`feat/fundacion`).
+- PR: #3.

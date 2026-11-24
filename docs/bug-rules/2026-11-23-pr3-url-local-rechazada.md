@@ -7,4 +7,4 @@
 - Prevención: la URL se valida con `z.url({ protocol: /^https?$/ })`. `src/data/supabase.test.ts` afirma que
   `http://127.0.0.1:54321`, `http://localhost:54321` y una URL `https` de Supabase cloud se aceptan, y que una URL
   vacía, otro protocolo o una clave secreta se rechazan.
-- PR: fundación (`feat/fundacion`). Lo detectó agy al probar la UI.
+- PR: #3. Lo detectó agy al probar la UI.
