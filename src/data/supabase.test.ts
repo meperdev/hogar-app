@@ -23,4 +23,10 @@ describe('conectarSupabase', () => {
     expect(conectarSupabase('http://127.0.0.1:54321', 'sb_secret_x')).toBeNull()
     expect(conectarSupabase('http://127.0.0.1:54321', '  ')).toBeNull()
   })
+
+  it('conecta el controlador de compra rápida por actor', () => {
+    const servicios = conectarSupabase('http://127.0.0.1:54321', CLAVE_PUBLICA)
+
+    expect(typeof servicios?.compras).toBe('function')
+  })
 })

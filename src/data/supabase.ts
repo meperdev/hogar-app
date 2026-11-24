@@ -1,6 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
+import { crearControladorCompraRapida } from '../app/controladorCompraRapida'
 import { ErrorFundacion, type Servicios } from '../app/fundacion'
+import { crearPuertoCompraRapida, crearRemotoSupabase } from './compraRapida'
+import { AdministradorBaseActor } from './db'
+import { uuidV7 } from './uuid'
 
 const configuracion = z.object({
   // z.httpUrl() exige un dominio con TLD y rechaza http://127.0.0.1:54321 (Supabase local).
@@ -21,6 +25,10 @@ export function conectarSupabase(url: unknown, clavePublica: unknown): Servicios
   const cliente = createClient(config.data.url, config.data.clavePublica, {
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
   })
+
+  // Una sola base viva por conexión: al cambiar de actor se cierra la anterior.
+  const bases = new AdministradorBaseActor()
+  const remoto = crearRemotoSupabase(cliente)
 
   return {
     auth: {
@@ -83,5 +91,19 @@ export function conectarSupabase(url: unknown, clavePublica: unknown): Servicios
         return { hogarId: resultado.hogar_id, miembroId: resultado.miembro_id }
       },
     },
+    compras: (alcance) =>
+      crearControladorCompraRapida({
+        port: crearPuertoCompraRapida({
+          base: () => bases.abrir(alcance),
+          remoto,
+          alcance,
+        }),
+        alcance,
+        ahora: () => new Date(),
+        nuevoId: () => uuidV7(),
+        programar: (tarea, ms) => {
+          setTimeout(tarea, ms)
+        },
+      }),
   }
 }
