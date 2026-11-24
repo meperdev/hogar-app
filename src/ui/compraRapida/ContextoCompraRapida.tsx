@@ -21,7 +21,6 @@ import {
   type MedioOpcion,
 } from '../../app/compraRapida'
 import type { Hogar } from '../../app/fundacion'
-import { crearControladorVisualCompraRapida } from './controladorVisual'
 
 export type ToastGuardado = {
   loteId: string
@@ -102,19 +101,16 @@ export function ProveedorCompraRapida({
   children,
 }: {
   hogar: Hogar
-  crearControlador?: ((alcance: AlcanceCompra) => ControladorCompraRapida) | undefined
+  crearControlador: (alcance: AlcanceCompra) => ControladorCompraRapida
   children: ReactNode
 }) {
   const hogarId = hogar.id
   const miembroId = hogar.miembroActual.id
 
-  const controlador = useMemo(() => {
-    if (crearControlador) {
-      return crearControlador({ hogarId, miembroId })
-    }
-    return crearControladorVisualCompraRapida(hogar)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [crearControlador, hogarId, miembroId])
+  const controlador = useMemo(
+    () => crearControlador({ hogarId, miembroId }),
+    [crearControlador, hogarId, miembroId],
+  )
 
   const [catalogo, setCatalogo] = useState<CatalogoCompra | null>(null)
   const [cargando, setCargando] = useState(true)

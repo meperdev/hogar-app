@@ -26,6 +26,7 @@ import {
 import {
   PantallaAjustesFundacion,
   PantallaBalanceVacia,
+  PantallaCompraVacia,
   PantallaMascotasVacia,
   PantallaObligacionesVacia,
 } from './PantallasNucleos'
@@ -563,43 +564,60 @@ function HogarConSesion({ servicios, sesion }: { servicios: Servicios; sesion: S
     )
   }
 
-  return (
-    <ProveedorCompraRapida hogar={carga} crearControlador={servicios.compras}>
-      <Routes>
-        <Route path="/" element={<Navigate to="/compra" replace />} />
-        <Route path="/compra" element={<PantallaCompraRapida />} />
-        <Route path="/compra/cuotas" element={<PantallaCompraCuotas />} />
-        <Route path="/compra/escanear" element={<PantallaEscanearFactura />} />
-        <Route
-          path="/hogar"
-          element={
-            <ResumenHogar
-              hogar={carga}
-              onSalir={salir}
-              saliendo={ocupado}
-              errorSalir={error}
-            />
-          }
-        />
-        <Route path="/obligaciones" element={<PantallaObligacionesVacia hogar={carga} />} />
-        <Route path="/balance" element={<PantallaBalanceVacia hogar={carga} />} />
-        <Route path="/mascotas" element={<PantallaMascotasVacia hogar={carga} />} />
-        <Route
-          path="/ajustes"
-          element={
-            <PantallaAjustesFundacion
-              hogar={carga}
-              onSalir={salir}
-              saliendo={ocupado}
-              errorSalir={error}
-            />
-          }
-        />
-        <Route path="/crear-hogar" element={<Navigate to="/compra" replace />} />
-        <Route path="*" element={<Navigate to="/compra" replace />} />
-      </Routes>
-    </ProveedorCompraRapida>
+  const rutasHogar = (
+    <Routes>
+      <Route path="/" element={<Navigate to="/compra" replace />} />
+      {servicios.compras ? (
+        <>
+          <Route path="/compra" element={<PantallaCompraRapida />} />
+          <Route path="/compra/cuotas" element={<PantallaCompraCuotas />} />
+          <Route path="/compra/escanear" element={<PantallaEscanearFactura />} />
+        </>
+      ) : (
+        <>
+          <Route path="/compra" element={<PantallaCompraVacia hogar={carga} />} />
+          <Route path="/compra/*" element={<Navigate to="/compra" replace />} />
+        </>
+      )}
+      <Route
+        path="/hogar"
+        element={
+          <ResumenHogar
+            hogar={carga}
+            onSalir={salir}
+            saliendo={ocupado}
+            errorSalir={error}
+          />
+        }
+      />
+      <Route path="/obligaciones" element={<PantallaObligacionesVacia hogar={carga} />} />
+      <Route path="/balance" element={<PantallaBalanceVacia hogar={carga} />} />
+      <Route path="/mascotas" element={<PantallaMascotasVacia hogar={carga} />} />
+      <Route
+        path="/ajustes"
+        element={
+          <PantallaAjustesFundacion
+            hogar={carga}
+            onSalir={salir}
+            saliendo={ocupado}
+            errorSalir={error}
+          />
+        }
+      />
+      <Route path="/crear-hogar" element={<Navigate to="/compra" replace />} />
+      <Route path="*" element={<Navigate to="/compra" replace />} />
+    </Routes>
   )
+
+  if (servicios.compras) {
+    return (
+      <ProveedorCompraRapida hogar={carga} crearControlador={servicios.compras}>
+        {rutasHogar}
+      </ProveedorCompraRapida>
+    )
+  }
+
+  return rutasHogar
 }
 
 export function RutasFundacion({ servicios }: { servicios: Servicios }) {

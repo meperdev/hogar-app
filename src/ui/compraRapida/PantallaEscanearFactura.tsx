@@ -603,13 +603,22 @@ export function PantallaEscanearFactura() {
             </div>
           ) : null}
 
-          <button
-            type="button"
-            className={`${claseBotonSecundario} w-full`}
-            onClick={() => setVisor({ paso: 'leyendo', errorQr: '' })}
-          >
-            Escanear otro QR
-          </button>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              className={`${claseBotonSecundario} w-full`}
+              onClick={() => setVisor({ paso: 'leyendo', errorQr: '' })}
+            >
+              Escanear otro QR
+            </button>
+            <button
+              type="button"
+              className={`${claseBotonSecundario} w-full`}
+              onClick={() => pasarAManual(visor.factura)}
+            >
+              Editar manualmente
+            </button>
+          </div>
 
           {esUrlDianValida(visor.factura.urlVerificacion) ? (
             <>

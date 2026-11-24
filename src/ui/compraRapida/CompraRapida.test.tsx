@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ControladorCompraRapida } from '../../app/compraRapida'
 import type { Hogar, Servicios, Sesion } from '../../app/fundacion'
 import { RutasFundacion } from '../RutasFundacion'
-import { crearControladorVisualCompraRapida } from './controladorVisual'
+import { crearControladorFalsoCompraRapida } from './controladorFalso'
 
 const raices: Root[] = []
 
@@ -110,9 +110,17 @@ afterEach(async () => {
 })
 
 describe('Compra rápida UI (Núcleo 1)', () => {
+  it('muestra la pantalla vacía cuando servicios.compras no está definido', async () => {
+    const { contenedor } = await montarApp()
+
+    expect(contenedor.querySelector('h1')?.textContent).toBe('Compra rápida')
+    expect(contenedor.textContent).toContain('Núcleo 1 · Próximo paso')
+    expect(contenedor.querySelector('#monto-input')).toBeNull()
+  })
+
   it('abre en Compra rápida por defecto y registra mercado $85.000 en 3 acciones con Deshacer', async () => {
     const hogar = hogarDePrueba()
-    const base = crearControladorVisualCompraRapida(hogar)
+    const base = crearControladorFalsoCompraRapida(hogar)
     const espiaGuardar = vi.spyOn(base, 'guardar')
     const espiaDeshacer = vi.spyOn(base, 'deshacer')
 
@@ -169,7 +177,9 @@ describe('Compra rápida UI (Núcleo 1)', () => {
   })
 
   it('valida monto $0 con aria-disabled y foco, y falta de categoría enfocando primer chip', async () => {
-    const { contenedor } = await montarApp()
+    const { contenedor } = await montarApp({
+      comprasFactory: () => crearControladorFalsoCompraRapida(hogarDePrueba()),
+    })
 
     const cta = contenedor.querySelector<HTMLButtonElement>('button[data-sin-scroll]')
     expect(cta?.getAttribute('aria-disabled')).toBe('true')
@@ -193,7 +203,9 @@ describe('Compra rápida UI (Núcleo 1)', () => {
   })
 
   it('cambia a Personal mostrando etiqueta de privacidad y oculta cuotas al elegir préstamo en efectivo', async () => {
-    const { contenedor } = await montarApp()
+    const { contenedor } = await montarApp({
+      comprasFactory: () => crearControladorFalsoCompraRapida(hogarDePrueba()),
+    })
 
     // Cambiar a Personal
     await act(async () => buscarBoton(contenedor, 'Personal (solo yo)')?.click())
@@ -222,7 +234,7 @@ describe('Compra rápida UI (Núcleo 1)', () => {
 
   it('pide confirmación inline cuando posibleDuplicado retorna true en < 60 s', async () => {
     const hogar = hogarDePrueba()
-    const base = crearControladorVisualCompraRapida(hogar)
+    const base = crearControladorFalsoCompraRapida(hogar)
     const controlador: ControladorCompraRapida = {
       ...base,
       posibleDuplicado: vi.fn(async () => true),
@@ -250,7 +262,7 @@ describe('Compra rápida UI (Núcleo 1)', () => {
 
   it('navega a Compra a cuotas, muestra desglose sin doble conteo y permite Otro número de cuotas', async () => {
     const hogar = hogarDePrueba()
-    const base = crearControladorVisualCompraRapida(hogar)
+    const base = crearControladorFalsoCompraRapida(hogar)
     const espiaGuardar = vi.spyOn(base, 'guardar')
 
     const { contenedor } = await montarApp({
@@ -296,7 +308,7 @@ describe('Compra rápida UI (Núcleo 1)', () => {
 
   it('cubre los estados de Escanear factura: Formato 1 con campos, Formato 2 solo URL y Duplicada', async () => {
     const hogar = hogarDePrueba()
-    const base = crearControladorVisualCompraRapida(hogar)
+    const base = crearControladorFalsoCompraRapida(hogar)
     const espiaGuardar = vi.spyOn(base, 'guardar')
 
     const { contenedor } = await montarApp({

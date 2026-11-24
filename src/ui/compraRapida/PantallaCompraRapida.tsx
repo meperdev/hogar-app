@@ -309,6 +309,11 @@ export function PantallaCompraRapida() {
           <p className="font-bold">Un registro pendiente fue rechazado al sincronizar:</p>
           <p>{sync.rechazados[0]?.motivo}</p>
         </Aviso>
+      ) : sync && sync.pendientes > 0 ? (
+        <p className={claseAyudaCampo} role="status">
+          Guardado en el dispositivo ({sync.pendientes}{' '}
+          {sync.pendientes === 1 ? 'pendiente' : 'pendientes'} de sincronizar)
+        </p>
       ) : null}
 
       {errorCarga ? (

@@ -10,6 +10,69 @@ import {
 } from './ComponentesBase'
 import { ShellApp } from './ShellApp'
 
+export function PantallaCompraVacia({ hogar }: { hogar: Hogar }) {
+  return (
+    <ShellApp
+      titulo="Compra rápida"
+      subtitulo={`${hogar.miembroActual.nombre} · ${hogar.nombre}`}
+      accionDerecha={
+        <Link to="/hogar" className={`${claseBotonPequenoSecundario} no-underline`}>
+          Mi hogar
+        </Link>
+      }
+      mostrarNavegacion
+      barraAccion={
+        <Link to="/hogar" className={`${claseBotonPrimario} w-full no-underline`} data-sin-scroll>
+          Volver a {hogar.nombre}
+        </Link>
+      }
+    >
+      <Tarjeta acento="primario">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">
+            Núcleo 1 · Próximo paso
+          </h2>
+          <Insignia variante="neutral">◷ En preparación</Insignia>
+        </div>
+        <p className="m-0 text-sm text-hogar-tinta-suave">
+          Aquí vas a registrar compras en pocos toques con selector{' '}
+          <strong className="text-hogar-tinta">Hogar | Personal</strong>, teclado numérico COP
+          con <strong className="text-hogar-tinta">000</strong>, cuotas y lectura local de QR
+          DIAN.
+        </p>
+      </Tarjeta>
+
+      <Aviso variante="indigo" icono="ℹ">
+        <p>
+          <strong className="text-hogar-tinta">Sin doble conteo:</strong> cada compra suma una
+          sola vez al consumo por su fecha civil. Las cuotas y los intereses se siguen aparte en
+          Obligaciones.
+        </p>
+      </Aviso>
+
+      <Tarjeta suave>
+        <h2 className="mb-2 text-[0.9375rem] font-extrabold text-hogar-tinta">
+          Alcance activo hoy
+        </h2>
+        <dl className="m-0 flex flex-col gap-1.5 text-sm">
+          <div className="flex flex-wrap justify-between gap-2">
+            <dt className="text-hogar-tinta-suave">Miembro conectado</dt>
+            <dd className="m-0 font-bold text-hogar-tinta">{hogar.miembroActual.nombre}</dd>
+          </div>
+          <div className="flex flex-wrap justify-between gap-2">
+            <dt className="text-hogar-tinta-suave">Ámbito por defecto</dt>
+            <dd className="m-0 font-bold text-hogar-tinta">Hogar (compartido)</dd>
+          </div>
+          <div className="flex flex-wrap justify-between gap-2">
+            <dt className="text-hogar-tinta-suave">Moneda</dt>
+            <dd className="hogar-cop m-0 font-bold text-hogar-tinta">COP enteros</dd>
+          </div>
+        </dl>
+      </Tarjeta>
+    </ShellApp>
+  )
+}
+
 export function PantallaObligacionesVacia({ hogar }: { hogar: Hogar }) {
   return (
     <ShellApp
