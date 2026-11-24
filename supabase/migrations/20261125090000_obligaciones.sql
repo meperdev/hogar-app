@@ -317,8 +317,9 @@ create policy pago_de_deuda_select on public.pago_de_deuda
 -- ---------------------------------------------------------------------------
 -- `p_lote.tipo` declara la intención y fija qué tablas admite el lote:
 -- - 'pago': 1 abono y/o 1 saldo a favor del mismo pasivo, más costos de ese
---   pasivo: altas `origen='manual'` o correcciones de un costo existente con su
---   `base_seq` (solo `monto`; queda `origen='manual'`).
+--   pasivo: altas (con `pasivo_id` y `origen='manual'`) o correcciones de un
+--   costo existente de ese pasivo como `{id, base_seq, monto}` (solo cambia el
+--   monto y queda `origen='manual'`).
 -- - 'pasivo': 1 pasivo, su subtipo y opcionalmente 1 plan `saldo_inicial` o
 --   `desembolso` con sus cuotas. Tarjeta y crédito solo de un miembro.
 -- - 'obligacion': 1 plantilla.
@@ -448,10 +449,13 @@ begin
             from pg_catalog.jsonb_array_elements(coalesce(v_filas -> 'costo_financiero', '[]')) e) > 0 then
         return private.rechazo('invalido', 'un costo aparece dos veces en el lote');
       end if;
+      -- Un costo nuevo declara su pasivo y origen manual; una corrección
+      -- ({id, base_seq, monto}) se valida contra el costo existente más abajo.
       if exists (
         select 1 from pg_catalog.jsonb_array_elements(coalesce(v_filas -> 'costo_financiero', '[]')) e
-         where (e ->> 'pasivo_id')::uuid is distinct from v_pasivo_id
-            or (e ->> 'origen') is distinct from 'manual'
+         where pg_catalog.jsonb_typeof(e -> 'base_seq') is distinct from 'number'
+           and ((e ->> 'pasivo_id')::uuid is distinct from v_pasivo_id
+                or (e ->> 'origen') is distinct from 'manual')
       ) then
         return private.rechazo('invalido', 'los costos del pago son manuales y de su pasivo');
       end if;

@@ -10,7 +10,7 @@
 -- auth: …00000000a101/b102/c103
 begin;
 set search_path = public, extensions;
-select plan(115);
+select plan(117);
 
 -- Helpers de id. Fixture: pg_temp.fx('101') → 88…-000000000101. Por caso:
 -- pg_temp.fid('0101') → 88…-010100000000, con caso en 2 dígitos hex y rol en 2.
@@ -473,6 +473,16 @@ select pg_temp.push('r7c');
 select is(pg_temp.estado('r7a'), 'aplicado', 'R7: el saldo a favor nace con el libro en cero');
 select is(pg_temp.estado('r7b'), 'aplicado', 'R7: un cargo posterior lo consume el saldo a favor y el libro sigue en cero');
 select is(pg_temp.motivo('r7c'), 'invalido', 'R7: con el cargo cubierto por el saldo a favor no queda saldo que abonar');
+
+-- R10: la corrección viaja con la forma exacta del cliente ({id, base_seq, monto}).
+insert into public.prueba_lote values ('r10', pg_temp.lote(pg_temp.fid('4c09'), 'pago', jsonb_build_object(
+  'costo_financiero', jsonb_build_array(jsonb_build_object('id', pg_temp.fid('4803'), 'monto', 3500,
+    'base_seq', (select seq from public.costo_financiero where id = pg_temp.fid('4803')))),
+  'pago_de_deuda', jsonb_build_array(pg_temp.pago(pg_temp.fid('4c01'), pg_temp.fx('403'), 1, '2026-11-12', p_tipo => 'saldo_a_favor')))));
+select pg_temp.push('r10');
+select is(pg_temp.estado('r10'), 'aplicado', 'R10: la corrección con la forma del cliente se aplica');
+select is((select monto || ' ' || origen from public.costo_financiero where id = pg_temp.fid('4803')), '3500 manual',
+  'R10: el costo corregido queda con el monto nuevo y origen manual');
 
 -- R8: guardas tempranas de la RPC.
 select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-00000000b102","role":"authenticated"}', true);
