@@ -9,7 +9,7 @@
 -- desembolso crédito ...000000000502 · auth: ...00000000a101/b102/c103
 begin;
 set search_path = public, extensions;
-select plan(107);
+select plan(109);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password,
                         email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
@@ -427,6 +427,26 @@ select is(pg_temp.detalle('c18_array'), 'forma del lote', 'C18: un lote que no e
 select is(pg_temp.detalle('c18_sin_filas'), 'forma del lote', 'C18: un lote sin filas se rechaza');
 select is(pg_temp.detalle('c18_uuid'), 'identificadores del lote', 'C18: un lote_id que no es UUID se rechaza');
 select is(pg_temp.detalle('c18_vacio'), 'un lote lleva exactamente una compra', 'C18: un lote sin compra se rechaza');
+
+-- C19: un valor no escalar donde va un monto es 'invalido', no un error de RPC
+-- que dejaría el lote reintentándose para siempre.
+insert into public.prueba_lote values
+  ('c19', pg_temp.lote(pg_temp.fid('7509'), jsonb_build_array(pg_temp.compra(pg_temp.fid('7501'), 85000,
+      p_extra => jsonb_build_object('monto_total', jsonb_build_object('valor', 85000), 'fecha', jsonb_build_array(1))))));
+select pg_temp.push('c19');
+select is(pg_temp.motivo('c19'), 'invalido', 'C19: un monto no escalar se rechaza como invalido');
+
+-- C20: sync_push no deja la transacción del invocador en modo inmediato.
+select set_config('request.jwt.claims', jsonb_build_object('sub', '77777777-7777-4777-8777-00000000a101', 'role', 'authenticated')::text, true);
+set local role authenticated;
+select public.sync_push(pg_temp.lote(pg_temp.fid('7609'), jsonb_build_array(pg_temp.compra(pg_temp.fid('7601'), 1000))));
+reset role;
+savepoint c20;
+select lives_ok($$insert into public.compra (id, hogar_id, fecha, descripcion, monto_total, categoria_id, pago_tipo, registrado_por, actualizado_por)
+  values ('77777777-7777-4777-8777-760200000000', '77777777-7777-4777-8777-000000000001', '2026-11-22', 'x', 1000,
+          '77777777-7777-4777-8777-000000000201', 'financiado', '77777777-7777-4777-8777-000000000101', '77777777-7777-4777-8777-000000000101')$$,
+  'C20: tras sync_push las reglas entre filas siguen diferidas en la transacción');
+rollback to savepoint c20;
 
 select pg_temp.push('c17');
 select is(pg_temp.detalle('c17'), 'demasiadas cuotas en el lote', 'C17: más de 360 cuotas se rechaza antes de tomar locks');

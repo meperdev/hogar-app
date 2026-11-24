@@ -1190,13 +1190,19 @@ begin
 
     insert into public.lote_aplicado (hogar_id, autor_miembro_id, lote_id, resultado)
     values (v_hogar_id, v_actor, v_lote_id, v_resultado);
+
+    -- Las reglas ya se evaluaron: se devuelve el modo diferido (el de todas las
+    -- restricciones de este esquema) para no alterar la transacción del invocador.
+    set constraints all deferred;
   exception
     when unique_violation then
       get stacked diagnostics v_restriccion = constraint_name;
       return private.rechazo('duplicado', v_restriccion);
-    when check_violation or not_null_violation or foreign_key_violation
-         or invalid_text_representation or numeric_value_out_of_range
-         or datetime_field_overflow or invalid_datetime_format then
+    -- Clases completas de datos (22) e integridad (23): todo cuerpo mal formado
+    -- termina en un rechazo terminal y no en un error que el outbox reintentaría
+    -- para siempre. Bloqueos, cancelaciones y timeouts siguen siendo errores
+    -- reintentables.
+    when integrity_constraint_violation or data_exception then
       get stacked diagnostics v_restriccion = constraint_name, v_mensaje = message_text;
       return private.rechazo('invalido', coalesce(nullif(v_restriccion, ''), v_mensaje));
   end;
