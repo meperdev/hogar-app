@@ -141,6 +141,11 @@
     box-shadow: 0 -4px 12px rgba(22, 30, 27, 0.08);
   }
 
+  .hogar-action-bar--fondo {
+    bottom: 0;
+    padding-bottom: calc(9px + env(safe-area-inset-bottom, 0px));
+  }
+
   .hogar-bottom-nav {
     position: fixed;
     bottom: 0;
@@ -179,6 +184,12 @@
     padding-bottom: calc(
       var(--hogar-nav-height) + var(--hogar-action-bar-height) +
         env(safe-area-inset-bottom, 0px) + 32px
+    );
+  }
+
+  .hogar-main-sin-nav-con-cta {
+    padding-bottom: calc(
+      var(--hogar-action-bar-height) + env(safe-area-inset-bottom, 0px) + 32px
     );
   }
 

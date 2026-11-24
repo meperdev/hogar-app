@@ -72,7 +72,9 @@ export function ShellApp({
       : barraAccion
         ? 'hogar-main-con-nav-y-cta'
         : 'hogar-main-con-nav'
-    : 'pb-7'
+    : barraAccion
+      ? 'hogar-main-sin-nav-con-cta'
+      : 'pb-7'
 
   const claseCabecera = compacto
     ? 'sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-hogar-borde bg-hogar-superficie px-3.5 py-2'
@@ -129,7 +131,11 @@ export function ShellApp({
       ) : null}
 
       {barraAccion ? (
-        <div className="hogar-action-bar" role="region" aria-label={etiquetaBarraAccion}>
+        <div
+          className={`hogar-action-bar ${mostrarNavegacion ? '' : 'hogar-action-bar--fondo'}`.trim()}
+          role="region"
+          aria-label={etiquetaBarraAccion}
+        >
           {barraAccion}
         </div>
       ) : null}
