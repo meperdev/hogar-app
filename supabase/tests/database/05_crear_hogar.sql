@@ -7,6 +7,11 @@ set search_path = public, extensions;
 
 select plan(45);
 
+-- Los conteos de este archivo son globales: se parte de una base de fundación
+-- vacía dentro de la transacción, sin depender de datos de desarrollo locales.
+-- El ROLLBACK final restaura lo que hubiera.
+truncate public.personal_seq, public.hogar_seq, public.categoria, public.miembro, public.hogar;
+
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password,
                         email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
                         created_at, updated_at)
