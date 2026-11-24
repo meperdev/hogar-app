@@ -97,7 +97,7 @@ export type BorradorCompra = {
   nombreComercio: string | null
 }
 
-export type CampoInvalido = 'monto' | 'categoria' | 'medio' | 'cuotas' | 'fecha'
+export type CampoInvalido = 'monto' | 'categoria' | 'medio' | 'cuotas' | 'fecha' | 'descripcion'
 
 /** Mensajes en español listos para `aria-live`. */
 export type ErrorBorrador = { campo: CampoInvalido; mensaje: string }
