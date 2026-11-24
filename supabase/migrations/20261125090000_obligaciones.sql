@@ -78,8 +78,10 @@ alter table public.compra
   add constraint compra_obligacion_fkey
     foreign key (hogar_id, obligacion_id) references public.obligacion (hogar_id, id);
 
+-- Con `hogar_id` en la clave: el choque solo ocurre dentro del hogar y una
+-- obligación ajena falla por FK, sin revelar si ese periodo ya se pagó.
 create unique index compra_obligacion_periodo_key
-  on public.compra (obligacion_id, periodo)
+  on public.compra (hogar_id, obligacion_id, periodo)
   where obligacion_id is not null and eliminado_en is null;
 
 -- El periodo es una instancia real de la plantilla y la compra va en su categoría.
@@ -96,7 +98,13 @@ begin
   if new.obligacion_id is null then
     return new;
   end if;
-  select * into v_o from public.obligacion where id = new.obligacion_id;
+  -- Solo una plantilla del mismo hogar: una ajena se deja al FK, así la
+  -- respuesta no revela su calendario.
+  select * into v_o from public.obligacion
+   where id = new.obligacion_id and hogar_id = new.hogar_id;
+  if not found then
+    return new;
+  end if;
   v_paso := case v_o.periodicidad
               when 'mensual' then 1 when 'bimestral' then 2 when 'trimestral' then 3 else 12 end;
   v_meses := (pg_catalog.left(new.periodo, 4)::int * 12 + pg_catalog.right(new.periodo, 2)::int)
@@ -152,9 +160,10 @@ create table public.pago_de_deuda (
     foreign key (hogar_id, actualizado_por) references public.miembro (hogar_id, id)
 );
 
--- I20: dos pagos completos enlazados a la misma cuota se rechazan.
+-- I20: dos pagos completos enlazados a la misma cuota se rechazan (por hogar,
+-- como el índice de obligaciones: una cuota ajena falla por FK).
 create unique index pago_de_deuda_cuota_key
-  on public.pago_de_deuda (cuota_id)
+  on public.pago_de_deuda (hogar_id, cuota_id)
   where cuota_id is not null and tipo = 'abono' and eliminado_en is null;
 
 create index pago_de_deuda_pasivo_idx on public.pago_de_deuda (pasivo_id);
@@ -257,13 +266,25 @@ create constraint trigger pago_de_deuda_valido
   deferrable initially deferred
   for each row execute function private.validar_pago();
 
--- Corregir un costo (p. ej. bajar un interés ya pagado) también revalida el libro.
+-- Corregir un costo (p. ej. bajar un interés ya pagado) también revalida el libro;
+-- si es de una cuota ya pagada, su pago enlazado debe seguir cubriéndola completa.
 create function private.validar_libro_de_costo()
 returns trigger
 language plpgsql
 set search_path = ''
 as $$
 begin
+  if new.cuota_id is not null and exists (
+    select 1
+      from public.pago_de_deuda g
+      join public.cuota q on q.id = g.cuota_id
+     where g.cuota_id = new.cuota_id and g.tipo = 'abono' and g.eliminado_en is null
+       and g.monto < q.capital + coalesce((
+             select sum(k.monto) from public.costo_financiero k
+              where k.cuota_id = q.id and k.eliminado_en is null), 0)
+  ) then
+    raise exception 'el pago enlazado no cubre su cuota completa' using errcode = '23514';
+  end if;
   if new.pasivo_id is not null then
     perform private.verificar_libro(new.pasivo_id);
   end if;
@@ -420,6 +441,12 @@ begin
         return private.rechazo('invalido', 'un pago lleva un abono y/o un saldo a favor de un pasivo');
       end if;
       v_pasivo_id := v_mensaje::uuid;
+      -- Un costo una sola vez por lote: dos correcciones del mismo costo se
+      -- pisarían sin orden definido.
+      if (select count(*) - count(distinct (e ->> 'id'))
+            from pg_catalog.jsonb_array_elements(coalesce(v_filas -> 'costo_financiero', '[]')) e) > 0 then
+        return private.rechazo('invalido', 'un costo aparece dos veces en el lote');
+      end if;
       if exists (
         select 1 from pg_catalog.jsonb_array_elements(coalesce(v_filas -> 'costo_financiero', '[]')) e
          where (e ->> 'pasivo_id')::uuid is distinct from v_pasivo_id

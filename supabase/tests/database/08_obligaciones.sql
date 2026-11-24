@@ -10,7 +10,7 @@
 -- auth: …00000000a101/b102/c103
 begin;
 set search_path = public, extensions;
-select plan(93);
+select plan(98);
 
 -- Helpers de id. Fixture: pg_temp.fx('101') → 88…-000000000101. Por caso:
 -- pg_temp.fid('0101') → 88…-010100000000, con caso en 2 dígitos hex y rol en 2.
@@ -391,6 +391,38 @@ select is(pg_temp.filas('compra', 'id', pg_temp.fid('3501')), 0, 'O4: el rechazo
 select pg_temp.push('o5', 'beto');
 select is(pg_temp.motivo('o5'), 'invalido', 'O5: un pago de obligación personal se rechaza');
 select is(pg_temp.detalle('o5'), 'el pago de una obligación es una compra de contado del hogar', 'O5: el detalle exige el ámbito hogar');
+
+-- R1: un costo no puede aparecer dos veces en el mismo lote (la segunda
+-- corrección se perdería en silencio).
+insert into public.prueba_lote values ('r1', pg_temp.lote(pg_temp.fid('4109'), 'pago', jsonb_build_object(
+  'costo_financiero', jsonb_build_array(
+    pg_temp.costo(pg_temp.fx('d201'), 7000, pg_temp.fx('402'), (select seq from public.costo_financiero where id = pg_temp.fx('d201'))),
+    pg_temp.costo(pg_temp.fx('d201'), 7000, pg_temp.fx('402'), (select seq from public.costo_financiero where id = pg_temp.fx('d201')))),
+  'pago_de_deuda', jsonb_build_array(pg_temp.pago(pg_temp.fid('4101'), pg_temp.fx('402'), 1, '2026-11-29', p_tipo => 'saldo_a_favor')))));
+select pg_temp.push('r1', 'beto');
+select is(pg_temp.detalle('r1'), 'un costo aparece dos veces en el lote', 'R1: dos correcciones del mismo costo se rechazan');
+
+-- R2: subir el interés de una cuota ya pagada no puede dejar su enlace sin cubrir.
+insert into public.prueba_lote values ('r2', pg_temp.lote(pg_temp.fid('4209'), 'pago', jsonb_build_object(
+  'costo_financiero', jsonb_build_array(
+    pg_temp.costo(pg_temp.fx('d201'), 8000, pg_temp.fx('402'), (select seq from public.costo_financiero where id = pg_temp.fx('d201')))),
+  'pago_de_deuda', jsonb_build_array(pg_temp.pago(pg_temp.fid('4201'), pg_temp.fx('402'), 1000, '2026-11-27')))));
+select pg_temp.push('r2', 'beto');
+select ok(pg_temp.detalle('r2') like '%no cubre su cuota%', 'R2: el enlace de la cuota pagada se revalida al corregir su interés');
+select is((select monto from public.costo_financiero where id = pg_temp.fx('d201')), 7000::bigint, 'R2: el interés no cambia');
+
+-- R3: una obligación de otro hogar responde igual sea cual sea el periodo.
+insert into public.prueba_lote values
+  ('r3a', jsonb_build_object('lote_id', pg_temp.fid('4309'), 'hogar_id', pg_temp.fx('2'), 'schema_version', 1,
+    'tipo', 'pago_obligacion', 'filas', jsonb_build_object('compra', jsonb_build_array(
+      pg_temp.compra_obligacion(pg_temp.fid('4301'), pg_temp.fx('701'), '2025-12', 1000, '2026-11-20', pg_temp.fx('202'), pg_temp.fx('303')))))),
+  ('r3b', jsonb_build_object('lote_id', pg_temp.fid('4409'), 'hogar_id', pg_temp.fx('2'), 'schema_version', 1,
+    'tipo', 'pago_obligacion', 'filas', jsonb_build_object('compra', jsonb_build_array(
+      pg_temp.compra_obligacion(pg_temp.fid('4301'), pg_temp.fx('701'), '2026-11', 1000, '2026-11-20', pg_temp.fx('202'), pg_temp.fx('303'))))));
+select pg_temp.push('r3a', 'caro');
+select pg_temp.push('r3b', 'caro');
+select is(pg_temp.motivo('r3a'), 'invalido', 'R3: una obligación ajena se rechaza');
+select is(pg_temp.res('r3a'), pg_temp.res('r3b'), 'R3: el periodo de una obligación ajena no cambia la respuesta');
 
 -- RLS: Beto ve lo del hogar y no lo personal ajeno; Caro no ve el hogar A.
 select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-00000000b102","role":"authenticated"}', true);
