@@ -9,7 +9,7 @@
 -- desembolso crédito ...000000000502 · auth: ...00000000a101/b102/c103
 begin;
 set search_path = public, extensions;
-select plan(115);
+select plan(117);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password,
                         email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
@@ -465,6 +465,19 @@ insert into public.prueba_lote values
 select pg_temp.push('c22');
 select is(pg_temp.motivo('c22'), 'duplicado', 'C22: la misma compra en otro lote_id es duplicado');
 select is(pg_temp.filas('compra', 'id', pg_temp.fid('0101')), 1, 'C22: la compra sigue contada una sola vez');
+
+-- C23: el interés calculado es una estimación del cliente (decisión de Santiago,
+-- PR #4): se guarda como llega aunque no coincida con E.A.→M.V. y se edita en
+-- Obligaciones. En 1 cuota de $100.000 al 28,32 % E.A. la cuenta daría $2.100.
+insert into public.prueba_lote values
+  ('c23', pg_temp.lote(pg_temp.fid('7809'), jsonb_build_array(pg_temp.compra(pg_temp.fid('7801'), 100000, 'financiado', p_medio => null)),
+    jsonb_build_array(pg_temp.plan(pg_temp.fid('7802'), 100000, p_compra => pg_temp.fid('7801'), p_n => 1, p_tasa_tipo => 'EA', p_tasa_ppm => 283200)),
+    pg_temp.cuotas(pg_temp.fid('7802'), array[100000]::bigint[], array[pg_temp.fid('7803')]::uuid[]),
+    jsonb_build_array(pg_temp.costo(pg_temp.fid('7806'), 1500, '2026-12-25', p_cuota => pg_temp.fid('7803')))));
+select pg_temp.push('c23');
+select is(pg_temp.estado('c23'), 'aplicado', 'C23: el servidor acepta el interés estimado por el cliente');
+select is((select monto from public.costo_financiero where id = pg_temp.fid('7806') and origen = 'calculado'), 1500::bigint,
+  'C23: el interés se guarda tal como llegó, con origen calculado');
 
 select pg_temp.push('c17');
 select is(pg_temp.detalle('c17'), 'demasiadas cuotas en el lote', 'C17: más de 360 cuotas se rechaza antes de tomar locks');

@@ -891,6 +891,10 @@ create policy alias_comercio_select on public.alias_comercio
 -- Aplica en una sola transacción el lote atómico de una compra: `compra`,
 -- `plan_de_cuotas` (origen 'compra'), `cuota`, `costo_financiero` (interés
 -- calculado de esas cuotas) y `alias_comercio`. Solo altas (`base_seq` nulo):
+-- El interés calculado es una estimación del cliente (decisión de Santiago,
+-- PR #4): se guarda tal como llega, con origen 'calculado', y el servidor no lo
+-- recalcula ni lo rechaza; se corrige en Obligaciones del mes (pasa a 'manual').
+-- El servidor sí exige la tasa vigente del pasivo y el vínculo cuota-pasivo.
 -- updates y tombstones llegan con los núcleos que los usan.
 --
 -- Resultado: {estado:'aplicado', filas:[{tabla,id,seq}]} o
@@ -1157,6 +1161,7 @@ begin
     v_salida := v_salida || coalesce(v_parcial, '[]'::jsonb);
 
     with ins as (
+      -- `monto` es la estimación del cliente: no se recalcula (ver cabecera).
       insert into public.costo_financiero (
         id, hogar_id, tipo, monto, fecha_causacion, pasivo_id, medio_de_pago_id, cuota_id,
         origen, descripcion, registrado_por, actualizado_por)

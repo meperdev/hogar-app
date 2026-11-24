@@ -243,6 +243,8 @@ export function construirLoteCompra(e: EntradaLoteCompra, nuevoId: () => string)
         capital: cuota.capital,
       })
       // Sin tasa no se inventa interés; un interés redondeado a $0 no es un costo.
+      // Es una estimación: el servidor la guarda como llega (origen 'calculado')
+      // y se corrige en Obligaciones del mes (decisión de Santiago, PR #4).
       if (cuota.interes !== null && cuota.interes > 0) {
         costos.push({
           id: nuevoId(),
