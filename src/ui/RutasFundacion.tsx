@@ -35,6 +35,10 @@ import { ProveedorCompraRapida } from './compraRapida/ContextoCompraRapida'
 import { PantallaCompraCuotas } from './compraRapida/PantallaCompraCuotas'
 import { PantallaCompraRapida } from './compraRapida/PantallaCompraRapida'
 import { PantallaEscanearFactura } from './compraRapida/PantallaEscanearFactura'
+import { ProveedorObligaciones } from './obligaciones/ContextoObligaciones'
+import { PantallaNuevoPasivo } from './obligaciones/PantallaNuevoPasivo'
+import { PantallaObligaciones } from './obligaciones/PantallaObligaciones'
+import { PantallaRegistrarPago } from './obligaciones/PantallaRegistrarPago'
 
 function mensaje(error: unknown, porDefecto: string) {
   return error instanceof ErrorFundacion ? error.message : porDefecto
@@ -590,7 +594,18 @@ function HogarConSesion({ servicios, sesion }: { servicios: Servicios; sesion: S
           />
         }
       />
-      <Route path="/obligaciones" element={<PantallaObligacionesVacia hogar={carga} />} />
+      {servicios.obligaciones ? (
+        <>
+          <Route path="/obligaciones" element={<PantallaObligaciones />} />
+          <Route path="/obligaciones/pagar/:tipo/:id" element={<PantallaRegistrarPago />} />
+          <Route path="/obligaciones/nuevo-pasivo" element={<PantallaNuevoPasivo />} />
+        </>
+      ) : (
+        <>
+          <Route path="/obligaciones" element={<PantallaObligacionesVacia hogar={carga} />} />
+          <Route path="/obligaciones/*" element={<Navigate to="/obligaciones" replace />} />
+        </>
+      )}
       <Route path="/balance" element={<PantallaBalanceVacia hogar={carga} />} />
       <Route path="/mascotas" element={<PantallaMascotasVacia hogar={carga} />} />
       <Route
@@ -609,15 +624,23 @@ function HogarConSesion({ servicios, sesion }: { servicios: Servicios; sesion: S
     </Routes>
   )
 
+  let contenido = rutasHogar
+  if (servicios.obligaciones) {
+    contenido = (
+      <ProveedorObligaciones hogar={carga} crearControlador={servicios.obligaciones}>
+        {contenido}
+      </ProveedorObligaciones>
+    )
+  }
   if (servicios.compras) {
-    return (
+    contenido = (
       <ProveedorCompraRapida hogar={carga} crearControlador={servicios.compras}>
-        {rutasHogar}
+        {contenido}
       </ProveedorCompraRapida>
     )
   }
 
-  return rutasHogar
+  return contenido
 }
 
 export function RutasFundacion({ servicios }: { servicios: Servicios }) {

@@ -29,4 +29,10 @@ describe('conectarSupabase', () => {
 
     expect(typeof servicios?.compras).toBe('function')
   })
+
+  it('conecta el controlador de obligaciones por actor', () => {
+    const servicios = conectarSupabase('http://127.0.0.1:54321', CLAVE_PUBLICA)
+
+    expect(typeof servicios?.obligaciones).toBe('function')
+  })
 })

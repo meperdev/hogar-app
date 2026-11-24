@@ -1,9 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { crearControladorCompraRapida } from '../app/controladorCompraRapida'
+import { crearControladorObligaciones } from '../app/controladorObligaciones'
 import { ErrorFundacion, type Servicios } from '../app/fundacion'
 import { crearPuertoCompraRapida, crearRemotoSupabase } from './compraRapida'
 import { AdministradorBaseActor } from './db'
+import { crearPuertoObligaciones, crearRemotoObligaciones } from './obligaciones'
 import { uuidV7 } from './uuid'
 
 const configuracion = z.object({
@@ -104,6 +106,17 @@ export function conectarSupabase(url: unknown, clavePublica: unknown): Servicios
         programar: (tarea, ms) => {
           setTimeout(tarea, ms)
         },
+      }),
+    obligaciones: (alcance) =>
+      crearControladorObligaciones({
+        port: crearPuertoObligaciones({
+          base: () => bases.abrir(alcance),
+          remoto: crearRemotoObligaciones(cliente),
+          hogarId: alcance.hogarId,
+        }),
+        alcance,
+        ahora: () => new Date(),
+        nuevoId: () => uuidV7(),
       }),
   }
 }

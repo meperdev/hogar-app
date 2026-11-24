@@ -47,6 +47,17 @@ export interface CatalogoLocal {
   actualizadoEn: string;
 }
 
+/**
+ * Instantánea local de datos del núcleo 2 (obligaciones del mes), para abrir la
+ * agenda sin red. Es una copia de lo último leído por RLS, no un outbox: los
+ * pagos necesitan el bloqueo del servidor.
+ */
+export interface InstantaneaLocal {
+  clave: string;
+  valor: unknown;
+  actualizadoEn: string;
+}
+
 const PREFIJO_BASE = 'hogar-app';
 
 /**
@@ -62,14 +73,16 @@ export function nombreBaseActor(alcance: AlcanceActor): string {
  * Base Dexie de un solo actor. El constructor NO abre la base y no toca datos:
  * abrir es una decisión explícita (`abrirBaseActor` o `AdministradorBaseActor`).
  * La versión 2 agrega el espacio del núcleo 1: outbox de lotes de compra,
- * registros locales de compras guardadas y la última copia del catálogo. Las
- * tablas espejo del resto del dominio llegan con sus núcleos.
+ * registros locales de compras guardadas y la última copia del catálogo. La
+ * versión 3 agrega las instantáneas del núcleo 2 (agenda sin red). Las tablas
+ * espejo del resto del dominio llegan con sus núcleos.
  */
 export class BaseActorDexie extends Dexie {
   declare preferencias: Table<PreferenciaLocal, string>;
   declare outbox: Table<EntradaOutbox, string>;
   declare registros: Table<RegistroLocal, string>;
   declare catalogo: Table<CatalogoLocal, string>;
+  declare instantaneas: Table<InstantaneaLocal, string>;
 
   constructor(alcance: AlcanceActor) {
     super(nombreBaseActor(alcance));
@@ -79,6 +92,13 @@ export class BaseActorDexie extends Dexie {
       outbox: 'loteId, creadoEn, estado',
       registros: 'compraId, loteId, cufe, creadoEn',
       catalogo: 'clave',
+    });
+    this.version(3).stores({
+      preferencias: 'clave',
+      outbox: 'loteId, creadoEn, estado',
+      registros: 'compraId, loteId, cufe, creadoEn',
+      catalogo: 'clave',
+      instantaneas: 'clave',
     });
   }
 }
