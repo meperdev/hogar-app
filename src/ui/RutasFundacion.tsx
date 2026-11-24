@@ -26,11 +26,14 @@ import {
 import {
   PantallaAjustesFundacion,
   PantallaBalanceVacia,
-  PantallaCompraVacia,
   PantallaMascotasVacia,
   PantallaObligacionesVacia,
 } from './PantallasNucleos'
 import { ShellApp } from './ShellApp'
+import { ProveedorCompraRapida } from './compraRapida/ContextoCompraRapida'
+import { PantallaCompraCuotas } from './compraRapida/PantallaCompraCuotas'
+import { PantallaCompraRapida } from './compraRapida/PantallaCompraRapida'
+import { PantallaEscanearFactura } from './compraRapida/PantallaEscanearFactura'
 
 function mensaje(error: unknown, porDefecto: string) {
   return error instanceof ErrorFundacion ? error.message : porDefecto
@@ -561,36 +564,41 @@ function HogarConSesion({ servicios, sesion }: { servicios: Servicios; sesion: S
   }
 
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          <ResumenHogar
-            hogar={carga}
-            onSalir={salir}
-            saliendo={ocupado}
-            errorSalir={error}
-          />
-        }
-      />
-      <Route path="/compra" element={<PantallaCompraVacia hogar={carga} />} />
-      <Route path="/obligaciones" element={<PantallaObligacionesVacia hogar={carga} />} />
-      <Route path="/balance" element={<PantallaBalanceVacia hogar={carga} />} />
-      <Route path="/mascotas" element={<PantallaMascotasVacia hogar={carga} />} />
-      <Route
-        path="/ajustes"
-        element={
-          <PantallaAjustesFundacion
-            hogar={carga}
-            onSalir={salir}
-            saliendo={ocupado}
-            errorSalir={error}
-          />
-        }
-      />
-      <Route path="/crear-hogar" element={<Navigate to="/" replace />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <ProveedorCompraRapida hogar={carga} crearControlador={servicios.compras}>
+      <Routes>
+        <Route path="/" element={<Navigate to="/compra" replace />} />
+        <Route path="/compra" element={<PantallaCompraRapida />} />
+        <Route path="/compra/cuotas" element={<PantallaCompraCuotas />} />
+        <Route path="/compra/escanear" element={<PantallaEscanearFactura />} />
+        <Route
+          path="/hogar"
+          element={
+            <ResumenHogar
+              hogar={carga}
+              onSalir={salir}
+              saliendo={ocupado}
+              errorSalir={error}
+            />
+          }
+        />
+        <Route path="/obligaciones" element={<PantallaObligacionesVacia hogar={carga} />} />
+        <Route path="/balance" element={<PantallaBalanceVacia hogar={carga} />} />
+        <Route path="/mascotas" element={<PantallaMascotasVacia hogar={carga} />} />
+        <Route
+          path="/ajustes"
+          element={
+            <PantallaAjustesFundacion
+              hogar={carga}
+              onSalir={salir}
+              saliendo={ocupado}
+              errorSalir={error}
+            />
+          }
+        />
+        <Route path="/crear-hogar" element={<Navigate to="/compra" replace />} />
+        <Route path="*" element={<Navigate to="/compra" replace />} />
+      </Routes>
+    </ProveedorCompraRapida>
   )
 }
 

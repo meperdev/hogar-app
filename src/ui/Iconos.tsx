@@ -92,3 +92,22 @@ export function IconoMascotas({ className = 'size-[22px]' }: { className?: strin
     </svg>
   )
 }
+
+export function IconoQr({ className = 'size-[18px]' }: { className?: string | undefined }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <path d="M14 14h3v3h-3zM19 19h2v2h-2zM14 20h3" />
+    </svg>
+  )
+}

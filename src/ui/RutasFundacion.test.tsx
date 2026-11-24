@@ -109,40 +109,40 @@ it('espera la sesión antes de mostrar contenido y limpia el hogar al salir', as
       crear: vi.fn(),
     },
   }
-  const contenedor = document.createElement('div')
-  document.body.append(contenedor)
-  const raiz = createRoot(contenedor)
-  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
-  try {
-    await act(async () =>
-      raiz.render(
-        <MemoryRouter>
-          <RutasFundacion servicios={servicios} />
-        </MemoryRouter>,
-      ),
-    )
-    expect(contenedor.textContent).toContain('Restaurando sesión')
-    expect(contenedor.querySelector('form')).toBeNull()
-    expect(servicios.hogares.cargar).not.toHaveBeenCalled()
+    const contenedor = document.createElement('div')
+    document.body.append(contenedor)
+    const raiz = createRoot(contenedor)
+    vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
+    try {
+      await act(async () =>
+        raiz.render(
+          <MemoryRouter initialEntries={['/hogar']}>
+            <RutasFundacion servicios={servicios} />
+          </MemoryRouter>,
+        ),
+      )
+      expect(contenedor.textContent).toContain('Restaurando sesión')
+      expect(contenedor.querySelector('form')).toBeNull()
+      expect(servicios.hogares.cargar).not.toHaveBeenCalled()
 
-    await act(async () => notificar({ usuarioId: 'ana' }))
-    expect(servicios.hogares.cargar).toHaveBeenCalledExactlyOnceWith({ usuarioId: 'ana' })
-    expect(contenedor.querySelector('h1')?.textContent).toBe('Casa de Ana')
-    const salir = [...contenedor.querySelectorAll('button')].find(
-      (boton) => boton.textContent === 'Cerrar sesión',
-    )
-    expect(salir).toBeDefined()
-    await act(async () => salir?.click())
-    expect(servicios.auth.salir).toHaveBeenCalledOnce()
-    expect(contenedor.textContent).not.toContain('Casa de Ana')
-    expect(contenedor.querySelector('h1')?.textContent).toBe('Ingresá a hogar-app')
-  } finally {
-    await act(async () => raiz.unmount())
-    contenedor.remove()
-    vi.unstubAllGlobals()
-  }
-  expect(dejarDeObservar).toHaveBeenCalledOnce()
-})
+      await act(async () => notificar({ usuarioId: 'ana' }))
+      expect(servicios.hogares.cargar).toHaveBeenCalledExactlyOnceWith({ usuarioId: 'ana' })
+      expect(contenedor.querySelector('h1')?.textContent).toBe('Casa de Ana')
+      const salir = [...contenedor.querySelectorAll('button')].find(
+        (boton) => boton.textContent === 'Cerrar sesión',
+      )
+      expect(salir).toBeDefined()
+      await act(async () => salir?.click())
+      expect(servicios.auth.salir).toHaveBeenCalledOnce()
+      expect(contenedor.textContent).not.toContain('Casa de Ana')
+      expect(contenedor.querySelector('h1')?.textContent).toBe('Ingresá a hogar-app')
+    } finally {
+      await act(async () => raiz.unmount())
+      contenedor.remove()
+      vi.unstubAllGlobals()
+    }
+    expect(dejarDeObservar).toHaveBeenCalledOnce()
+  })
 
 describe('Flujo de ingreso OTP', () => {
   it('valida correo, envía código, verifica conservando cero inicial y permite cambiar correo', async () => {
@@ -237,7 +237,7 @@ describe('Alta de hogar y recuperación de errores', () => {
       nombreMiembro: 'Ana',
     })
     expect(cargar).toHaveBeenCalledTimes(2)
-    expect(contenedor.querySelector('h1')?.textContent).toBe('Casa de Ana')
+    expect(contenedor.querySelector('h1')?.textContent).toBe('Compra rápida')
   })
 
   it('muestra estado de error al cargar el hogar y permite reintentar', async () => {
@@ -258,12 +258,12 @@ describe('Alta de hogar y recuperación de errores', () => {
     expect(reintentar).toBeDefined()
     await act(async () => reintentar?.click())
     expect(cargar).toHaveBeenCalledTimes(2)
-    expect(contenedor.querySelector('h1')?.textContent).toBe('Casa de Ana')
+    expect(contenedor.querySelector('h1')?.textContent).toBe('Compra rápida')
   })
 })
 
 describe('Shell autenticado, navegación e invitaciones', () => {
-  it('navega entre los 4 núcleos y Ajustes manteniendo aria-current y enlace de regreso', async () => {
+  it('abre Compra rápida por defecto al iniciar sesión y navega entre los 4 núcleos y /hogar', async () => {
     const { servicios, notificar } = crearServiciosBase({
       cargar: vi.fn(async () => hogarEjemplo('admin')),
     })
@@ -271,11 +271,11 @@ describe('Shell autenticado, navegación e invitaciones', () => {
     await act(async () => notificar({ usuarioId: 'ana' }))
 
     expect(contenedor.querySelectorAll('h1')).toHaveLength(1)
-    expect(contenedor.textContent).toContain('Ana — Administrador (vos)')
-    expect(contenedor.textContent).toContain('Beto — Miembro · Inactivo')
-    expect(contenedor.textContent).toContain(
-      'La invitación a nuevos miembros todavía no está disponible.',
+    expect(contenedor.querySelector('h1')?.textContent).toBe('Compra rápida')
+    const linkCompraActivo = [...contenedor.querySelectorAll<HTMLAnchorElement>('nav a')].find(
+      (enlace) => enlace.getAttribute('aria-current') === 'page',
     )
+    expect(linkCompraActivo?.textContent?.trim()).toBe('Compra')
 
     const casos: Array<[string, string]> = [
       ['Compra', 'Compra rápida'],
@@ -322,13 +322,18 @@ describe('Shell autenticado, navegación e invitaciones', () => {
       linkVolver?.click()
     })
     expect(contenedor.querySelector('h1')?.textContent).toBe('Casa de Ana')
+    expect(contenedor.textContent).toContain('Ana — Administrador (vos)')
+    expect(contenedor.textContent).toContain('Beto — Miembro · Inactivo')
+    expect(contenedor.textContent).toContain(
+      'La invitación a nuevos miembros todavía no está disponible.',
+    )
   })
 
   it('oculta el aviso de invitación cuando el miembro no es administrador', async () => {
     const { servicios, notificar } = crearServiciosBase({
       cargar: vi.fn(async () => hogarEjemplo('miembro')),
     })
-    const { contenedor } = await montar(servicios)
+    const { contenedor } = await montar(servicios, '/hogar')
     await act(async () => notificar({ usuarioId: 'ana' }))
 
     expect(contenedor.querySelector('h1')?.textContent).toBe('Casa de Ana')

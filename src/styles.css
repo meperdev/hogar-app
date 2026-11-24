@@ -182,6 +182,15 @@
     );
   }
 
+  .hogar-main-compacto {
+    padding: 6px 14px
+      calc(
+        var(--hogar-nav-height) + var(--hogar-action-bar-height) +
+          env(safe-area-inset-bottom, 0px) + 24px
+      );
+    gap: 6px;
+  }
+
   .hogar-cop {
     font-variant-numeric: tabular-nums;
   }

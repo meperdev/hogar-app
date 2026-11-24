@@ -47,30 +47,44 @@ export function ShellApp({
   etiquetaVolver,
   marcaInicio = false,
   mostrarNavegacion = false,
+  compacto = false,
+  etiquetaBarraAccion = 'Acción principal de la pantalla',
   barraAccion,
   pie,
   children,
 }: {
   titulo: string
-  subtitulo?: string | undefined
+  subtitulo?: ReactNode | undefined
   accionDerecha?: ReactNode | undefined
   volverA?: string | undefined
   etiquetaVolver?: string | undefined
   marcaInicio?: boolean | undefined
   mostrarNavegacion?: boolean | undefined
+  compacto?: boolean | undefined
+  etiquetaBarraAccion?: string | undefined
   barraAccion?: ReactNode | undefined
   pie?: string | undefined
   children: ReactNode
 }) {
   const claseEspacioInferior = mostrarNavegacion
-    ? barraAccion
-      ? 'hogar-main-con-nav-y-cta'
-      : 'hogar-main-con-nav'
+    ? compacto
+      ? 'hogar-main-compacto'
+      : barraAccion
+        ? 'hogar-main-con-nav-y-cta'
+        : 'hogar-main-con-nav'
     : 'pb-7'
+
+  const claseCabecera = compacto
+    ? 'sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-hogar-borde bg-hogar-superficie px-3.5 py-2'
+    : 'sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-hogar-borde bg-hogar-superficie px-4 py-3'
+
+  const claseMain = compacto
+    ? `flex flex-1 flex-col outline-none ${claseEspacioInferior}`
+    : `flex flex-1 flex-col gap-3.5 px-4 pt-3.5 outline-none ${claseEspacioInferior}`
 
   return (
     <div className="hogar-shell">
-      <header className="sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-hogar-borde bg-hogar-superficie px-4 py-3">
+      <header className={claseCabecera}>
         <div className="flex min-w-0 flex-1 items-center gap-2.5">
           {volverA ? (
             <Link
@@ -104,11 +118,7 @@ export function ShellApp({
         {accionDerecha ? <div className="shrink-0">{accionDerecha}</div> : null}
       </header>
 
-      <main
-        id="contenido"
-        tabIndex={-1}
-        className={`flex flex-1 flex-col gap-3.5 px-4 pt-3.5 outline-none ${claseEspacioInferior}`}
-      >
+      <main id="contenido" tabIndex={-1} className={claseMain}>
         {children}
       </main>
 
@@ -119,11 +129,7 @@ export function ShellApp({
       ) : null}
 
       {barraAccion ? (
-        <div
-          className="hogar-action-bar"
-          role="region"
-          aria-label="Acción principal de la pantalla"
-        >
+        <div className="hogar-action-bar" role="region" aria-label={etiquetaBarraAccion}>
           {barraAccion}
         </div>
       ) : null}
