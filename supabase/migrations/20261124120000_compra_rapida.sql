@@ -1017,6 +1017,14 @@ begin
     return private.rechazo('invalido', 'un lote lleva exactamente una compra');
   end if;
 
+  -- Mismo tope que el dominio (MAX_CUOTAS): la validación del plan recorre sus
+  -- cuotas por cada cuota insertada mientras retiene los carriles de `seq`.
+  if pg_catalog.jsonb_array_length(v_planes) > 1
+     or pg_catalog.jsonb_array_length(v_cuotas) > 360
+     or pg_catalog.jsonb_array_length(v_costos) > 360 then
+    return private.rechazo('invalido', 'demasiadas cuotas en el lote');
+  end if;
+
   begin
     -- Una compra personal es solo de quien la registra.
     if exists (

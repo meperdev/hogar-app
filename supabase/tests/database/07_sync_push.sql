@@ -9,7 +9,7 @@
 -- desembolso crédito ...000000000502 · auth: ...00000000a101/b102/c103
 begin;
 set search_path = public, extensions;
-select plan(102);
+select plan(103);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password,
                         email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
@@ -257,6 +257,12 @@ insert into public.prueba_lote values
   ('c16', pg_temp.lote(pg_temp.fid('7109'), jsonb_build_array(pg_temp.compra(pg_temp.fid('7101'), 85000,
       p_extra => jsonb_build_object('base_seq', 5)))));
 
+-- C17: el lote tiene tope de cuotas (360, como el dominio) para no retener carriles.
+insert into public.prueba_lote values
+  ('c17', pg_temp.lote(pg_temp.fid('7209'), jsonb_build_array(pg_temp.compra(pg_temp.fid('7201'), 361, 'financiado', p_medio => null)),
+    jsonb_build_array(pg_temp.plan(pg_temp.fid('7202'), 361, p_compra => pg_temp.fid('7201'), p_n => 361, p_tasa_tipo => 'EA', p_tasa_ppm => 283200)),
+    pg_temp.cuotas(pg_temp.fid('7202'), array_fill(1::bigint, array[361]))));
+
 -- C10: Beto planea su compra personal sobre el libro de Ana y, con los mismos
 -- ids, sobre un pasivo inexistente.
 insert into public.prueba_lote values
@@ -406,6 +412,9 @@ select is(pg_temp.filas('compra', 'id', pg_temp.fid('2301')), 0, 'C10: el rechaz
 select pg_temp.push('c16');
 select is(pg_temp.motivo('c16'), 'invalido', 'C16: una fila con base_seq no es un alta y se rechaza');
 select is(pg_temp.filas('compra', 'id', pg_temp.fid('7101')), 0, 'C16: el rechazo no deja compra');
+
+select pg_temp.push('c17');
+select is(pg_temp.detalle('c17'), 'demasiadas cuotas en el lote', 'C17: más de 360 cuotas se rechaza antes de tomar locks');
 
 -- C11: el préstamo no crea plan y no gasta más de lo desembolsado.
 select pg_temp.push(caso) from unnest(array['c11a', 'c11b', 'c11c', 'c11d']) caso;
