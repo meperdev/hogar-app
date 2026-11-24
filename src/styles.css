@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+/* Tokens tomados de design/mockups/styles.css para que la fundación y los
+   mockups hablen el mismo idioma visual (contraste WCAG AA ya verificado). */
+@theme {
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+
+  --color-hogar-fondo: #f5f6f4;
+  --color-hogar-superficie: #ffffff;
+  --color-hogar-superficie-suave: #eef1ed;
+  --color-hogar-tinta: #161e1b;
+  --color-hogar-tinta-suave: #4a5752;
+  --color-hogar-primario: #0f5c48;
+  --color-hogar-primario-fuerte: #0a4636;
+  --color-hogar-primario-suave: #e3f3ee;
+  --color-hogar-borde: #d3dad6;
+  --color-hogar-borde-fuerte: #6e7a75;
+  --color-hogar-foco: #1b4fd8;
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background-color: var(--color-hogar-fondo);
+    color: var(--color-hogar-tinta);
+    font-family: var(--font-sans);
+    line-height: 1.45;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-hogar-foco);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
