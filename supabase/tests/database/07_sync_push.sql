@@ -9,7 +9,7 @@
 -- desembolso crédito ...000000000502 · auth: ...00000000a101/b102/c103
 begin;
 set search_path = public, extensions;
-select plan(117);
+select plan(132);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password,
                         email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
@@ -263,6 +263,38 @@ insert into public.prueba_lote values
     jsonb_build_array(pg_temp.plan(pg_temp.fid('7202'), 361, p_compra => pg_temp.fid('7201'), p_n => 361, p_tasa_tipo => 'EA', p_tasa_ppm => 283200)),
     pg_temp.cuotas(pg_temp.fid('7202'), array_fill(1::bigint, array[361]))));
 
+-- C24: el tope del lote admite justo el máximo del dominio: 360 cuotas y
+-- 360 costos, con un plan que cuadra (capital 360 en cuotas de 1).
+with s as materialized (
+  select pg_temp.cuotas(pg_temp.fid('7902'), array_fill(1::bigint, array[360])) as cuotas
+)
+insert into public.prueba_lote
+select 'c24', pg_temp.lote(pg_temp.fid('7909'),
+  jsonb_build_array(pg_temp.compra(pg_temp.fid('7901'), 360, 'financiado', p_medio => null)),
+  jsonb_build_array(pg_temp.plan(pg_temp.fid('7902'), 360, p_compra => pg_temp.fid('7901'), p_n => 360, p_tasa_tipo => 'EA', p_tasa_ppm => 283200)),
+  s.cuotas, (select jsonb_agg(pg_temp.costo(gen_random_uuid(), 100, (q ->> 'fecha_vencimiento')::date,
+    p_cuota => (q ->> 'id')::uuid)) from jsonb_array_elements(s.cuotas) q))
+from s;
+
+-- C25: dos planes en el mismo lote; la compra lleva como máximo uno.
+insert into public.prueba_lote values
+  ('c25', pg_temp.lote(pg_temp.fid('8009'),
+    jsonb_build_array(pg_temp.compra(pg_temp.fid('8001'), 2, 'financiado', p_medio => null)),
+    jsonb_build_array(
+      pg_temp.plan(pg_temp.fid('8002'), 1, p_compra => pg_temp.fid('8001'), p_n => 1, p_tasa_tipo => 'EA', p_tasa_ppm => 283200),
+      pg_temp.plan(pg_temp.fid('8003'), 1, p_compra => pg_temp.fid('8001'), p_n => 1, p_tasa_tipo => 'EA', p_tasa_ppm => 283200)),
+    pg_temp.cuotas(pg_temp.fid('8002'), array[1]::bigint[], array[pg_temp.fid('8004')]::uuid[])
+      || pg_temp.cuotas(pg_temp.fid('8003'), array[1]::bigint[], array[pg_temp.fid('8005')]::uuid[])));
+
+-- C26: dos alias de comercio en el mismo lote, con NIT distintos para no
+-- chocar con el índice del hogar: el dominio emite como máximo uno.
+insert into public.prueba_lote values
+  ('c26', pg_temp.lote(pg_temp.fid('8109'),
+    jsonb_build_array(pg_temp.compra(pg_temp.fid('8101'), 10000, p_nit => '901123456')),
+    p_alias => jsonb_build_array(
+      pg_temp.alias(pg_temp.fid('810b'), '901123456', 'Almacén Nuevo', pg_temp.fx('201')),
+      pg_temp.alias(pg_temp.fid('810c'), '900123456', 'Tienda Nueva', pg_temp.fx('201')))));
+
 -- C10: Beto planea su compra personal sobre el libro de Ana y, con los mismos
 -- ids, sobre un pasivo inexistente.
 insert into public.prueba_lote values
@@ -478,6 +510,36 @@ select pg_temp.push('c23');
 select is(pg_temp.estado('c23'), 'aplicado', 'C23: el servidor acepta el interés estimado por el cliente');
 select is((select monto from public.costo_financiero where id = pg_temp.fid('7806') and origen = 'calculado'), 1500::bigint,
   'C23: el interés se guarda tal como llegó, con origen calculado');
+
+-- C24: el tope admite exactamente 360 cuotas y 360 costos.
+select pg_temp.push('c24');
+select is(pg_temp.estado('c24'), 'aplicado', 'C24: un lote con 360 cuotas y 360 costos se aplica');
+select is(pg_temp.filas('cuota', 'plan_id', pg_temp.fid('7902')), 360, 'C24: quedan las 360 cuotas del plan');
+select is((select count(*)::int from public.costo_financiero k
+            join public.cuota c on c.id = k.cuota_id
+           where c.plan_id = pg_temp.fid('7902')), 360, 'C24: quedan los 360 costos, uno por cuota');
+
+-- C25: dos planes en el lote tienen su propio mensaje.
+insert into public.prueba_contador values ('hogar_c25', (select ultimo_seq from public.hogar_seq where hogar_id = pg_temp.fx('1')));
+select pg_temp.push('c25');
+select is(pg_temp.res('c25'), '{"estado":"rechazado","motivo":"invalido","detalle":"un lote lleva como máximo un plan de cuotas"}'::jsonb,
+  'C25: dos planes se rechazan con el detalle del tope de planes');
+select is(pg_temp.filas('plan_de_cuotas', 'compra_id', pg_temp.fid('8001')), 0, 'C25: el rechazo no deja planes');
+select is((select count(*)::int from public.cuota where plan_id in (pg_temp.fid('8002'), pg_temp.fid('8003'))), 0, 'C25: el rechazo no deja cuotas');
+select is(pg_temp.filas('compra', 'id', pg_temp.fid('8001')), 0, 'C25: el rechazo no deja compra');
+select is(pg_temp.filas('lote_aplicado', 'lote_id', pg_temp.fid('8009')), 0, 'C25: el rechazo no deja lote aplicado');
+select is((select ultimo_seq from public.hogar_seq where hogar_id = pg_temp.fx('1')), (select valor from public.prueba_contador where nombre = 'hogar_c25'), 'C25: el rechazo no mueve hogar_seq');
+
+-- C26: dos alias de comercio en el lote tienen su propio mensaje.
+insert into public.prueba_contador values ('hogar_c26', (select ultimo_seq from public.hogar_seq where hogar_id = pg_temp.fx('1')));
+select pg_temp.push('c26');
+select is(pg_temp.res('c26'), '{"estado":"rechazado","motivo":"invalido","detalle":"un lote lleva como máximo un alias de comercio"}'::jsonb,
+  'C26: dos alias se rechazan con el detalle del tope de alias');
+select is(pg_temp.filas('alias_comercio', 'id', pg_temp.fid('810b')), 0, 'C26: el rechazo no deja el primer alias');
+select is(pg_temp.filas('alias_comercio', 'id', pg_temp.fid('810c')), 0, 'C26: el rechazo no deja el segundo alias');
+select is(pg_temp.filas('compra', 'id', pg_temp.fid('8101')), 0, 'C26: el rechazo no deja compra');
+select is(pg_temp.filas('lote_aplicado', 'lote_id', pg_temp.fid('8109')), 0, 'C26: el rechazo no deja lote aplicado');
+select is((select ultimo_seq from public.hogar_seq where hogar_id = pg_temp.fx('1')), (select valor from public.prueba_contador where nombre = 'hogar_c26'), 'C26: el rechazo no mueve hogar_seq');
 
 select pg_temp.push('c17');
 select is(pg_temp.detalle('c17'), 'demasiadas cuotas en el lote', 'C17: más de 360 cuotas se rechaza antes de tomar locks');
