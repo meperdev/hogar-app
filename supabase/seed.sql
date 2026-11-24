@@ -1,0 +1,7 @@
+-- Seed local de hogar-app (fundación).
+--
+-- Deliberadamente vacío: no se siembran datos de producto ni usuarios de Auth.
+-- Los usuarios locales se crean por el flujo OTP de Supabase Auth (Mailpit en
+-- http://127.0.0.1:54324) y el hogar se crea con la RPC `public.crear_hogar`.
+-- Los fixtures de las pruebas viven en `supabase/tests/database` y se revierten
+-- con cada archivo de pgTAP, así que no tocan el estado de desarrollo.

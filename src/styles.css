@@ -1,0 +1,188 @@
+@import "tailwindcss";
+
+/* Tokens tomados de design/mockups/styles.css para que la aplicación y los
+   mockups hablen el mismo idioma visual (contraste WCAG AA ya verificado). */
+@theme {
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --color-hogar-lienzo: #e5e8e4;
+  --color-hogar-fondo: #f5f6f4;
+  --color-hogar-superficie: #ffffff;
+  --color-hogar-superficie-suave: #eef1ed;
+
+  --color-hogar-tinta: #161e1b;
+  --color-hogar-tinta-suave: #4a5752;
+
+  --color-hogar-primario: #0f5c48;
+  --color-hogar-primario-fuerte: #0a4636;
+  --color-hogar-primario-suave: #e3f3ee;
+
+  --color-hogar-indigo: #2d4387;
+  --color-hogar-indigo-suave: #e9eefa;
+
+  --color-hogar-ambar: #8a4b00;
+  --color-hogar-ambar-suave: #fdf1df;
+
+  --color-hogar-peligro: #a61c1c;
+  --color-hogar-peligro-suave: #fceaea;
+
+  --color-hogar-borde: #d3dad6;
+  --color-hogar-borde-fuerte: #6e7a75;
+  --color-hogar-foco: #1b4fd8;
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --hogar-nav-height: 68px;
+    --hogar-action-bar-height: 64px;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background-color: var(--color-hogar-lienzo);
+    color: var(--color-hogar-tinta);
+    font-family: var(--font-sans);
+    line-height: 1.45;
+  }
+
+  @media (max-width: 430px) {
+    body {
+      background-color: var(--color-hogar-fondo);
+    }
+  }
+
+  a,
+  button,
+  summary {
+    touch-action: manipulation;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-hogar-foco);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .hogar-skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 8px;
+    z-index: 1000;
+    background: var(--color-hogar-tinta);
+    color: #ffffff;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 700;
+    text-decoration: none;
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .hogar-skip-link:focus {
+    left: 8px;
+  }
+
+  .hogar-shell {
+    width: 100%;
+    max-width: 390px;
+    min-height: 100dvh;
+    margin: 0 auto;
+    background: var(--color-hogar-fondo);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 8px 30px rgba(22, 30, 27, 0.14);
+  }
+
+  .hogar-action-bar {
+    position: fixed;
+    bottom: calc(var(--hogar-nav-height) + env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 390px;
+    min-height: var(--hogar-action-bar-height);
+    padding: 9px 14px;
+    background: var(--color-hogar-superficie);
+    border-top: 1.5px solid var(--color-hogar-borde);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 25;
+    box-shadow: 0 -4px 12px rgba(22, 30, 27, 0.08);
+  }
+
+  .hogar-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 390px;
+    min-height: var(--hogar-nav-height);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--color-hogar-superficie);
+    border-top: 1.5px solid var(--color-hogar-borde);
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    z-index: 30;
+  }
+
+  @media (max-width: 430px) {
+    .hogar-shell,
+    .hogar-action-bar,
+    .hogar-bottom-nav {
+      max-width: 100%;
+    }
+
+    .hogar-shell {
+      box-shadow: none;
+    }
+  }
+
+  .hogar-main-con-nav {
+    padding-bottom: calc(
+      var(--hogar-nav-height) + env(safe-area-inset-bottom, 0px) + 24px
+    );
+  }
+
+  .hogar-main-con-nav-y-cta {
+    padding-bottom: calc(
+      var(--hogar-nav-height) + var(--hogar-action-bar-height) +
+        env(safe-area-inset-bottom, 0px) + 32px
+    );
+  }
+
+  .hogar-cop {
+    font-variant-numeric: tabular-nums;
+  }
+}

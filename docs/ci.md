@@ -2,13 +2,16 @@
 
 ## Qué se ejecuta
 
-- El workflow `.github/workflows/ci.yml` tiene dos jobs, que son los checks obligatorios de `main`:
+- El workflow `.github/workflows/ci.yml` conserva los dos checks obligatorios de `main`:
   `docs (markdownlint + enlaces)` y `mockups (axe + toques 44px)`.
-- Cada job hace dos checkouts: el PR en `pr/`, tratado solo como datos, y el verificador en `verificador/`, desde la rama
+- Cada job obligatorio hace dos checkouts: el PR en `pr/`, tratado solo como datos, y el verificador en `verificador/`, desde la rama
   `ci/verificador` fijada por SHA en `VERIFICADOR_SHA`.
-- Solo se ejecuta el código del verificador, instalado con `npm ci --ignore-scripts` desde su propio lockfile. Las
+- Esos dos jobs solo ejecutan el código del verificador, instalado con `npm ci --ignore-scripts` desde su propio lockfile. Las
   acciones están fijadas por SHA, los checkouts no guardan credenciales y no se usa `pull_request_target`.
 - Chromium abre los mockups sin JavaScript, sin red y solo con `file:`.
+- El job adicional `tests (app + base local)` sí ejecuta código del PR: tests y build en Node 24, más migraciones y
+  pgTAP en Postgres local con Supabase CLI 3.2. Corre aislado de los checks obligatorios, sin credenciales guardadas,
+  caché ni secretos del proyecto. No toca Supabase cloud.
 - Para cambiar el verificador: commit nuevo en `ci/verificador` y subir el SHA en el workflow de cada PR.
 
 ## Límite conocido y aceptado

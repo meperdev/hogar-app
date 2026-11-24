@@ -86,3 +86,46 @@ jobs:
 
       - name: Accesibilidad y toques
         run: node verificador/ci/verificador/a11y-mockups.mjs pr
+
+  # Separado de los checks requeridos: este job sí ejecuta el código del PR.
+  tests:
+    name: tests (app + base local)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout para tests
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Node 24
+        # v7.1.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Instalar la app
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Tests de la app
+        run: npm test
+
+      - name: Compilar la PWA
+        run: npm run build
+
+      - name: Instalar Supabase CLI 3.2
+        uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3
+        with:
+          version: 3.2.0
+
+      - name: Iniciar Postgres local
+        run: supabase db start
+
+      - name: Aplicar migraciones locales pendientes
+        run: supabase migration up
+
+      - name: Tests de constraints, RLS y RPC
+        run: supabase test db

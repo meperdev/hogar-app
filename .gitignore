@@ -1,2 +1,18 @@
+node_modules/
+dist/
+dist-ssr/
+dev-dist/
+coverage/
+
+# Entorno local: nunca se versiona. .env.example lo agrega la tarea de auth.
+.env.local
+.env.*.local
+
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
 odd/
 .atl/
