@@ -1,13 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { AlcanceCompra } from '../../app/compraRapida'
 import type { Hogar } from '../../app/fundacion'
-import type {
-  AgendaMes,
-  ControladorObligaciones,
-  ItemCuota,
-  ItemObligacion,
-  MedioPagoOpcion,
-} from '../../app/obligaciones'
+import type { AgendaMes, ControladorObligaciones, ItemCuota, ItemObligacion, MedioPagoOpcion } from '../../app/obligaciones'
 import { hoyCivil } from '../../domain/fechas'
 
 type ValorContextoObligaciones = {
@@ -32,10 +26,7 @@ type ValorContextoObligaciones = {
 const ContextoObligaciones = createContext<ValorContextoObligaciones | null>(null)
 
 export function ProveedorObligaciones({
-  hogar,
-  crearControlador,
-  periodoInicial,
-  children,
+  hogar, crearControlador, periodoInicial, children,
 }: {
   hogar: Hogar
   crearControlador: (alcance: AlcanceCompra) => ControladorObligaciones
@@ -72,58 +63,38 @@ export function ProveedorObligaciones({
         setErrorCarga('No pudimos cargar las obligaciones del mes.')
         setCargando(false)
       })
-    return () => {
-      vigente = false
-    }
+    return () => { vigente = false }
   }, [controlador, periodo, revision])
 
-  const alternarIncluirPersonales = useCallback(
-    async (valor: boolean) => {
-      setIncluirPersonales(valor)
-      try {
-        await controlador.guardarIncluirPersonales(valor)
-        setAgenda(await controlador.cargarMes(periodo))
-      } catch {
-        setIncluirPersonales(!valor)
-        setErrorCarga('No pudimos actualizar la preferencia local.')
-      }
-    },
-    [controlador, periodo],
-  )
+  const alternarIncluirPersonales = useCallback(async (valor: boolean) => {
+    setIncluirPersonales(valor)
+    try {
+      await controlador.guardarIncluirPersonales(valor)
+      setAgenda(await controlador.cargarMes(periodo))
+    } catch {
+      setIncluirPersonales(!valor)
+      setErrorCarga('No pudimos actualizar la preferencia local.')
+    }
+  }, [controlador, periodo])
 
-  const todos = useMemo(
-    () => (agenda ? [...agenda.vencidas, ...agenda.pendientes, ...agenda.pagadas] : []),
-    [agenda],
-  )
+  const todos = useMemo(() => (agenda ? [...agenda.vencidas, ...agenda.pendientes, ...agenda.pagadas] : []), [agenda])
   const buscarCuota = useCallback(
     (cuotaId: string) => todos.find((i): i is ItemCuota => i.tipo === 'cuota' && i.cuotaId === cuotaId) ?? null,
     [todos],
   )
   const buscarObligacion = useCallback(
-    (obligacionId: string) =>
-      todos.find((i): i is ItemObligacion => i.tipo === 'obligacion' && i.obligacionId === obligacionId) ?? null,
+    (obligacionId: string) => todos.find((i): i is ItemObligacion => i.tipo === 'obligacion' && i.obligacionId === obligacionId) ?? null,
     [todos],
   )
 
   return (
     <ContextoObligaciones.Provider
       value={{
-        hogar,
-        controlador,
-        periodo,
-        agenda,
-        medios,
-        incluirPersonales,
-        cargando,
-        errorCarga,
-        toast,
-        cambiarPeriodo: setPeriodo,
-        alternarIncluirPersonales,
+        hogar, controlador, periodo, agenda, medios, incluirPersonales, cargando, errorCarga, toast,
+        cambiarPeriodo: setPeriodo, alternarIncluirPersonales,
         recargar: () => setRevision((actual) => actual + 1),
-        mostrarToast: setToast,
-        limpiarToast: () => setToast(''),
-        buscarCuota,
-        buscarObligacion,
+        mostrarToast: setToast, limpiarToast: () => setToast(''),
+        buscarCuota, buscarObligacion,
       }}
     >
       {children}

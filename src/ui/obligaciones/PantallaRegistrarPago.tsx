@@ -4,15 +4,8 @@ import type { BorradorPago, EvaluacionPago } from '../../app/obligaciones'
 import { hoyCivil } from '../../domain/fechas'
 import { formatearPesos } from '../../domain/pesos'
 import {
-  Aviso,
-  Insignia,
-  Tarjeta,
-  claseAyudaCampo,
-  claseBotonPequenoSecundario,
-  claseBotonPrimario,
-  claseBotonSecundario,
-  claseCampoTexto,
-  claseEtiquetaCampo,
+  Aviso, Insignia, Tarjeta, claseAyudaCampo, claseBotonPequenoSecundario,
+  claseBotonPrimario, claseBotonSecundario, claseCampoTexto, claseEtiquetaCampo,
 } from '../ComponentesBase'
 import { ShellApp } from '../ShellApp'
 import { formatearFechaCortaEs, parsearDigitosCop } from '../compraRapida/formatoCop'
@@ -47,10 +40,7 @@ function PagoCuota({ cuotaId }: { cuotaId: string }) {
       .then((inicial) => {
         if (!vigente) return
         const medioPorDefecto =
-          inicial.medioId ??
-          medios.find((m) => m.duenoMiembroId === hogar.miembroActual.id)?.id ??
-          medios[0]?.id ??
-          null
+          inicial.medioId ?? medios.find((m) => m.duenoMiembroId === hogar.miembroActual.id)?.id ?? medios[0]?.id ?? null
         setBorrador({ ...inicial, medioId: medioPorDefecto })
         setCuotaIdInicial(inicial.cuotaId)
         setCapitalInicial(inicial.capital)
@@ -63,9 +53,7 @@ function PagoCuota({ cuotaId }: { cuotaId: string }) {
         setErrorAccion('No pudimos preparar el pago de esta cuota.')
         setCargando(false)
       })
-    return () => {
-      vigente = false
-    }
+    return () => { vigente = false }
   }, [controlador, cuotaId, hogar.miembroActual.id, medios])
 
   const borradorEfectivo = useMemo<BorradorPago | null>(() => {
@@ -77,8 +65,7 @@ function PagoCuota({ cuotaId }: { cuotaId: string }) {
   useEffect(() => {
     if (!borradorEfectivo) return
     const seq = ++evalSeqRef.current
-    void controlador
-      .evaluarPago(borradorEfectivo)
+    void controlador.evaluarPago(borradorEfectivo)
       .then((res) => { if (evalSeqRef.current === seq) setEvaluacion(res) })
       .catch(() => {
         if (evalSeqRef.current === seq) {
@@ -94,6 +81,7 @@ function PagoCuota({ cuotaId }: { cuotaId: string }) {
   const montoMostrado = (borrador?.capital ?? 0) + (borrador?.interes ?? 0)
   const interesEditado = borrador !== null && borrador.interes !== interesInicial
   const fechaCorta = borrador ? formatearFechaCortaEs(borrador.fecha) : ''
+  const aporteEvaluado = evaluacion && 'aporte' in evaluacion ? evaluacion.aporte : undefined
 
   async function ejecutarRegistro(dividirSobrepago: boolean) {
     if (!borradorEfectivo || guardando) return
@@ -120,9 +108,7 @@ function PagoCuota({ cuotaId }: { cuotaId: string }) {
       Revisar sobrepago ({formatearPesos(evaluacion.monto)})
     </button>
   ) : evaluacion.estado === 'invalido' ? (
-    <button type="button" className={`${claseBotonPrimario} w-full`} disabled data-sin-scroll>
-      Confirmar pago ({formatearPesos(montoMostrado)})
-    </button>
+    <button type="button" className={`${claseBotonPrimario} w-full`} disabled data-sin-scroll>Confirmar pago ({formatearPesos(montoMostrado)})</button>
   ) : (
     <button type="button" className={`${claseBotonPrimario} w-full`} disabled={guardando} onClick={() => void ejecutarRegistro(false)} data-sin-scroll>
       {guardando ? 'Registrando…' : `Confirmar pago (${formatearPesos(evaluacion.monto)})`}
@@ -135,17 +121,12 @@ function PagoCuota({ cuotaId }: { cuotaId: string }) {
       ? [
           { etiqueta: `Saldo causado al ${fechaCorta} (tope único del abono)`, valor: formatearPesos(evaluacion.saldoAntes) },
           { etiqueta: 'Capital aplicado (no suma al consumo)', valor: formatearPesos(evaluacion.capitalAplicado) },
-          {
-            etiqueta: `Interés ligado a la cuota (${interesEditado ? 'manual' : 'Costo financiero'})`,
-            valor: borradorEfectivo.interes !== null ? formatearPesos(borradorEfectivo.interes) : '$0 (sin tasa)',
-          },
+          { etiqueta: `Interés ligado a la cuota (${interesEditado ? 'manual' : 'Costo financiero'})`, valor: borradorEfectivo.interes !== null ? formatearPesos(borradorEfectivo.interes) : '$0 (sin tasa)' },
           { etiqueta: `Abono total el ${fechaCorta} (PagoDeDeuda)`, valor: formatearPesos(evaluacion.monto), total: true },
           { etiqueta: 'Saldo derivado después del pago', valor: formatearPesos(evaluacion.saldoDespues) },
           {
             etiqueta: 'Aporte individual (solo cuenta personal en pasivo hogar)',
-            valor: evaluacion.aporte
-              ? `${formatearPesos(evaluacion.aporte.monto)} · ${nombreMiembro(evaluacion.aporte.miembroId)}`
-              : '$0 (fondo común o pasivo personal)',
+            valor: evaluacion.aporte ? `${formatearPesos(evaluacion.aporte.monto)} · ${nombreMiembro(evaluacion.aporte.miembroId)}` : '$0 (sin aporte individual)',
           },
         ]
       : evaluacion?.estado === 'sobrepago'
@@ -160,9 +141,7 @@ function PagoCuota({ cuotaId }: { cuotaId: string }) {
             { etiqueta: 'Total del abono', valor: formatearPesos(montoMostrado), total: true },
           ]
 
-  const subtitulo = item
-    ? item.nCuotas > 0 ? `Cuota ${item.numero}/${item.nCuotas} · ${item.descripcion}` : item.descripcion
-    : 'Pago de cuota'
+  const subtitulo = item ? (item.nCuotas > 0 ? `Cuota ${item.numero}/${item.nCuotas} · ${item.descripcion}` : item.descripcion) : 'Pago de cuota'
 
   return (
     <ShellApp
@@ -183,24 +162,16 @@ function PagoCuota({ cuotaId }: { cuotaId: string }) {
           {item ? (
             <Tarjeta acento="indigo">
               <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-                <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">
-                  {item.pasivoNombre} · Vence {formatearFechaCortaEs(item.fechaVencimiento)}
-                </h2>
-                <Insignia variante={item.ambito === 'hogar' ? 'primario' : 'neutral'}>
-                  {etiquetaAmbitoTitular(item.ambito, item.titular)}
-                </Insignia>
+                <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">{item.pasivoNombre} · Vence {formatearFechaCortaEs(item.fechaVencimiento)}</h2>
+                <Insignia variante={item.ambito === 'hogar' ? 'primario' : 'neutral'}>{etiquetaAmbitoTitular(item.ambito, item.titular)}</Insignia>
               </div>
-              <p className={claseAyudaCampo}>
-                El pago reduce el saldo del pasivo sin volver a sumar al consumo del mes. El interés entra al balde aparte de Costo financiero.
-              </p>
+              <p className={claseAyudaCampo}>El pago reduce el saldo del pasivo sin volver a sumar al consumo del mes. El interés entra al balde aparte de Costo financiero.</p>
             </Tarjeta>
           ) : null}
 
           {!enlazarCuota ? (
             <Aviso variante="indigo" icono="ℹ" role="status">
-              <p>
-                <strong className="text-hogar-tinta">Modo adelanto sin cuota:</strong> este pago se evaluará sin <code>cuota_id</code>, sujeto al tope del saldo causado a la fecha.
-              </p>
+              <p><strong className="text-hogar-tinta">Modo adelanto sin cuota:</strong> este pago se evaluará sin <code>cuota_id</code>, sujeto al tope del saldo causado a la fecha.</p>
             </Aviso>
           ) : null}
 
@@ -212,17 +183,7 @@ function PagoCuota({ cuotaId }: { cuotaId: string }) {
                   {miembrosActivos.map((miembro) => {
                     const medioDelMiembro = medios.find((m) => m.duenoMiembroId === miembro.id)
                     return (
-                      <TarjetaRadio
-                        key={miembro.id}
-                        id={`pagador-${miembro.id}`}
-                        name="pagador"
-                        value={miembro.id}
-                        checked={medioSeleccionado?.duenoMiembroId === miembro.id}
-                        disabled={!medioDelMiembro}
-                        onChange={() => {
-                          if (medioDelMiembro) setBorrador((p) => (p ? { ...p, medioId: medioDelMiembro.id } : p))
-                        }}
-                      >
+                      <TarjetaRadio key={miembro.id} id={`pagador-${miembro.id}`} name="pagador" value={miembro.id} checked={medioSeleccionado?.duenoMiembroId === miembro.id} disabled={!medioDelMiembro} onChange={() => { if (medioDelMiembro) setBorrador((p) => (p ? { ...p, medioId: medioDelMiembro.id } : p)) }}>
                         {miembro.nombre}
                       </TarjetaRadio>
                     )
@@ -231,62 +192,35 @@ function PagoCuota({ cuotaId }: { cuotaId: string }) {
               </fieldset>
             ) : null}
 
-            {item?.ambito === 'personal' ? (
-              <Aviso variante="indigo" icono="ℹ">
-                <p>
-                  <strong className="text-hogar-tinta">Pasivo personal:</strong> este libro es de ámbito personal, así que el abono aporta <strong className="text-hogar-tinta">$0</strong> al balance del hogar.
-                </p>
-              </Aviso>
-            ) : medioSeleccionado?.duenoMiembroId === null ? (
-              <Aviso variante="indigo" icono="ℹ">
-                <p>
-                  <strong className="text-hogar-tinta">Cuenta común · Hogar:</strong> es una salida del fondo común por {formatearPesos(montoMostrado)} y <strong className="text-hogar-tinta">no hay aporte individual</strong> ($0).
-                </p>
-              </Aviso>
-            ) : (
+            {aporteEvaluado ? (
               <Aviso variante="primario" icono="✓">
                 <p>
-                  <strong className="text-hogar-tinta">
-                    Aporte libre{item ? ` (${etiquetaAmbitoTitular(item.ambito, item.titular)})` : ''}:
-                  </strong>{' '}
-                  el abono de <strong className="text-hogar-tinta">{formatearPesos(montoMostrado)}</strong> cuenta como aporte individual de{' '}
-                  <strong className="text-hogar-tinta">{nombreMiembro(medioSeleccionado?.duenoMiembroId ?? null)}</strong> al pagarse desde una cuenta personal, sin generar deuda entre ustedes. Desde <strong>«Cuenta común · Hogar»</strong> no hay aporte individual.
+                  <strong className="text-hogar-tinta">Aporte libre{item ? ` (${etiquetaAmbitoTitular(item.ambito, item.titular)})` : ''}:</strong>{' '}
+                  este abono cuenta como aporte individual de <strong className="text-hogar-tinta">{nombreMiembro(aporteEvaluado.miembroId)} ({formatearPesos(aporteEvaluado.monto)})</strong> sin generar deuda entre ustedes. Desde <strong>«Cuenta común · Hogar»</strong> no hay aporte individual.
                 </p>
               </Aviso>
-            )}
+            ) : aporteEvaluado === null ? (
+              <Aviso variante="indigo" icono="ℹ">
+                <p>
+                  <strong className="text-hogar-tinta">Sin aporte individual ($0):</strong>{' '}
+                  {item?.ambito === 'personal'
+                    ? 'es un pasivo personal y sus pagos no suman al balance del hogar.'
+                    : 'salida del fondo común o libro personal; no suma aporte individual.'}
+                </p>
+              </Aviso>
+            ) : null}
 
             <Tarjeta className="flex flex-col gap-3.5">
-              <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">
-                Desglose del pago (COP enteros · {fechaCorta})
-              </h2>
-
+              <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">Desglose del pago (COP enteros · {fechaCorta})</h2>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="pago-capital" className={claseEtiquetaCampo}>Capital aplicado a la cuota (no suma al consumo)</label>
-                <input
-                  ref={capitalRef}
-                  id="pago-capital"
-                  className={`${claseCampoTexto} hogar-cop text-xl font-extrabold`}
-                  type="text"
-                  inputMode="numeric"
-                  value={borrador.capital > 0 ? formatearPesos(borrador.capital) : ''}
-                  placeholder="$0"
-                  aria-describedby="ayuda-capital"
-                  onChange={(e) => {
-                    setErrorAccion('')
-                    setBorrador((p) => (p ? { ...p, capital: parsearDigitosCop(e.target.value) } : p))
-                  }}
-                />
+                <input ref={capitalRef} id="pago-capital" className={`${claseCampoTexto} hogar-cop text-xl font-extrabold`} type="text" inputMode="numeric" value={borrador.capital > 0 ? formatearPesos(borrador.capital) : ''} placeholder="$0" aria-describedby="ayuda-capital" onChange={(e) => { setErrorAccion(''); setBorrador((p) => (p ? { ...p, capital: parsearDigitosCop(e.target.value) } : p)) }} />
                 <p id="ayuda-capital" className={claseAyudaCampo}>
-                  {borrador.capital > 0 && borrador.capital < capitalInicial
-                    ? 'Pago parcial: se registrará sin enlazar la cuota (FIFO).'
-                    : `Capital sugerido de la cuota: ${formatearPesos(capitalInicial)}. Editable si haces abono parcial o extraordinario.`}
+                  {borrador.capital > 0 && borrador.capital < capitalInicial ? 'Pago parcial: se registrará sin enlazar la cuota (FIFO).' : `Capital sugerido de la cuota: ${formatearPesos(capitalInicial)}. Editable si haces abono parcial o extraordinario.`}
                 </p>
               </div>
-
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="pago-intereses" className={claseEtiquetaCampo}>
-                  Interés ligado a la cuota · Costo financiero (cargado al pasivo)
-                </label>
+                <label htmlFor="pago-intereses" className={claseEtiquetaCampo}>Interés ligado a la cuota · Costo financiero (cargado al pasivo)</label>
                 <input
                   id="pago-intereses"
                   className={`${claseCampoTexto} hogar-cop text-xl font-extrabold`}
@@ -310,56 +244,31 @@ function PagoCuota({ cuotaId }: { cuotaId: string }) {
                       : 'Estimación editable contra el extracto real (balde aparte Costo financiero). Si lo corriges, quedará como manual.'}
                 </p>
               </div>
-
               <ListaDesglose filas={filasDesglose} />
             </Tarjeta>
 
             <div className="grid grid-cols-2 gap-2.5">
               <div className="flex min-w-0 flex-col gap-1.5">
                 <label htmlFor="cuenta-origen" className={claseEtiquetaCampo}>Medio de origen</label>
-                <select
-                  id="cuenta-origen"
-                  className={claseCampoTexto}
-                  value={borrador.medioId ?? ''}
-                  aria-describedby="ayuda-origen-pago"
-                  onChange={(e) => setBorrador((p) => (p ? { ...p, medioId: e.target.value || null } : p))}
-                >
+                <select id="cuenta-origen" className={claseCampoTexto} value={borrador.medioId ?? ''} aria-describedby="ayuda-origen-pago" onChange={(e) => setBorrador((p) => (p ? { ...p, medioId: e.target.value || null } : p))}>
                   {medios.length === 0 ? <option value="">Sin medios disponibles</option> : null}
                   {medios.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
                 </select>
-                <p id="ayuda-origen-pago" className={claseAyudaCampo}>
-                  Cuenta personal aporta al dueño del medio; Cuenta común no genera aporte individual.
-                </p>
+                <p id="ayuda-origen-pago" className={claseAyudaCampo}>Cuenta personal aporta al dueño del medio; Cuenta común no genera aporte individual.</p>
               </div>
               <div className="flex min-w-0 flex-col gap-1.5">
                 <label htmlFor="fecha-pago" className={claseEtiquetaCampo}>Fecha de pago</label>
-                <input
-                  id="fecha-pago"
-                  className={claseCampoTexto}
-                  type="date"
-                  value={borrador.fecha}
-                  aria-describedby="ayuda-fecha-pago"
-                  onChange={(e) => setBorrador((p) => (p ? { ...p, fecha: e.target.value } : p))}
-                />
+                <input id="fecha-pago" className={claseCampoTexto} type="date" value={borrador.fecha} aria-describedby="ayuda-fecha-pago" onChange={(e) => setBorrador((p) => (p ? { ...p, fecha: e.target.value } : p))} />
                 <p id="ayuda-fecha-pago" className={claseAyudaCampo}>Define el saldo causado a esa fecha.</p>
               </div>
             </div>
 
             <div className="flex flex-col gap-1.5">
               <label htmlFor="nota-pago" className={claseEtiquetaCampo}>Nota (opcional)</label>
-              <input
-                id="nota-pago"
-                className={claseCampoTexto}
-                type="text"
-                placeholder="Ej. Comprobante o referencia bancaria"
-                value={borrador.nota}
-                onChange={(e) => setBorrador((p) => (p ? { ...p, nota: e.target.value } : p))}
-              />
+              <input id="nota-pago" className={claseCampoTexto} type="text" placeholder="Ej. Comprobante o referencia bancaria" value={borrador.nota} onChange={(e) => setBorrador((p) => (p ? { ...p, nota: e.target.value } : p))} />
             </div>
 
-            {evaluacion?.estado === 'invalido' ? (
-              <Aviso variante="peligro" icono="▲" role="alert"><p>{evaluacion.mensaje}</p></Aviso>
-            ) : null}
+            {evaluacion?.estado === 'invalido' ? <Aviso variante="peligro" icono="▲" role="alert"><p>{evaluacion.mensaje}</p></Aviso> : null}
 
             {evaluacion?.estado === 'duplicado' ? (
               <Tarjeta acento="peligro" className="flex flex-col gap-2.5">
@@ -369,22 +278,11 @@ function PagoCuota({ cuotaId }: { cuotaId: string }) {
                 </div>
                 <Aviso variante="peligro" icono="▲" role="alert">
                   <p><strong className="text-hogar-tinta">Posible pago duplicado (cuota ya cubierta).</strong></p>
-                  <p>
-                    Ya existe un abono registrado el <strong>{formatearFechaCortaEs(evaluacion.existente.fecha)}</strong> por{' '}
-                    <strong className="hogar-cop">{formatearPesos(evaluacion.existente.monto)}</strong> ({evaluacion.existente.registradoPor}). No se puede confirmar ni dividir.
-                  </p>
+                  <p>Ya existe un abono registrado el <strong>{formatearFechaCortaEs(evaluacion.existente.fecha)}</strong> por <strong className="hogar-cop">{formatearPesos(evaluacion.existente.monto)}</strong> ({evaluacion.existente.registradoPor}). No se puede confirmar ni dividir.</p>
                 </Aviso>
                 <div className="flex flex-wrap gap-2">
-                  <Link to="/obligaciones" className={`${claseBotonPequenoSecundario} flex-1 basis-[130px] no-underline`}>
-                    Cancelar y revisar pagos
-                  </Link>
-                  <button
-                    type="button"
-                    className={`${claseBotonPequenoSecundario} flex-1 basis-[130px]`}
-                    onClick={() => { setEnlazarCuota(false); capitalRef.current?.focus() }}
-                  >
-                    Registrar adelanto sin cuota
-                  </button>
+                  <Link to="/obligaciones" className={`${claseBotonPequenoSecundario} flex-1 basis-[130px] no-underline`}>Cancelar y revisar pagos</Link>
+                  <button type="button" className={`${claseBotonPequenoSecundario} flex-1 basis-[130px]`} onClick={() => { setEnlazarCuota(false); capitalRef.current?.focus() }}>Registrar adelanto sin cuota</button>
                 </div>
               </Tarjeta>
             ) : null}
@@ -397,19 +295,11 @@ function PagoCuota({ cuotaId }: { cuotaId: string }) {
                 </div>
                 <Aviso variante="ambar" icono="▲" role="alert">
                   <p><strong className="text-hogar-tinta">Posible pago duplicado o sobrepago (monto mayor al saldo causado).</strong></p>
-                  <p>
-                    El monto ({formatearPesos(evaluacion.monto)}) supera el saldo causado a la fecha ({formatearPesos(evaluacion.tope)}). Con confirmación explícita se registrará en el mismo lote un <em>abono</em> de {formatearPesos(evaluacion.tope)} y un <em>saldo a favor</em> de {formatearPesos(evaluacion.excedente)} (no reduce capital ni costos ni aporta hasta cubrir un cargo futuro del hogar).
-                  </p>
+                  <p>El monto ({formatearPesos(evaluacion.monto)}) supera el saldo causado ({formatearPesos(evaluacion.tope)}). Con confirmación explícita se registrará en el mismo lote un <em>abono</em> de {formatearPesos(evaluacion.tope)} y un <em>saldo a favor</em> de {formatearPesos(evaluacion.excedente)} (no reduce capital ni costos ni aporta hasta cubrir un cargo futuro del hogar).</p>
                 </Aviso>
                 <div className="flex flex-wrap gap-2">
                   <Link to="/obligaciones" className={`${claseBotonPequenoSecundario} flex-1 basis-[130px] no-underline`}>Cancelar</Link>
-                  <button
-                    ref={sobrepagoRef}
-                    type="button"
-                    className={`${claseBotonPequenoSecundario} flex-1 basis-[130px] border-hogar-ambar`}
-                    disabled={guardando}
-                    onClick={() => void ejecutarRegistro(true)}
-                  >
+                  <button ref={sobrepagoRef} type="button" className={`${claseBotonPequenoSecundario} flex-1 basis-[130px] border-hogar-ambar`} disabled={guardando} onClick={() => void ejecutarRegistro(true)}>
                     {guardando ? 'Dividiendo…' : 'Dividir: abono + saldo a favor'}
                   </button>
                 </div>
@@ -437,14 +327,9 @@ function PagoObligacionRecurrente({ obligacionId }: { obligacionId: string }) {
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
 
+  useEffect(() => { if (item && monto === 0 && item.montoEstimado) setMonto(item.montoEstimado) }, [item, monto])
   useEffect(() => {
-    if (item && monto === 0 && item.montoEstimado) setMonto(item.montoEstimado)
-  }, [item, monto])
-
-  useEffect(() => {
-    if (!medioId && medios.length > 0) {
-      setMedioId(medios.find((m) => m.duenoMiembroId === hogar.miembroActual.id)?.id ?? medios[0]?.id ?? null)
-    }
+    if (!medioId && medios.length > 0) setMedioId(medios.find((m) => m.duenoMiembroId === hogar.miembroActual.id)?.id ?? medios[0]?.id ?? null)
   }, [hogar.miembroActual.id, medioId, medios])
 
   async function confirmar() {
@@ -454,13 +339,7 @@ function PagoObligacionRecurrente({ obligacionId }: { obligacionId: string }) {
     setGuardando(true)
     setError('')
     try {
-      const res = await controlador.registrarPagoObligacion({
-        obligacionId,
-        periodo: item?.periodo ?? periodo,
-        medioId,
-        fecha,
-        monto,
-      })
+      const res = await controlador.registrarPagoObligacion({ obligacionId, periodo: item?.periodo ?? periodo, medioId, fecha, monto })
       mostrarToast(res.resumen)
       recargar()
       navigate('/obligaciones')
@@ -479,36 +358,20 @@ function PagoObligacionRecurrente({ obligacionId }: { obligacionId: string }) {
       etiquetaVolver="Volver a Obligaciones del mes"
       accionDerecha={<Insignia variante="primario">Obligación</Insignia>}
       etiquetaBarraAccion="Confirmar pago de obligación recurrente"
-      barraAccion={
-        <button type="button" className={`${claseBotonPrimario} w-full`} disabled={guardando} onClick={() => void confirmar()} data-sin-scroll>
-          {guardando ? 'Registrando…' : `Confirmar pago (${formatearPesos(monto)})`}
-        </button>
-      }
+      barraAccion={<button type="button" className={`${claseBotonPrimario} w-full`} disabled={guardando} onClick={() => void confirmar()} data-sin-scroll>{guardando ? 'Registrando…' : `Confirmar pago (${formatearPesos(monto)})`}</button>}
     >
       {error ? <Aviso variante="peligro" icono="▲" role="alert"><p>{error}</p></Aviso> : null}
-
       <Tarjeta acento="primario">
         <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
           <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">{item ? item.nombre : 'Obligación del hogar'}</h2>
           <Insignia variante="neutral">{item ? `Periodo ${nombreMesPeriodoEs(item.periodo)}` : 'Obligación del hogar'}</Insignia>
         </div>
-        <p className={claseAyudaCampo}>
-          Al pagarla se crea una Compra en <strong>{item?.categoriaNombre ?? 'su categoría'}</strong> para este periodo. Cierra la agenda del periodo y suma al gasto real en la fecha de pago.
-        </p>
+        <p className={claseAyudaCampo}>Al pagarla se crea una Compra en <strong>{item?.categoriaNombre ?? 'su categoría'}</strong> para este periodo. Cierra la agenda del periodo y suma al gasto real en la fecha de pago.</p>
       </Tarjeta>
-
       <Tarjeta className="flex flex-col gap-3.5">
         <div className="flex flex-col gap-1.5">
           <label htmlFor="pago-obligacion-monto" className={claseEtiquetaCampo}>Monto pagado en COP (enteros)</label>
-          <input
-            id="pago-obligacion-monto"
-            className={`${claseCampoTexto} hogar-cop text-xl font-extrabold`}
-            type="text"
-            inputMode="numeric"
-            value={monto > 0 ? formatearPesos(monto) : ''}
-            placeholder="$0"
-            onChange={(e) => { setError(''); setMonto(parsearDigitosCop(e.target.value)) }}
-          />
+          <input id="pago-obligacion-monto" className={`${claseCampoTexto} hogar-cop text-xl font-extrabold`} type="text" inputMode="numeric" value={monto > 0 ? formatearPesos(monto) : ''} placeholder="$0" onChange={(e) => { setError(''); setMonto(parsearDigitosCop(e.target.value)) }} />
         </div>
         <div className="grid grid-cols-2 gap-2.5">
           <div className="flex min-w-0 flex-col gap-1.5">
@@ -523,7 +386,6 @@ function PagoObligacionRecurrente({ obligacionId }: { obligacionId: string }) {
           </div>
         </div>
       </Tarjeta>
-
       <Link to="/obligaciones" className={`${claseBotonSecundario} w-full no-underline`}>Cancelar</Link>
     </ShellApp>
   )
@@ -534,12 +396,8 @@ export function PantallaRegistrarPago() {
   if (!id) {
     return (
       <ShellApp titulo="Registrar pago" volverA="/obligaciones" etiquetaVolver="Volver a Obligaciones del mes">
-        <Aviso variante="ambar" icono="▲" role="alert">
-          <p>Elige una cuota u obligación desde la agenda del mes para registrar su pago.</p>
-        </Aviso>
-        <Link to="/obligaciones" className={`${claseBotonPrimario} w-full no-underline`} data-sin-scroll>
-          Volver a Obligaciones
-        </Link>
+        <Aviso variante="ambar" icono="▲" role="alert"><p>Elige una cuota u obligación desde la agenda del mes para registrar su pago.</p></Aviso>
+        <Link to="/obligaciones" className={`${claseBotonPrimario} w-full no-underline`} data-sin-scroll>Volver a Obligaciones</Link>
       </ShellApp>
     )
   }
