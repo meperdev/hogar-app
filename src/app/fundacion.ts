@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { AlcanceCompra, ControladorCompraRapida } from './compraRapida'
 
 export type Sesion = { usuarioId: string }
 export type Rol = 'admin' | 'miembro'
@@ -24,7 +25,12 @@ export interface HogarPort {
   crear(nombres: NombreHogar): Promise<HogarCreado>
 }
 
-export type Servicios = { auth: AuthPort; hogares: HogarPort }
+export type Servicios = {
+  auth: AuthPort
+  hogares: HogarPort
+  /** Núcleo 1: controlador de compra rápida por actor (ver `compraRapida.ts`). */
+  compras?: (alcance: AlcanceCompra) => ControladorCompraRapida
+}
 
 export class ErrorFundacion extends Error {}
 
