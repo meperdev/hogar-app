@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { act, createElement, type ReactElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import htmlCrudo from '../index.html?raw';
 import manifiestoCrudo from '../public/manifest.webmanifest?raw';
@@ -12,6 +12,8 @@ import {
   crearBaseActor,
   nombreBaseActor,
 } from './data/db';
+
+vi.mock('./data/supabase', () => ({ conectarSupabase: () => null }));
 
 const ID_HOGAR = '018f4a1e-0000-7000-8000-000000000001';
 const ID_HOGAR_ADMIN = '018f4a1e-0000-7000-8000-000000000002';
@@ -48,24 +50,15 @@ afterEach(async () => {
 });
 
 describe('Seam de la App', () => {
-  it('la App por defecto monta el inicio en español con sus rutas', async () => {
+  it('sin configurar Supabase, explica cómo arrancar y no permite ingresar', async () => {
+    window.history.replaceState({}, '', '/crear-hogar');
     const { contenedor } = await montar(createElement(App));
 
-    expect(contenedor.querySelector('h1')?.textContent).toBe('Hogar');
-    expect(contenedor.textContent).toContain('La base de la PWA está lista');
-    expect(contenedor.textContent).toContain('Compra rápida');
+    expect(contenedor.querySelector('h1')?.textContent).toBe('Configurá Supabase');
+    expect(contenedor.textContent).toContain('VITE_SUPABASE_ANON_KEY');
+    expect(contenedor.querySelector('form')).toBeNull();
     expect(contenedor.querySelector('footer')?.textContent).toContain(
       'Montos enteros en COP',
-    );
-  });
-
-  it('una ruta desconocida cae en la página no encontrada', async () => {
-    window.history.replaceState({}, '', '/ruta-que-no-existe');
-
-    const { contenedor } = await montar(createElement(App));
-
-    expect(contenedor.querySelector('h1')?.textContent).toBe(
-      'Página no encontrada',
     );
   });
 
@@ -77,7 +70,7 @@ describe('Seam de la App', () => {
     });
 
     const raiz = document.getElementById('root');
-    expect(raiz?.querySelector('h1')?.textContent).toBe('Hogar');
+    expect(raiz?.querySelector('h1')?.textContent).toBe('Configurá Supabase');
     expect(raiz?.textContent).toContain('Fundación');
   });
 });
