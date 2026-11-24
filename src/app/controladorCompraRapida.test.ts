@@ -1,14 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import type { LoteCompra } from '../domain/loteCompra'
-import type { BorradorCompra, CatalogoCompra, CompraExistente } from './compraRapida'
+import type { BorradorCompra, CatalogoCompra } from './compraRapida'
 import {
   clavePreferenciaUltimoMedio,
   crearControladorCompraRapida,
   ErrorCompraRapida,
   prellenarRecompra,
-  type CompraRapidaPort,
-  type RegistroLocal,
 } from './controladorCompraRapida'
+import { PuertoEnMemoria } from './puertoEnMemoria'
 
 const ALCANCE = { hogarId: 'hogar-1', miembroId: 'ana' }
 const CUFE = 'c'.repeat(96)
@@ -54,59 +52,8 @@ const catalogo: CatalogoCompra = {
   ],
 }
 
-class PuertoMemoria implements CompraRapidaPort {
-  pendientes = new Map<string, LoteCompra>()
-  registros: RegistroLocal[] = []
-  enviados: LoteCompra[] = []
-  preferencias = new Map<string, string>()
-  alias = new Map<string, { nombreComercio: string; categoriaId: string | null }>()
-  remotas = new Map<string, CompraExistente>()
-
-  async cargarCatalogo() {
-    return catalogo
-  }
-  async buscarAlias(nit: string) {
-    return this.alias.get(nit) ?? null
-  }
-  async buscarPorCufe(cufe: string) {
-    const local = this.registros.find((r) => r.cufe === cufe)
-    if (local) return { fecha: local.fecha, montoTotal: local.montoTotal, descripcion: local.descripcion }
-    return this.remotas.get(cufe) ?? null
-  }
-  async guardarLote(lote: LoteCompra, registro: RegistroLocal) {
-    this.pendientes.set(lote.lote_id, lote)
-    this.registros.push(registro)
-  }
-  async descartarLote(loteId: string) {
-    if (!this.pendientes.delete(loteId)) return false
-    this.registros = this.registros.filter((r) => r.loteId !== loteId)
-    return true
-  }
-  async registrosDesde(desde: string) {
-    return this.registros.filter((r) => r.creadoEn >= desde)
-  }
-  async enviarPendientes(antes: string) {
-    for (const [id, lote] of this.pendientes) {
-      const registro = this.registros.find((r) => r.loteId === id)
-      if (registro && registro.creadoEn < antes) {
-        this.enviados.push(lote)
-        this.pendientes.delete(id)
-      }
-    }
-  }
-  async estadoSincronizacion() {
-    return { pendientes: this.pendientes.size, rechazados: [] }
-  }
-  async leerPreferencia(clave: string) {
-    return this.preferencias.get(clave) ?? null
-  }
-  async guardarPreferencia(clave: string, valor: string) {
-    this.preferencias.set(clave, valor)
-  }
-}
-
 function montar(reloj = { t: Date.parse('2026-11-22T15:00:00Z') }) {
-  const port = new PuertoMemoria()
+  const port = new PuertoEnMemoria(catalogo)
   const tareas: Array<() => void> = []
   let n = 0
   const controlador = crearControladorCompraRapida({
@@ -261,7 +208,7 @@ describe('controlador de compra rápida', () => {
     })
 
     it('bloquea una factura ya registrada en el dispositivo o visible en el servidor', async () => {
-      const { controlador, port } = montar()
+      const { controlador } = montar()
       const r = await controlador.escanear(QR)
       if (r.estado !== 'precargado') throw new Error('se esperaba precargado')
       await controlador.guardar(borrador(controlador, { factura: r.factura }), catalogo)
