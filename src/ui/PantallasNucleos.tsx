@@ -16,13 +16,13 @@ export function PantallaCompraVacia({ hogar }: { hogar: Hogar }) {
       titulo="Compra rápida"
       subtitulo={`${hogar.miembroActual.nombre} · ${hogar.nombre}`}
       accionDerecha={
-        <Link to="/" className={`${claseBotonPequenoSecundario} no-underline`}>
+        <Link to="/hogar" className={`${claseBotonPequenoSecundario} no-underline`}>
           Mi hogar
         </Link>
       }
       mostrarNavegacion
       barraAccion={
-        <Link to="/" className={`${claseBotonPrimario} w-full no-underline`} data-sin-scroll>
+        <Link to="/hogar" className={`${claseBotonPrimario} w-full no-underline`} data-sin-scroll>
           Volver a {hogar.nombre}
         </Link>
       }
@@ -79,13 +79,13 @@ export function PantallaObligacionesVacia({ hogar }: { hogar: Hogar }) {
       titulo="Obligaciones del mes"
       subtitulo={`${hogar.nombre} · 0 cuotas pendientes`}
       accionDerecha={
-        <Link to="/" className={`${claseBotonPequenoSecundario} no-underline`}>
+        <Link to="/hogar" className={`${claseBotonPequenoSecundario} no-underline`}>
           Mi hogar
         </Link>
       }
       mostrarNavegacion
       barraAccion={
-        <Link to="/" className={`${claseBotonPrimario} w-full no-underline`} data-sin-scroll>
+        <Link to="/hogar" className={`${claseBotonPrimario} w-full no-underline`} data-sin-scroll>
           Volver a {hogar.nombre}
         </Link>
       }
@@ -169,7 +169,7 @@ export function PantallaBalanceVacia({ hogar }: { hogar: Hogar }) {
       }
       mostrarNavegacion
       barraAccion={
-        <Link to="/" className={`${claseBotonPrimario} w-full no-underline`} data-sin-scroll>
+        <Link to="/hogar" className={`${claseBotonPrimario} w-full no-underline`} data-sin-scroll>
           Ver miembros del hogar
         </Link>
       }
@@ -217,13 +217,13 @@ export function PantallaMascotasVacia({ hogar }: { hogar: Hogar }) {
       titulo="Despensa de mascotas"
       subtitulo={`${hogar.nombre} · 0 alertas`}
       accionDerecha={
-        <Link to="/" className={`${claseBotonPequenoSecundario} no-underline`}>
+        <Link to="/hogar" className={`${claseBotonPequenoSecundario} no-underline`}>
           Mi hogar
         </Link>
       }
       mostrarNavegacion
       barraAccion={
-        <Link to="/" className={`${claseBotonPrimario} w-full no-underline`} data-sin-scroll>
+        <Link to="/hogar" className={`${claseBotonPrimario} w-full no-underline`} data-sin-scroll>
           Volver a {hogar.nombre}
         </Link>
       }
@@ -274,7 +274,7 @@ export function PantallaAjustesFundacion({
     <ShellApp
       titulo="Ajustes y exportación"
       subtitulo={hogar.nombre}
-      volverA="/"
+      volverA="/hogar"
       etiquetaVolver={`Volver a ${hogar.nombre}`}
       accionDerecha={<Insignia variante="primario">Fundación</Insignia>}
       mostrarNavegacion
@@ -343,7 +343,7 @@ export function PantallaAjustesFundacion({
           >
             Cerrar sesión
           </button>
-          <Link to="/" className={`${claseBotonPequenoSecundario} w-full no-underline`}>
+          <Link to="/hogar" className={`${claseBotonPequenoSecundario} w-full no-underline`}>
             Volver a {hogar.nombre}
           </Link>
         </div>

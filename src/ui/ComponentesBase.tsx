@@ -5,7 +5,12 @@ const botonBase =
 
 export const claseBotonPrimario = `${botonBase} border-transparent bg-hogar-primario text-white hover:bg-hogar-primario-fuerte`
 
+export const claseBotonIndigo = `${botonBase} border-transparent bg-hogar-indigo text-white hover:opacity-95`
+
 export const claseBotonSecundario = `${botonBase} border-hogar-borde-fuerte bg-hogar-superficie text-hogar-tinta hover:bg-hogar-superficie-suave`
+
+export const claseBotonPequenoPrimario =
+  'inline-flex min-h-11 min-w-11 max-w-full items-center justify-center gap-1.5 rounded-xl border-2 border-transparent bg-hogar-primario px-3 py-2 text-center text-sm font-bold leading-tight text-white whitespace-normal break-words hover:bg-hogar-primario-fuerte cursor-pointer disabled:cursor-not-allowed disabled:opacity-60'
 
 export const claseBotonPequenoSecundario =
   'inline-flex min-h-11 min-w-11 max-w-full items-center justify-center gap-1.5 rounded-xl border-2 border-hogar-borde-fuerte bg-hogar-superficie px-3 py-2 text-center text-sm font-bold leading-tight text-hogar-tinta whitespace-normal break-words hover:bg-hogar-superficie-suave cursor-pointer disabled:cursor-not-allowed disabled:opacity-60'

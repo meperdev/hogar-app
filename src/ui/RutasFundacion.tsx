@@ -31,6 +31,10 @@ import {
   PantallaObligacionesVacia,
 } from './PantallasNucleos'
 import { ShellApp } from './ShellApp'
+import { ProveedorCompraRapida } from './compraRapida/ContextoCompraRapida'
+import { PantallaCompraCuotas } from './compraRapida/PantallaCompraCuotas'
+import { PantallaCompraRapida } from './compraRapida/PantallaCompraRapida'
+import { PantallaEscanearFactura } from './compraRapida/PantallaEscanearFactura'
 
 function mensaje(error: unknown, porDefecto: string) {
   return error instanceof ErrorFundacion ? error.message : porDefecto
@@ -560,10 +564,23 @@ function HogarConSesion({ servicios, sesion }: { servicios: Servicios; sesion: S
     )
   }
 
-  return (
+  const rutasHogar = (
     <Routes>
+      <Route path="/" element={<Navigate to="/compra" replace />} />
+      {servicios.compras ? (
+        <>
+          <Route path="/compra" element={<PantallaCompraRapida />} />
+          <Route path="/compra/cuotas" element={<PantallaCompraCuotas />} />
+          <Route path="/compra/escanear" element={<PantallaEscanearFactura />} />
+        </>
+      ) : (
+        <>
+          <Route path="/compra" element={<PantallaCompraVacia hogar={carga} />} />
+          <Route path="/compra/*" element={<Navigate to="/compra" replace />} />
+        </>
+      )}
       <Route
-        path="/"
+        path="/hogar"
         element={
           <ResumenHogar
             hogar={carga}
@@ -573,7 +590,6 @@ function HogarConSesion({ servicios, sesion }: { servicios: Servicios; sesion: S
           />
         }
       />
-      <Route path="/compra" element={<PantallaCompraVacia hogar={carga} />} />
       <Route path="/obligaciones" element={<PantallaObligacionesVacia hogar={carga} />} />
       <Route path="/balance" element={<PantallaBalanceVacia hogar={carga} />} />
       <Route path="/mascotas" element={<PantallaMascotasVacia hogar={carga} />} />
@@ -588,10 +604,20 @@ function HogarConSesion({ servicios, sesion }: { servicios: Servicios; sesion: S
           />
         }
       />
-      <Route path="/crear-hogar" element={<Navigate to="/" replace />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="/crear-hogar" element={<Navigate to="/compra" replace />} />
+      <Route path="*" element={<Navigate to="/compra" replace />} />
     </Routes>
   )
+
+  if (servicios.compras) {
+    return (
+      <ProveedorCompraRapida hogar={carga} crearControlador={servicios.compras}>
+        {rutasHogar}
+      </ProveedorCompraRapida>
+    )
+  }
+
+  return rutasHogar
 }
 
 export function RutasFundacion({ servicios }: { servicios: Servicios }) {

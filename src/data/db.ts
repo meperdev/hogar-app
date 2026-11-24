@@ -1,5 +1,8 @@
 import Dexie, { type Table } from 'dexie';
 import { z } from 'zod';
+import type { CatalogoCompra } from '../app/compraRapida';
+import type { RegistroLocal } from '../app/controladorCompraRapida';
+import type { LoteCompra } from '../domain/loteCompra';
 
 /**
  * Alcance local de la réplica. La base Dexie se abre por `(hogar_id, actor)`
@@ -23,6 +26,27 @@ export interface PreferenciaLocal {
   actualizadoEn: string;
 }
 
+/**
+ * Lote de compra esperando envío (`sync_push`). `creadoEn` es el ISO del reloj
+ * del dispositivo: la ventana de Deshacer compara contra él. Un lote rechazado
+ * por el servidor queda con `estado: 'rechazado'` y su motivo en español; el
+ * lote original se conserva como evidencia.
+ */
+export interface EntradaOutbox {
+  loteId: string;
+  creadoEn: string;
+  lote: LoteCompra;
+  estado: 'pendiente' | 'rechazado';
+  motivo: string | null;
+}
+
+/** Copia local del catálogo visible para el actor, para arrancar sin red. */
+export interface CatalogoLocal {
+  clave: string;
+  valor: CatalogoCompra;
+  actualizadoEn: string;
+}
+
 const PREFIJO_BASE = 'hogar-app';
 
 /**
@@ -37,15 +61,25 @@ export function nombreBaseActor(alcance: AlcanceActor): string {
 /**
  * Base Dexie de un solo actor. El constructor NO abre la base y no toca datos:
  * abrir es una decisión explícita (`abrirBaseActor` o `AdministradorBaseActor`).
- * Las tablas espejo y el `outbox` llegan con el núcleo de datos; esta
- * fundación solo declara el espacio de preferencias locales.
+ * La versión 2 agrega el espacio del núcleo 1: outbox de lotes de compra,
+ * registros locales de compras guardadas y la última copia del catálogo. Las
+ * tablas espejo del resto del dominio llegan con sus núcleos.
  */
 export class BaseActorDexie extends Dexie {
   declare preferencias: Table<PreferenciaLocal, string>;
+  declare outbox: Table<EntradaOutbox, string>;
+  declare registros: Table<RegistroLocal, string>;
+  declare catalogo: Table<CatalogoLocal, string>;
 
   constructor(alcance: AlcanceActor) {
     super(nombreBaseActor(alcance));
     this.version(1).stores({ preferencias: 'clave' });
+    this.version(2).stores({
+      preferencias: 'clave',
+      outbox: 'loteId, creadoEn, estado',
+      registros: 'compraId, loteId, cufe, creadoEn',
+      catalogo: 'clave',
+    });
   }
 }
 
