@@ -5,7 +5,7 @@ begin;
 
 set search_path = public, extensions;
 
-select plan(45);
+select plan(48);
 
 -- Los conteos de este archivo son globales: se parte de una base de fundación
 -- vacía dentro de la transacción, sin depender de datos de desarrollo locales.
@@ -95,15 +95,18 @@ select results_eq(
 
 reset role;
 
-select is((select ultimo_seq from public.hogar_seq), 10::bigint,
-  'el carril del hogar numera el miembro y las nueve categorías');
+select is((select ultimo_seq from public.hogar_seq), 11::bigint,
+  'el carril del hogar numera el hogar, el miembro y las nueve categorías');
+select is((select actualizado_por from public.hogar), (select id from public.miembro),
+  'el autor del hogar es su primer admin');
 select is((select count(*)::int from public.personal_seq), 1, 'el alta crea un carril personal');
 select is((select ultimo_seq from public.personal_seq), 0::bigint,
   'el carril personal del primer admin arranca en 0');
 select is(
   (select array_agg(seq order by seq) from
-     (select seq from public.miembro union all select seq from public.categoria) s),
-  array[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]::bigint[],
+     (select seq from public.hogar union all select seq from public.miembro
+      union all select seq from public.categoria) s),
+  array[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]::bigint[],
   'la numeración del carril del hogar es contigua, sin saltos');
 select is((select count(*)::int from public.miembro
            where hogar_id = (select hogar_id from public.personal_seq)),
@@ -127,7 +130,7 @@ reset role;
 
 select is((select count(*)::int from public.hogar), 1, 'el intento rechazado no crea hogar');
 select is((select count(*)::int from public.categoria), 9, 'el intento rechazado no crea categorías');
-select is((select ultimo_seq from public.hogar_seq), 10::bigint,
+select is((select ultimo_seq from public.hogar_seq), 11::bigint,
   'el intento rechazado no mueve el contador del hogar');
 
 select set_config('request.jwt.claims',
@@ -161,6 +164,10 @@ select throws_ok($$ select public.crear_hogar('Casa', '') $$, '22023', null,
   'un nombre de miembro vacío se rechaza');
 select throws_ok($$ select public.crear_hogar(repeat('x', 81), 'Ana') $$, '22023', null,
   'un nombre de hogar de más de 80 caracteres se rechaza');
+select throws_ok($$ select public.crear_hogar(E'\t\n', 'Ana') $$, '22023', null,
+  'un nombre de hogar de solo tabuladores y saltos se rechaza');
+select throws_ok($$ select public.crear_hogar('Casa', E'\t') $$, '22023', null,
+  'un nombre de miembro de solo tabuladores se rechaza');
 
 reset role;
 
@@ -194,7 +201,7 @@ select is((select count(*)::int from public.miembro
 select is((select count(*)::int from public.categoria), 18, 'el alta fallida no deja categorías');
 select is((select count(*)::int from public.hogar_seq), 2, 'el alta fallida no deja contador de hogar');
 select is((select count(*)::int from public.personal_seq), 2, 'el alta fallida no deja carril personal');
-select is((select ultimo_seq from public.hogar_seq order by ultimo_seq desc limit 1), 10::bigint,
+select is((select ultimo_seq from public.hogar_seq order by ultimo_seq desc limit 1), 11::bigint,
   'el alta fallida no mueve los contadores existentes');
 
 drop trigger fundacion_test_fallar_categoria on public.categoria;

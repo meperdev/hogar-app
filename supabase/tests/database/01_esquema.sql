@@ -9,7 +9,7 @@ begin;
 
 set search_path = public, extensions;
 
-select plan(63);
+select plan(68);
 
 -- ---------------------------------------------------------------------------
 -- Estructura
@@ -27,8 +27,8 @@ select has_table('public', 'personal_seq', 'existe personal_seq (contador solo s
 select columns_are(
   'public', 'hogar',
   array['id', 'nombre', 'moneda', 'zona_horaria', 'mostrar_pct_ingreso',
-        'creado_en', 'actualizado_en', 'eliminado_en', 'actualizado_por'],
-  'hogar tiene las columnas canónicas'
+        'creado_en', 'actualizado_en', 'eliminado_en', 'actualizado_por', 'seq'],
+  'hogar tiene las columnas canónicas y las de sincronización, sin hogar_id'
 );
 
 select columns_are(
@@ -60,6 +60,8 @@ select has_index('public', 'miembro', 'miembro_hogar_usuario_key',
 select has_index('public', 'categoria', 'categoria_hogar_nombre_key',
   'nombre de categoría único por hogar sin distinguir mayúsculas');
 
+select has_trigger('public', 'hogar', 'hogar_seq', 'hogar asigna seq de su propio carril');
+select col_not_null('public', 'hogar', 'actualizado_por', 'hogar exige actualizado_por');
 select has_trigger('public', 'miembro', 'miembro_seq', 'miembro asigna seq del carril');
 select has_trigger('public', 'miembro', 'miembro_tenencia', 'miembro no cambia de id ni de hogar');
 select has_trigger('public', 'categoria', 'categoria_seq', 'categoria asigna seq del carril');
@@ -145,14 +147,12 @@ values
    '{"provider":"email","providers":["email"]}', '{}', now(), now())
 on conflict (id) do nothing;
 
-insert into public.hogar (id, nombre, creado_en, actualizado_en)
+-- `actualizado_por` apunta al admin que se inserta después (FK diferida) y el
+-- alta del hogar abre su carril `hogar_seq` con seq 1.
+insert into public.hogar (id, nombre, actualizado_por, creado_en, actualizado_en)
 values
-  ('11111111-1111-4111-8111-111111111101', 'Hogar A', now(), now()),
-  ('11111111-1111-4111-8111-111111111102', 'Hogar B', now(), now());
-
-insert into public.hogar_seq (hogar_id) values
-  ('11111111-1111-4111-8111-111111111101'),
-  ('11111111-1111-4111-8111-111111111102');
+  ('11111111-1111-4111-8111-111111111101', 'Hogar A', '22222222-2222-4222-8222-222222222201', now(), now()),
+  ('11111111-1111-4111-8111-111111111102', 'Hogar B', '22222222-2222-4222-8222-222222222204', now(), now());
 
 insert into public.miembro (id, hogar_id, nombre, usuario_id, rol, activo,
                             creado_en, actualizado_en, actualizado_por)
@@ -176,14 +176,27 @@ values
   ('33333333-3333-4333-8333-333333333301', '11111111-1111-4111-8111-111111111101',
    'Mercado', 'mercado', 1, now(), now(), '22222222-2222-4222-8222-222222222201');
 
+select is((select seq from public.hogar where id = '11111111-1111-4111-8111-111111111101'),
+  1::bigint, 'el alta del hogar abre su carril con seq 1');
+
+-- La FK diferida de autoría: comprobada ya, un autor de otro hogar se rechaza.
+set constraints public.hogar_actualizado_por_fkey immediate;
+select throws_ok(
+  $$ insert into public.hogar (id, nombre, actualizado_por, creado_en, actualizado_en)
+     values (gen_random_uuid(), 'Autor ajeno', '22222222-2222-4222-8222-222222222204', now(), now()) $$,
+  '23503', null, 'el actualizado_por de un hogar debe ser miembro de ese mismo hogar');
+set constraints public.hogar_actualizado_por_fkey deferred;
+
 -- ---------------------------------------------------------------------------
 -- Valores por defecto y constraints
+-- (los hogares de esta sección usan un autor ficticio: la FK diferida no se
+-- comprueba porque el archivo termina en ROLLBACK; solo se prueban los CHECK)
 -- ---------------------------------------------------------------------------
 
 select lives_ok(
-  $$ insert into public.hogar (id, nombre, creado_en, actualizado_en)
-     values ('11111111-1111-4111-8111-111111111103', 'Hogar mínimo', now(), now()) $$,
-  'hogar se puede crear solo con nombre y timestamps');
+  $$ insert into public.hogar (id, nombre, actualizado_por, creado_en, actualizado_en)
+     values ('11111111-1111-4111-8111-111111111103', 'Hogar mínimo', gen_random_uuid(), now(), now()) $$,
+  'hogar se puede crear solo con nombre, autor y timestamps');
 
 select is((select moneda from public.hogar where id = '11111111-1111-4111-8111-111111111103'),
   'COP', 'moneda por defecto COP');
@@ -193,19 +206,24 @@ select is((select mostrar_pct_ingreso from public.hogar where id = '11111111-111
   false, 'mostrar_pct_ingreso viene apagado');
 
 select throws_ok(
-  $$ insert into public.hogar (id, nombre, moneda, creado_en, actualizado_en)
-     values (gen_random_uuid(), 'Pesos', 'USD', now(), now()) $$,
+  $$ insert into public.hogar (id, nombre, moneda, actualizado_por, creado_en, actualizado_en)
+     values (gen_random_uuid(), 'Pesos', 'USD', gen_random_uuid(), now(), now()) $$,
   '23514', null, 'moneda distinta de COP se rechaza');
 
 select throws_ok(
-  $$ insert into public.hogar (id, nombre, zona_horaria, creado_en, actualizado_en)
-     values (gen_random_uuid(), 'Otra zona', 'UTC', now(), now()) $$,
+  $$ insert into public.hogar (id, nombre, zona_horaria, actualizado_por, creado_en, actualizado_en)
+     values (gen_random_uuid(), 'Otra zona', 'UTC', gen_random_uuid(), now(), now()) $$,
   '23514', null, 'zona horaria distinta de America/Bogota se rechaza');
 
 select throws_ok(
-  $$ insert into public.hogar (id, nombre, creado_en, actualizado_en)
-     values (gen_random_uuid(), '   ', now(), now()) $$,
+  $$ insert into public.hogar (id, nombre, actualizado_por, creado_en, actualizado_en)
+     values (gen_random_uuid(), '   ', gen_random_uuid(), now(), now()) $$,
   '23514', null, 'nombre de hogar vacío se rechaza');
+
+select throws_ok(
+  $$ insert into public.hogar (id, nombre, actualizado_por, creado_en, actualizado_en)
+     values (gen_random_uuid(), E'\t\n', gen_random_uuid(), now(), now()) $$,
+  '23514', null, 'nombre de hogar de solo tabuladores y saltos se rechaza');
 
 select throws_ok(
   $$ insert into public.miembro (id, hogar_id, nombre, usuario_id, rol, activo,

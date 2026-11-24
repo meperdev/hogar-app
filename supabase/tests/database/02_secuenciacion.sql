@@ -5,7 +5,7 @@ begin;
 
 set search_path = public, extensions;
 
-select plan(25);
+select plan(28);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password,
                         email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
@@ -22,11 +22,10 @@ values
    '{"provider":"email","providers":["email"]}', '{}', now(), now())
 on conflict (id) do nothing;
 
-insert into public.hogar (id, nombre, creado_en, actualizado_en)
-values ('11111111-1111-4111-8111-111111111101', 'Hogar A', now(), now());
-
-insert into public.hogar_seq (hogar_id, ultimo_seq)
-values ('11111111-1111-4111-8111-111111111101', 0);
+-- El alta del hogar abre su carril: el hogar toma seq 1.
+insert into public.hogar (id, nombre, actualizado_por, creado_en, actualizado_en)
+values ('11111111-1111-4111-8111-111111111101', 'Hogar A',
+        '22222222-2222-4222-8222-222222222201', now(), now());
 
 insert into public.miembro (id, hogar_id, nombre, usuario_id, rol, activo,
                             creado_en, actualizado_en, actualizado_por)
@@ -77,41 +76,43 @@ create trigger fundacion_fixture_carriles_seq
 -- ---------------------------------------------------------------------------
 
 select is((select ultimo_seq from public.hogar_seq
-           where hogar_id = '11111111-1111-4111-8111-111111111101'), 3::bigint,
-  'tres miembros del hogar llevan el contador del hogar a 3');
+           where hogar_id = '11111111-1111-4111-8111-111111111101'), 4::bigint,
+  'el hogar y tres miembros llevan el contador del hogar a 4');
+select is((select seq from public.hogar where id = '11111111-1111-4111-8111-111111111101'),
+  1::bigint, 'el hogar abre su carril con seq 1');
 select is((select seq from public.miembro where id = '22222222-2222-4222-8222-222222222201'),
-  1::bigint, 'el primer miembro recibe seq 1');
+  2::bigint, 'el primer miembro recibe seq 2');
 select is((select seq from public.miembro where id = '22222222-2222-4222-8222-222222222203'),
-  3::bigint, 'el tercer miembro recibe seq 3');
+  4::bigint, 'el tercer miembro recibe seq 4');
 
 insert into public.categoria (id, hogar_id, nombre, orden, creado_en, actualizado_en, actualizado_por)
 values ('33333333-3333-4333-8333-333333333301', '11111111-1111-4111-8111-111111111101',
         'Mercado', 1, now(), now(), '22222222-2222-4222-8222-222222222201');
 
 select is((select seq from public.categoria where id = '33333333-3333-4333-8333-333333333301'),
-  4::bigint, 'una categoría sigue la numeración del carril del hogar');
+  5::bigint, 'una categoría sigue la numeración del carril del hogar');
 select is((select ultimo_seq from public.hogar_seq
-           where hogar_id = '11111111-1111-4111-8111-111111111101'), 4::bigint,
-  'el contador del hogar queda en 4');
+           where hogar_id = '11111111-1111-4111-8111-111111111101'), 5::bigint,
+  'el contador del hogar queda en 5');
 
 insert into public.categoria (id, hogar_id, nombre, orden, seq, creado_en, actualizado_en, actualizado_por)
 values ('33333333-3333-4333-8333-333333333302', '11111111-1111-4111-8111-111111111101',
         'Servicios', 2, 999, now(), now(), '22222222-2222-4222-8222-222222222201');
 
 select is((select seq from public.categoria where id = '33333333-3333-4333-8333-333333333302'),
-  5::bigint, 'el seq que manda el cliente se sobrescribe con el del servidor');
+  6::bigint, 'el seq que manda el cliente se sobrescribe con el del servidor');
 select is((select ultimo_seq from public.hogar_seq
-           where hogar_id = '11111111-1111-4111-8111-111111111101'), 5::bigint,
-  'el contador del hogar queda en 5');
+           where hogar_id = '11111111-1111-4111-8111-111111111101'), 6::bigint,
+  'el contador del hogar queda en 6');
 
 update public.categoria set nombre = 'Servicios públicos'
 where id = '33333333-3333-4333-8333-333333333302';
 
 select is((select seq from public.categoria where id = '33333333-3333-4333-8333-333333333302'),
-  6::bigint, 'una actualización vuelve a numerar la fila en su carril');
+  7::bigint, 'una actualización vuelve a numerar la fila en su carril');
 select is((select ultimo_seq from public.hogar_seq
-           where hogar_id = '11111111-1111-4111-8111-111111111101'), 6::bigint,
-  'el contador del hogar queda en 6');
+           where hogar_id = '11111111-1111-4111-8111-111111111101'), 7::bigint,
+  'el contador del hogar queda en 7');
 
 -- ---------------------------------------------------------------------------
 -- Carril personal y aislamiento entre carriles
@@ -128,7 +129,7 @@ select is((select ultimo_seq from public.personal_seq
            where miembro_id = '22222222-2222-4222-8222-222222222201'), 1::bigint,
   'el carril personal de Ana queda en 1');
 select is((select ultimo_seq from public.hogar_seq
-           where hogar_id = '11111111-1111-4111-8111-111111111101'), 6::bigint,
+           where hogar_id = '11111111-1111-4111-8111-111111111101'), 7::bigint,
   'una fila personal no mueve el contador del hogar (I25)');
 
 insert into public.fundacion_fixture_carriles (id, hogar_id, ambito, miembro_id, seq)
@@ -136,7 +137,7 @@ values ('44444444-4444-4444-8444-444444444402', '11111111-1111-4111-8111-1111111
         'hogar', null, 1);
 
 select is((select seq from public.fundacion_fixture_carriles
-           where id = '44444444-4444-4444-8444-444444444402'), 7::bigint,
+           where id = '44444444-4444-4444-8444-444444444402'), 8::bigint,
   'una fila compartida toma el siguiente número del carril del hogar');
 select is((select ultimo_seq from public.personal_seq
            where miembro_id = '22222222-2222-4222-8222-222222222201'), 1::bigint,
@@ -182,6 +183,17 @@ select throws_ok(
   $$ update public.miembro set id = gen_random_uuid()
      where id = '22222222-2222-4222-8222-222222222202' $$,
   '23514', null, 'un miembro no puede cambiar de id');
+
+update public.hogar set mostrar_pct_ingreso = true
+where id = '11111111-1111-4111-8111-111111111101';
+
+select is((select seq from public.hogar where id = '11111111-1111-4111-8111-111111111101'),
+  9::bigint, 'actualizar el hogar (por ejemplo, el interruptor de %) lo numera en su carril');
+
+select throws_ok(
+  $$ update public.hogar set id = gen_random_uuid()
+     where id = '11111111-1111-4111-8111-111111111101' $$,
+  '23514', null, 'un hogar no puede cambiar de id');
 
 select set_config('request.jwt.claims',
   '{"sub":"00000000-0000-4000-8000-0000000000a1","role":"authenticated"}', true);

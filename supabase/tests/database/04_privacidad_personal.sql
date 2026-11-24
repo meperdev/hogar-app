@@ -30,14 +30,12 @@ values
    '{"provider":"email","providers":["email"]}', '{}', now(), now())
 on conflict (id) do nothing;
 
-insert into public.hogar (id, nombre, creado_en, actualizado_en)
+-- `actualizado_por` apunta al admin que se inserta después (FK diferida) y el
+-- alta del hogar abre su carril `hogar_seq` con seq 1.
+insert into public.hogar (id, nombre, actualizado_por, creado_en, actualizado_en)
 values
-  ('11111111-1111-4111-8111-111111111101', 'Hogar A', now(), now()),
-  ('11111111-1111-4111-8111-111111111102', 'Hogar B', now(), now());
-
-insert into public.hogar_seq (hogar_id) values
-  ('11111111-1111-4111-8111-111111111101'),
-  ('11111111-1111-4111-8111-111111111102');
+  ('11111111-1111-4111-8111-111111111101', 'Hogar A', '22222222-2222-4222-8222-222222222201', now(), now()),
+  ('11111111-1111-4111-8111-111111111102', 'Hogar B', '22222222-2222-4222-8222-222222222204', now(), now());
 
 insert into public.miembro (id, hogar_id, nombre, usuario_id, rol, activo,
                             creado_en, actualizado_en, actualizado_por)
@@ -101,8 +99,8 @@ select is((select ultimo_seq from public.personal_seq
            where miembro_id = '22222222-2222-4222-8222-222222222202'), 1::bigint,
   'la fila personal de Beto numera su propio carril');
 select is((select ultimo_seq from public.hogar_seq
-           where hogar_id = '11111111-1111-4111-8111-111111111101'), 4::bigint,
-  'las filas personales no mueven el contador del hogar (I25)');
+           where hogar_id = '11111111-1111-4111-8111-111111111101'), 5::bigint,
+  'el hogar, tres miembros y una fila compartida: lo personal no mueve el contador (I25)');
 
 -- ---------------------------------------------------------------------------
 -- Cada actor ve lo compartido y solo lo personal propio

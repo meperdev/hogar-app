@@ -52,14 +52,27 @@ $$;
 create type public.miembro_rol as enum ('admin', 'miembro');
 
 -- ---------------------------------------------------------------------------
--- Hogar: raíz de tenencia. Sin `hogar_id` ni `seq` propios.
+-- Hogar: raíz de tenencia y tabla replicada (data-model §1.2): sin `hogar_id`,
+-- con `seq` en su propio carril. Su alta abre el carril con `seq = 1`.
 -- ---------------------------------------------------------------------------
+
+-- Un nombre visible tiene al menos un carácter que no es espacio (incluye
+-- tabuladores y saltos de línea) y a lo sumo 80 caracteres.
+create function private.nombre_visible(p_nombre text)
+returns boolean
+language sql
+immutable
+set search_path = ''
+as $$
+  select p_nombre is not null
+     and p_nombre ~ '[^[:space:]]'
+     and pg_catalog.char_length(p_nombre) <= 80;
+$$;
 
 create table public.hogar (
   id uuid primary key,
   nombre text not null
-    constraint hogar_nombre_check
-    check (pg_catalog.btrim(nombre) <> '' and pg_catalog.char_length(nombre) <= 80),
+    constraint hogar_nombre_check check (private.nombre_visible(nombre)),
   moneda text not null default 'COP'
     constraint hogar_moneda_check check (moneda = 'COP'),
   zona_horaria text not null default 'America/Bogota'
@@ -68,9 +81,10 @@ create table public.hogar (
   creado_en timestamptz not null default now(),
   actualizado_en timestamptz not null default now(),
   eliminado_en timestamptz,
-  -- Nulo solo durante el alta: el admin aún no existe cuando nace el hogar.
-  -- `crear_hogar` lo completa en la misma transacción.
-  actualizado_por uuid
+  -- El admin nace después que el hogar en la misma transacción: la FK de
+  -- tenencia se difiere hasta el commit (ver hogar_actualizado_por_fkey).
+  actualizado_por uuid not null,
+  seq bigint not null default 0
 );
 
 -- ---------------------------------------------------------------------------
@@ -81,8 +95,7 @@ create table public.miembro (
   id uuid primary key,
   hogar_id uuid not null references public.hogar (id),
   nombre text not null
-    constraint miembro_nombre_check
-    check (pg_catalog.btrim(nombre) <> '' and pg_catalog.char_length(nombre) <= 80),
+    constraint miembro_nombre_check check (private.nombre_visible(nombre)),
   usuario_id uuid references auth.users (id) on delete set null,
   rol public.miembro_rol not null default 'miembro',
   activo boolean not null default true,
@@ -107,7 +120,8 @@ create index miembro_usuario_idx
 
 alter table public.hogar
   add constraint hogar_actualizado_por_fkey
-  foreign key (id, actualizado_por) references public.miembro (hogar_id, id);
+  foreign key (id, actualizado_por) references public.miembro (hogar_id, id)
+  deferrable initially deferred;
 
 -- ---------------------------------------------------------------------------
 -- Categoria: clasifica consumos. Se archiva, no se borra.
@@ -117,8 +131,7 @@ create table public.categoria (
   id uuid primary key,
   hogar_id uuid not null references public.hogar (id),
   nombre text not null
-    constraint categoria_nombre_check
-    check (pg_catalog.btrim(nombre) <> '' and pg_catalog.char_length(nombre) <= 80),
+    constraint categoria_nombre_check check (private.nombre_visible(nombre)),
   icono text,
   orden integer not null constraint categoria_orden_check check (orden >= 0),
   activa boolean not null default true,
@@ -265,6 +278,46 @@ begin
 end;
 $$;
 
+-- Hogar: el alta abre su carril con `seq = 1` (BEFORE) y crea el contador ya
+-- en 1 (AFTER, cuando la fila existe para la FK). Cada actualización numera en
+-- su propio carril. El `id` es inmutable.
+create function private.hogar_seq_asignar()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if tg_op = 'INSERT' then
+    new.seq := 1;
+  else
+    if new.id is distinct from old.id then
+      raise exception 'un hogar no puede cambiar de id' using errcode = '23514';
+    end if;
+    new.seq := private.siguiente_seq_hogar(new.id);
+  end if;
+  return new;
+end;
+$$;
+
+create function private.hogar_seq_abrir_carril()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  insert into public.hogar_seq (hogar_id, ultimo_seq) values (new.id, new.seq);
+  return null;
+end;
+$$;
+
+create trigger hogar_seq
+  before insert or update on public.hogar
+  for each row execute function private.hogar_seq_asignar();
+
+create trigger hogar_seq_carril
+  after insert on public.hogar
+  for each row execute function private.hogar_seq_abrir_carril();
+
 create trigger miembro_seq
   before insert or update on public.miembro
   for each row execute function private.fundacion_seq_hogar();
@@ -338,7 +391,7 @@ create policy categoria_select on public.categoria
 -- ---------------------------------------------------------------------------
 -- RPC: crear_hogar
 -- ---------------------------------------------------------------------------
--- Alta atómica: hogar, su carril, el miembro admin vinculado a la sesión, su
+-- Alta atómica: hogar (que abre su carril), el miembro admin vinculado a la sesión, su
 -- carril personal (arranca en 0) y las nueve categorías canónicas. En la fase 1
 -- un usuario tiene a lo sumo un hogar activo; el lock consultivo por usuario
 -- serializa dos altas concurrentes de la misma cuenta.
@@ -351,8 +404,10 @@ set search_path = ''
 as $$
 declare
   v_usuario_id uuid := auth.uid();
-  v_nombre text := pg_catalog.btrim(p_nombre);
-  v_nombre_miembro text := pg_catalog.btrim(p_nombre_miembro);
+  -- Recorta todo espacio en los extremos (también tabuladores y saltos).
+  v_nombre text := pg_catalog.regexp_replace(p_nombre, '^[[:space:]]+|[[:space:]]+$', '', 'g');
+  v_nombre_miembro text :=
+    pg_catalog.regexp_replace(p_nombre_miembro, '^[[:space:]]+|[[:space:]]+$', '', 'g');
   v_hogar_id uuid;
   v_miembro_id uuid;
   v_categoria record;
@@ -361,13 +416,12 @@ begin
     raise exception 'se necesita una sesión autenticada' using errcode = '28000';
   end if;
 
-  if v_nombre is null or v_nombre = '' or pg_catalog.char_length(v_nombre) > 80 then
+  if not private.nombre_visible(v_nombre) then
     raise exception 'el nombre del hogar debe tener entre 1 y 80 caracteres'
       using errcode = '22023';
   end if;
 
-  if v_nombre_miembro is null or v_nombre_miembro = ''
-     or pg_catalog.char_length(v_nombre_miembro) > 80 then
+  if not private.nombre_visible(v_nombre_miembro) then
     raise exception 'el nombre del miembro debe tener entre 1 y 80 caracteres'
       using errcode = '22023';
   end if;
@@ -388,11 +442,10 @@ begin
   v_hogar_id := private.uuid_v7();
   v_miembro_id := private.uuid_v7();
 
-  insert into public.hogar (id, nombre)
-  values (v_hogar_id, v_nombre);
-
-  insert into public.hogar_seq (hogar_id, ultimo_seq)
-  values (v_hogar_id, 0);
+  -- El trigger del hogar abre su carril (`hogar_seq` en 1). `actualizado_por`
+  -- apunta al admin que se inserta a continuación (FK diferida).
+  insert into public.hogar (id, nombre, actualizado_por)
+  values (v_hogar_id, v_nombre, v_miembro_id);
 
   insert into public.miembro (id, hogar_id, nombre, usuario_id, rol, activo, actualizado_por)
   values (v_miembro_id, v_hogar_id, v_nombre_miembro, v_usuario_id, 'admin', true, v_miembro_id);
@@ -419,10 +472,6 @@ begin
     values (private.uuid_v7(), v_hogar_id, v_categoria.nombre, v_categoria.icono,
             v_categoria.orden, v_miembro_id);
   end loop;
-
-  update public.hogar
-     set actualizado_por = v_miembro_id
-   where id = v_hogar_id;
 
   return pg_catalog.jsonb_build_object('hogar_id', v_hogar_id, 'miembro_id', v_miembro_id);
 end;
