@@ -9,7 +9,7 @@
 -- desembolso crédito ...000000000502 · auth: ...00000000a101/b102/c103
 begin;
 set search_path = public, extensions;
-select plan(109);
+select plan(115);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password,
                         email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
@@ -447,6 +447,24 @@ select lives_ok($$insert into public.compra (id, hogar_id, fecha, descripcion, m
           '77777777-7777-4777-8777-000000000201', 'financiado', '77777777-7777-4777-8777-000000000101', '77777777-7777-4777-8777-000000000101')$$,
   'C20: tras sync_push las reglas entre filas siguen diferidas en la transacción');
 rollback to savepoint c20;
+
+-- C21: contrato de la respuesta: una entrada por fila insertada, con su tabla
+-- y el seq que quedó guardado.
+select is((select jsonb_array_length(pg_temp.res('c5') -> 'filas')), 8, 'C21: la respuesta lista compra, plan, 3 cuotas y 3 costos');
+select is((select array_agg(distinct f ->> 'tabla' order by f ->> 'tabla') from jsonb_array_elements(pg_temp.res('c5') -> 'filas') f),
+  array['compra', 'costo_financiero', 'cuota', 'plan_de_cuotas'], 'C21: la respuesta nombra las tablas canónicas');
+select is((select count(*)::int from jsonb_array_elements(pg_temp.res('c5') -> 'filas') f
+            join public.compra c on c.id = (f ->> 'id')::uuid and c.seq = (f ->> 'seq')::bigint), 1,
+  'C21: el seq de la compra en la respuesta es el guardado');
+
+-- C22: un lote rechazado no deja resultado guardado y otra compra con un id ya
+-- usado, aunque venga en otro lote, choca y no se cuenta dos veces.
+select is((select count(*)::int from public.lote_aplicado where lote_id = pg_temp.fid('7109')), 0, 'C22: un lote rechazado no queda en lote_aplicado');
+insert into public.prueba_lote values
+  ('c22', pg_temp.lote(pg_temp.fid('7709'), jsonb_build_array(pg_temp.compra(pg_temp.fid('0101'), 85000))));
+select pg_temp.push('c22');
+select is(pg_temp.motivo('c22'), 'duplicado', 'C22: la misma compra en otro lote_id es duplicado');
+select is(pg_temp.filas('compra', 'id', pg_temp.fid('0101')), 1, 'C22: la compra sigue contada una sola vez');
 
 select pg_temp.push('c17');
 select is(pg_temp.detalle('c17'), 'demasiadas cuotas en el lote', 'C17: más de 360 cuotas se rechaza antes de tomar locks');
