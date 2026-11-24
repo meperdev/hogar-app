@@ -970,6 +970,12 @@ begin
     return private.rechazo('no_autorizado');
   end if;
 
+  -- Un mismo lote del mismo autor se serializa: un reintento que se cruza con
+  -- el envío original espera su commit y devuelve el resultado guardado en vez
+  -- de chocar con sus filas y responder 'duplicado'.
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(
+    'sync_push:' || v_hogar_id::text || ':' || v_actor::text || ':' || v_lote_id::text, 0));
+
   -- Reintento del mismo autor: el resultado guardado, sin reevaluar.
   select la.resultado into v_previo
     from public.lote_aplicado la
@@ -987,6 +993,19 @@ begin
       return private.rechazo('invalido', 'tabla no admitida: ' || v_tabla);
     end if;
   end loop;
+
+  -- Versión 1: solo altas. Una fila con `base_seq` pide una actualización que
+  -- esta versión no aplica; tratarla como alta crearía otro hecho de dinero.
+  if exists (
+    select 1
+      from pg_catalog.jsonb_each(v_filas) t,
+           pg_catalog.jsonb_array_elements(t.value) e
+     where pg_catalog.jsonb_typeof(e) <> 'object'
+        or pg_catalog.jsonb_typeof(e -> 'base_seq') is distinct from null
+           and pg_catalog.jsonb_typeof(e -> 'base_seq') <> 'null'
+  ) then
+    return private.rechazo('invalido', 'solo altas: base_seq debe ser nulo');
+  end if;
 
   v_compras := coalesce(v_filas -> 'compra', '[]'::jsonb);
   v_planes := coalesce(v_filas -> 'plan_de_cuotas', '[]'::jsonb);
@@ -1015,6 +1034,28 @@ begin
       return private.rechazo('invalido', 'una compra personal no escribe alias compartidos');
     end if;
 
+    -- Un pasivo que el actor no ve es, para el lote, un pasivo inexistente.
+    -- Va antes de cualquier chequeo que lea el pasivo (tipo, tasa): así ni el
+    -- motivo ni el detalle distinguen un libro personal ajeno de uno que no existe.
+    if exists (
+      select 1
+        from (
+          select (v_compras -> 0 ->> 'financiada_por_pasivo_id')::uuid as pasivo_id
+          union all
+          select (e ->> 'pasivo_id')::uuid from pg_catalog.jsonb_array_elements(v_planes) e
+          union all
+          select (e ->> 'pasivo_id')::uuid from pg_catalog.jsonb_array_elements(v_costos) e
+        ) r
+       where r.pasivo_id is not null
+         and not exists (
+           select 1 from public.pasivo pa
+            where pa.id = r.pasivo_id
+              and pa.hogar_id = v_hogar_id
+              and private.puede_ver(pa.hogar_id, pa.ambito, pa.owner_miembro_id))
+    ) then
+      return private.rechazo('invalido', 'pasivo inexistente');
+    end if;
+
     -- Los dependientes cuelgan de la compra del lote: plan de esa compra con
     -- la tasa vigente del pasivo, cuotas de ese plan e intereses calculados de
     -- esas cuotas.
@@ -1040,26 +1081,6 @@ begin
             select (e ->> 'id')::uuid from pg_catalog.jsonb_array_elements(v_cuotas) e)
     ) then
       return private.rechazo('invalido', 'dependientes ajenos a la compra del lote');
-    end if;
-
-    -- Un pasivo que el actor no ve es, para el lote, un pasivo inexistente.
-    if exists (
-      select 1
-        from (
-          select (v_compras -> 0 ->> 'financiada_por_pasivo_id')::uuid as pasivo_id
-          union all
-          select (e ->> 'pasivo_id')::uuid from pg_catalog.jsonb_array_elements(v_planes) e
-          union all
-          select (e ->> 'pasivo_id')::uuid from pg_catalog.jsonb_array_elements(v_costos) e
-        ) r
-       where r.pasivo_id is not null
-         and not exists (
-           select 1 from public.pasivo pa
-            where pa.id = r.pasivo_id
-              and pa.hogar_id = v_hogar_id
-              and private.puede_ver(pa.hogar_id, pa.ambito, pa.owner_miembro_id))
-    ) then
-      return private.rechazo('invalido', 'pasivo inexistente');
     end if;
 
     -- Pre-lock determinista (§5.2): primero el carril del hogar, luego el

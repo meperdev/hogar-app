@@ -9,7 +9,7 @@
 -- desembolso crédito ...000000000502 · auth: ...00000000a101/b102/c103
 begin;
 set search_path = public, extensions;
-select plan(100);
+select plan(102);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password,
                         email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
@@ -252,6 +252,11 @@ insert into public.prueba_lote values
       p_compra => pg_temp.fid('2201'), p_fecha => '2026-11-24')),
     pg_temp.cuotas(pg_temp.fid('2202'), array[100000]::bigint[])));
 
+-- C16: sync_push v1 solo admite altas: una fila con base_seq se rechaza.
+insert into public.prueba_lote values
+  ('c16', pg_temp.lote(pg_temp.fid('7109'), jsonb_build_array(pg_temp.compra(pg_temp.fid('7101'), 85000,
+      p_extra => jsonb_build_object('base_seq', 5)))));
+
 -- C10: Beto planea su compra personal sobre el libro de Ana y, con los mismos
 -- ids, sobre un pasivo inexistente.
 insert into public.prueba_lote values
@@ -395,10 +400,12 @@ select pg_temp.push('c10_ajeno', 'beto');
 select pg_temp.push('c10_inexistente', 'beto');
 select is(pg_temp.motivo('c10_ajeno'), 'invalido', 'C10: un plan sobre un libro personal ajeno se rechaza');
 select is(pg_temp.detalle('c10_ajeno'), 'pasivo inexistente', 'C10: un libro ajeno se trata como inexistente');
--- El pasivo inexistente cae antes en el chequeo de dependientes del lote, así
--- que el detalle difiere; el motivo que ve el cliente es el mismo.
-select is(pg_temp.motivo('c10_inexistente'), 'invalido', 'C10: un pasivo inexistente se rechaza igual');
+select is(pg_temp.res('c10_ajeno'), pg_temp.res('c10_inexistente'), 'C10: libro ajeno e inexistente dan el mismo resultado completo');
 select is(pg_temp.filas('compra', 'id', pg_temp.fid('2301')), 0, 'C10: el rechazo no deja compra');
+
+select pg_temp.push('c16');
+select is(pg_temp.motivo('c16'), 'invalido', 'C16: una fila con base_seq no es un alta y se rechaza');
+select is(pg_temp.filas('compra', 'id', pg_temp.fid('7101')), 0, 'C16: el rechazo no deja compra');
 
 -- C11: el préstamo no crea plan y no gasta más de lo desembolsado.
 select pg_temp.push(caso) from unnest(array['c11a', 'c11b', 'c11c', 'c11d']) caso;

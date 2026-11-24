@@ -8,4 +8,4 @@
 - Prevención: el `truncate` usa `cascade` (dentro de la transacción del test, que termina en `rollback`). El job
   `tests (app + base local)` corre todos los pgTAP después de `supabase migration up`, así que un núcleo que vuelva a
   romperlo falla en CI.
-- PR: pendiente (compra rápida).
+- PR: #4.
