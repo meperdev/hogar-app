@@ -432,12 +432,13 @@ begin
 
   begin
     if v_tipo = 'pago' then
-      select count(*), count(distinct (e ->> 'pasivo_id')), min(e ->> 'pasivo_id'),
+      -- Un pasivo ausente cuenta como distinto: ninguna fila hereda el de otra.
+      select count(*), count(distinct coalesce(e ->> 'pasivo_id', '')), min(coalesce(e ->> 'pasivo_id', '')),
              count(*) filter (where coalesce(e ->> 'tipo', 'abono') = 'abono'),
              count(*) filter (where (e ->> 'tipo') = 'saldo_a_favor')
         into v_n, v_pasivos, v_mensaje, v_abonos, v_safs
         from pg_catalog.jsonb_array_elements(coalesce(v_filas -> 'pago_de_deuda', '[]')) e;
-      if v_n not between 1 and 2 or v_pasivos <> 1 or v_abonos > 1 or v_safs > 1 then
+      if v_n not between 1 and 2 or v_pasivos <> 1 or v_mensaje = '' or v_abonos > 1 or v_safs > 1 then
         return private.rechazo('invalido', 'un pago lleva un abono y/o un saldo a favor de un pasivo');
       end if;
       v_pasivo_id := v_mensaje::uuid;

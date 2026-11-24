@@ -10,7 +10,7 @@
 -- auth: …00000000a101/b102/c103
 begin;
 set search_path = public, extensions;
-select plan(100);
+select plan(115);
 
 -- Helpers de id. Fixture: pg_temp.fx('101') → 88…-000000000101. Por caso:
 -- pg_temp.fid('0101') → 88…-010100000000, con caso en 2 dígitos hex y rol en 2.
@@ -438,6 +438,73 @@ select lives_ok($$insert into public.compra (id, hogar_id, fecha, descripcion, m
           '88888888-8888-4888-8888-000000000201', 'financiado', '88888888-8888-4888-8888-000000000101', '88888888-8888-4888-8888-000000000101')$$,
   'R4: tras un rechazo las reglas entre filas siguen diferidas');
 rollback to savepoint r4;
+
+-- R5: contrato de la respuesta: cada fila escrita con su tabla y el seq guardado.
+select ok(pg_temp.res('p7') -> 'filas' @> jsonb_build_array(jsonb_build_object('tabla', 'costo_financiero',
+  'id', pg_temp.fx('d201'), 'seq', (select seq from public.costo_financiero where id = pg_temp.fx('d201')))) is not null
+  and exists (select 1 from jsonb_array_elements(pg_temp.res('p7') -> 'filas') f
+               join public.costo_financiero k on k.id = (f ->> 'id')::uuid where f ->> 'tabla' = 'costo_financiero'),
+  'R5: la corrección del costo aparece en la respuesta');
+select is((select count(*)::int from jsonb_array_elements(pg_temp.res('p7') -> 'filas') f
+            join public.pago_de_deuda g on g.id = (f ->> 'id')::uuid and g.seq = (f ->> 'seq')::bigint
+           where f ->> 'tabla' = 'pago_de_deuda'), 1, 'R5: el pago aparece con el seq que quedó guardado');
+
+-- R6: una fila de pago sin pasivo no hereda el pasivo de la otra fila.
+insert into public.prueba_lote values ('r6', pg_temp.lote(pg_temp.fid('4609'), 'pago', jsonb_build_object('pago_de_deuda', jsonb_build_array(
+  pg_temp.pago(pg_temp.fid('4601'), pg_temp.fx('401'), 1, '2026-11-30'),
+  pg_temp.pago(pg_temp.fid('4602'), null, 1, '2026-11-30', p_tipo => 'saldo_a_favor')))));
+select pg_temp.push('r6', 'beto');
+select is(pg_temp.detalle('r6'), 'un pago lleva un abono y/o un saldo a favor de un pasivo', 'R6: un pago sin pasivo se rechaza');
+
+-- R7: un saldo a favor cubre un cargo posterior (misma regla que recorrerLibro).
+insert into public.prueba_lote values
+  ('r7a', pg_temp.lote(pg_temp.fid('4709'), 'pago', jsonb_build_object('pago_de_deuda', jsonb_build_array(
+    pg_temp.pago(pg_temp.fid('4701'), pg_temp.fx('403'), 40000, '2026-11-06'),
+    pg_temp.pago(pg_temp.fid('4702'), pg_temp.fx('403'), 5000, '2026-11-06', p_tipo => 'saldo_a_favor'))))),
+  ('r7b', pg_temp.lote(pg_temp.fid('4809'), 'pago', jsonb_build_object(
+    'costo_financiero', jsonb_build_array(jsonb_build_object('id', pg_temp.fid('4803'), 'tipo', 'cuota_manejo', 'monto', 3000,
+      'fecha_causacion', '2026-11-10', 'pasivo_id', pg_temp.fx('403'), 'origen', 'manual')),
+    'pago_de_deuda', jsonb_build_array(pg_temp.pago(pg_temp.fid('4801'), pg_temp.fx('403'), 1, '2026-11-10', p_tipo => 'saldo_a_favor'))))),
+  ('r7c', pg_temp.lote(pg_temp.fid('4909'), 'pago', jsonb_build_object('pago_de_deuda', jsonb_build_array(
+    pg_temp.pago(pg_temp.fid('4901'), pg_temp.fx('403'), 1, '2026-11-11')))));
+select pg_temp.push('r7a');
+select pg_temp.push('r7b');
+select pg_temp.push('r7c');
+select is(pg_temp.estado('r7a'), 'aplicado', 'R7: el saldo a favor nace con el libro en cero');
+select is(pg_temp.estado('r7b'), 'aplicado', 'R7: un cargo posterior lo consume el saldo a favor y el libro sigue en cero');
+select is(pg_temp.motivo('r7c'), 'invalido', 'R7: con el cargo cubierto por el saldo a favor no queda saldo que abonar');
+
+-- R8: guardas tempranas de la RPC.
+select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-00000000b102","role":"authenticated"}', true);
+set local role authenticated;
+select is(public.sync_push_obligaciones('[]'::jsonb) ->> 'detalle', 'forma del lote', 'R8: un lote que no es objeto se rechaza');
+select is(public.sync_push_obligaciones(pg_temp.lote(pg_temp.fid('4a09'), 'pago', '{}'::jsonb) || '{"schema_version": 2}') ->> 'motivo',
+  'actualizar_app', 'R8: otra versión del esquema pide actualizar la app');
+select is(public.sync_push_obligaciones(pg_temp.lote(pg_temp.fid('4b09'), 'pago', '{}'::jsonb) || '{"lote_id": "x"}') ->> 'detalle',
+  'identificadores del lote', 'R8: un lote_id que no es UUID se rechaza');
+select set_config('request.jwt.claims', '{"role":"authenticated"}', true);
+select throws_ok($$select public.sync_push_obligaciones('{}'::jsonb)$$, '28000', null, 'R8: sin sesión no hay escritura');
+reset role;
+
+-- R9: bordes de los CHECK nuevos.
+select throws_ok($$insert into public.obligacion (id, hogar_id, nombre, categoria_id, dia_vencimiento, periodicidad, mes_inicio, actualizado_por)
+  values (gen_random_uuid(), '88888888-8888-4888-8888-000000000001', 'X', '88888888-8888-4888-8888-000000000202', 32, 'mensual', '2026-01',
+          '88888888-8888-4888-8888-000000000101')$$, '23514', null, 'R9: día de vencimiento 32 se rechaza');
+select throws_ok($$insert into public.obligacion (id, hogar_id, nombre, categoria_id, dia_vencimiento, periodicidad, mes_inicio, actualizado_por, monto_estimado)
+  values (gen_random_uuid(), '88888888-8888-4888-8888-000000000001', 'X', '88888888-8888-4888-8888-000000000202', 5, 'mensual', '2026-01',
+          '88888888-8888-4888-8888-000000000101', 0)$$, '23514', null, 'R9: monto estimado 0 se rechaza');
+select throws_ok($$insert into public.obligacion (id, hogar_id, nombre, categoria_id, dia_vencimiento, periodicidad, mes_inicio, actualizado_por)
+  values (gen_random_uuid(), '88888888-8888-4888-8888-000000000001', 'X', '88888888-8888-4888-8888-000000000202', 5, 'semanal', '2026-01',
+          '88888888-8888-4888-8888-000000000101')$$, '23514', null, 'R9: una periodicidad desconocida se rechaza');
+select throws_ok($$insert into public.pago_de_deuda (id, hogar_id, pasivo_id, tipo, medio_de_pago_id, monto, fecha, registrado_por, actualizado_por)
+  values (gen_random_uuid(), '88888888-8888-4888-8888-000000000001', '88888888-8888-4888-8888-000000000401', 'abono',
+          '88888888-8888-4888-8888-000000000301', 0, '2026-11-30', '88888888-8888-4888-8888-000000000102', '88888888-8888-4888-8888-000000000102')$$,
+  '23514', null, 'R9: un pago de $0 se rechaza');
+select throws_ok($$insert into public.pago_de_deuda (id, hogar_id, pasivo_id, tipo, cuota_id, medio_de_pago_id, monto, fecha, registrado_por, actualizado_por)
+  values (gen_random_uuid(), '88888888-8888-4888-8888-000000000001', '88888888-8888-4888-8888-000000000401', 'saldo_a_favor',
+          '88888888-8888-4888-8888-00000000c101', '88888888-8888-4888-8888-000000000301', 10, '2026-11-30',
+          '88888888-8888-4888-8888-000000000102', '88888888-8888-4888-8888-000000000102')$$,
+  '23514', null, 'R9: un saldo a favor no enlaza una cuota');
 
 -- RLS: Beto ve lo del hogar y no lo personal ajeno; Caro no ve el hogar A.
 select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-00000000b102","role":"authenticated"}', true);
