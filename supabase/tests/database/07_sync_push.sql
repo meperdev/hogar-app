@@ -9,7 +9,7 @@
 -- desembolso crédito ...000000000502 · auth: ...00000000a101/b102/c103
 begin;
 set search_path = public, extensions;
-select plan(103);
+select plan(107);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password,
                         email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
@@ -412,6 +412,21 @@ select is(pg_temp.filas('compra', 'id', pg_temp.fid('2301')), 0, 'C10: el rechaz
 select pg_temp.push('c16');
 select is(pg_temp.motivo('c16'), 'invalido', 'C16: una fila con base_seq no es un alta y se rechaza');
 select is(pg_temp.filas('compra', 'id', pg_temp.fid('7101')), 0, 'C16: el rechazo no deja compra');
+
+-- C18: guardas de forma del lote (todas 'invalido', sin filas).
+insert into public.prueba_lote values
+  ('c18_array', '[]'::jsonb),
+  ('c18_sin_filas', jsonb_build_object('lote_id', pg_temp.fid('7309'), 'hogar_id', pg_temp.fx('1'), 'schema_version', 1)),
+  ('c18_uuid', jsonb_build_object('lote_id', 'no-es-uuid', 'hogar_id', pg_temp.fx('1'), 'schema_version', 1, 'filas', '{}'::jsonb)),
+  ('c18_vacio', pg_temp.lote(pg_temp.fid('7409'), '[]'::jsonb));
+select pg_temp.push('c18_array');
+select pg_temp.push('c18_sin_filas');
+select pg_temp.push('c18_uuid');
+select pg_temp.push('c18_vacio');
+select is(pg_temp.detalle('c18_array'), 'forma del lote', 'C18: un lote que no es objeto se rechaza');
+select is(pg_temp.detalle('c18_sin_filas'), 'forma del lote', 'C18: un lote sin filas se rechaza');
+select is(pg_temp.detalle('c18_uuid'), 'identificadores del lote', 'C18: un lote_id que no es UUID se rechaza');
+select is(pg_temp.detalle('c18_vacio'), 'un lote lleva exactamente una compra', 'C18: un lote sin compra se rechaza');
 
 select pg_temp.push('c17');
 select is(pg_temp.detalle('c17'), 'demasiadas cuotas en el lote', 'C17: más de 360 cuotas se rechaza antes de tomar locks');
