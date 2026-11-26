@@ -36,6 +36,12 @@ describe('conectarSupabase', () => {
     expect(typeof servicios?.obligaciones).toBe('function')
   })
 
+  it('conecta el controlador de balance por actor', () => {
+    const servicios = conectarSupabase('http://127.0.0.1:54321', CLAVE_PUBLICA)
+
+    expect(typeof servicios?.balance).toBe('function')
+  })
+
   it('conecta el controlador de despensa de mascotas por actor', () => {
     const servicios = conectarSupabase('http://127.0.0.1:54321', CLAVE_PUBLICA)
 
