@@ -122,7 +122,9 @@ describe('crearRemotoMascotas', () => {
           financiada_por_pasivo_id: null,
         },
       ],
-      categoria: [{ id: idCat, nombre: 'Mascotas', icono: null, orden: 4, activa: true }],
+      categoria: [
+        { id: idCat, nombre: 'Mascotas', icono: null, orden: 4, activa: false },
+      ],
       medio_de_pago: [],
       pasivo: [],
       tarjeta: [],
@@ -149,6 +151,7 @@ describe('crearRemotoMascotas', () => {
     const leido = await remoto.leer(idHogar)
 
     expect(leido.mascotas).toHaveLength(2)
+    expect(leido.categorias).toEqual([{ id: idCat, nombre: 'Mascotas' }])
     expect(filtrosLlamados).not.toContain('mascota.activa=true')
     expect(leido.observaciones).toEqual([
       {

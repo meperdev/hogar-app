@@ -1,0 +1,6 @@
+# Bug rule: límites de nombre, categorías archivadas y selector en recompra compartida (núcleo 4)
+
+- **Síntoma:** Durante la auditoría independiente previa al PR del Núcleo 4 (`despensa-mascotas`) se detectaron tres bordes: (1) el dominio aceptaba nombres de 81–120 caracteres cuando `private.nombre_visible` en SQL limita a 80; (2) `crearRemotoMascotas` filtraba categorías inactivas vía `armarCatalogo`, arriesgando omitir la categoría `Mascotas` histórica si se archivara; (3) `PantallaRecomprarInsumo` no permitía etiquetar una mascota opcional al recomprar un ítem compartido (`mascota_id = null`) ni sincronizaba la fecha inicial con `vista.hoy` tras cargas tardías.
+- **Causa:** Validación divergente cliente/SQL y acoplamiento parcial con `armarCatalogo`.
+- **Regla/tipo/test que lo previene:** `validarNombreVisible` acotado a `1..80` caracteres con test de regresión en `src/domain/loteMascotas.test.ts`; `crearRemotoMascotas` devuelve todas las categorías no eliminadas ordenadas en `src/data/mascotas.ts`; `PantallaRecomprarInsumo` sincroniza `vista.hoy` mientras no se edite la fecha y expone `#recompra-mascota` cuando `item.mascotaId === null`.
+- **PR:** pendiente (`feat/despensa-mascotas`).

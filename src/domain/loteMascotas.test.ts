@@ -35,6 +35,13 @@ describe('lotes de despensa de mascotas', () => {
         nuevoId,
       ),
     ).toThrow(ErrorLoteMascotas)
+
+    expect(() =>
+      construirLoteMascota(
+        { hogarId: 'hogar-1', nombre: 'a'.repeat(81), especie: 'gato', fechaNacimiento: null },
+        nuevoId,
+      ),
+    ).toThrow(ErrorLoteMascotas)
   })
 
   it('construye lote de nuevo insumo con defaults y valida rangos de umbral/frecuencia', () => {

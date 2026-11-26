@@ -115,8 +115,8 @@ export type LoteMascotas = LoteMascota | LoteItemDespensa | LoteAjusteNivel | Lo
 
 function validarNombreVisible(nombre: string, etiqueta: string): string {
   const limpio = nombre.trim()
-  if (limpio.length < 1 || limpio.length > 120) {
-    throw new ErrorLoteMascotas('nombre', `Ingresa ${etiqueta} entre 1 y 120 caracteres`)
+  if (limpio.length < 1 || limpio.length > 80) {
+    throw new ErrorLoteMascotas('nombre', `Ingresa ${etiqueta} entre 1 y 80 caracteres`)
   }
   return limpio
 }

@@ -183,8 +183,11 @@ export function crearRemotoMascotas(cliente: SupabaseClient): RemotoMascotas {
         }]
       })
 
+      const categoriasParseadas = z.array(esquemaCategoria).parse(categoriasRes.data)
+        .sort((a, b) => a.orden - b.orden)
+
       const catalogo = armarCatalogo({
-        categorias: z.array(esquemaCategoria).parse(categoriasRes.data),
+        categorias: categoriasParseadas,
         medios: z.array(esquemaMedio).parse(mediosRes.data),
         pasivos: z.array(esquemaPasivo).parse(pasivosRes.data),
         tarjetas: z.array(esquemaTarjeta).parse(tarjetasRes.data),
@@ -224,7 +227,8 @@ export function crearRemotoMascotas(cliente: SupabaseClient): RemotoMascotas {
           mascotaId: c.mascota_id,
           itemDespensaId: c.item_despensa_id,
         })),
-        categorias: catalogo.categorias.map((c) => ({ id: c.id, nombre: c.nombre })),
+        // Conserva categorías inactivas para no romper la conciliación histórica de Mascotas.
+        categorias: categoriasParseadas.map((c) => ({ id: c.id, nombre: c.nombre })),
         medios: catalogo.medios,
       }
     },

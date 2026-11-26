@@ -31,6 +31,8 @@ export function PantallaRecomprarInsumo() {
   const [ambito, setAmbito] = useState<Ambito>('hogar')
   const [montoTexto, setMontoTexto] = useState('')
   const [fecha, setFecha] = useState(() => vista?.hoy ?? hoyCivil(new Date()))
+  const [fechaTocado, setFechaTocado] = useState(false)
+  const [mascotaElegidaId, setMascotaElegidaId] = useState('')
   const [descripcion, setDescripcion] = useState('')
   const [medioId, setMedioId] = useState('')
   const [cuotasTexto, setCuotasTexto] = useState('1')
@@ -41,13 +43,13 @@ export function PantallaRecomprarInsumo() {
   useEffect(() => {
     if (!item || !vista) return
     setMontoTexto((actual) => (actual === '' && item.montoHabitual !== null ? String(item.montoHabitual) : actual))
-    setFecha((actual) => actual || vista.hoy)
+    if (!fechaTocado) setFecha(vista.hoy)
     setDescripcion((actual) => {
       if (actual !== '') return actual
       const sufijo = item.mascotaId ? ` · ${nombreMascotaOCompartido(item.mascotaId, vista.mascotas)}` : ''
       return `${item.nombre}${sufijo}`
     })
-  }, [item, vista])
+  }, [item, vista, fechaTocado])
 
   const mediosDelAmbito = mediosDisponibles.filter(
     (m) => m.ambito === null || m.ambito === ambito,
@@ -92,7 +94,7 @@ export function PantallaRecomprarInsumo() {
     try {
       await controlador.recomprar({
         itemId: item.id,
-        mascotaId: item.mascotaId,
+        mascotaId: item.mascotaId ?? (mascotaElegidaId || null),
         fecha,
         descripcion,
         monto,
@@ -182,11 +184,36 @@ export function PantallaRecomprarInsumo() {
               type="date"
               className={claseCampoTexto}
               value={fecha}
-              onChange={(e) => setFecha(e.target.value)}
+              onChange={(e) => {
+                setFechaTocado(true)
+                setFecha(e.target.value)
+              }}
               disabled={guardando}
               required
             />
           </div>
+
+          {item.mascotaId === null && vista && vista.mascotasActivas.length > 0 ? (
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="recompra-mascota" className={claseEtiquetaCampo}>
+                Mascota para el desglose (opcional)
+              </label>
+              <select
+                id="recompra-mascota"
+                className={claseCampoTexto}
+                value={mascotaElegidaId}
+                onChange={(e) => setMascotaElegidaId(e.target.value)}
+                disabled={guardando}
+              >
+                <option value="">Compartida (sin mascota específica)</option>
+                {vista.mascotasActivas.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="recompra-medio" className={claseEtiquetaCampo}>
