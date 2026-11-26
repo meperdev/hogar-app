@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link, Navigate, Route, Routes } from 'react-router-dom'
+import { Link, Navigate, Route, Routes, useSearchParams } from 'react-router-dom'
 import {
   crearHogar,
   ErrorFundacion,
@@ -12,6 +12,11 @@ import {
   type Servicios,
   type Sesion,
 } from '../app/fundacion'
+import {
+  guardarTokenInvitacionPendiente,
+  leerTokenInvitacionPendiente,
+  limpiarTokenInvitacionPendiente,
+} from '../app/invitaciones'
 import {
   Aviso,
   Insignia,
@@ -48,6 +53,8 @@ import { ProveedorMascotas } from './mascotas/ContextoMascotas'
 import { PantallaMascotas } from './mascotas/PantallaMascotas'
 import { PantallaNuevoInsumo } from './mascotas/PantallaNuevoInsumo'
 import { PantallaRecomprarInsumo } from './mascotas/PantallaRecomprarInsumo'
+import { PantallaUnirmeHogar } from './invitaciones/PantallaUnirmeHogar'
+import { TarjetaInvitacionHogar } from './invitaciones/TarjetaInvitacionHogar'
 
 function mensaje(error: unknown, porDefecto: string) {
   return error instanceof ErrorFundacion ? error.message : porDefecto
@@ -88,6 +95,7 @@ function Ingreso({ auth }: { auth: AuthPort }) {
   const [codigo, setCodigo] = useState('')
   const [enviado, setEnviado] = useState(false)
   const { ejecutar, limpiar, ocupado, error } = useAccion()
+  const tieneInvitacionPendiente = leerTokenInvitacionPendiente() !== null
 
   function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
@@ -108,6 +116,15 @@ function Ingreso({ auth }: { auth: AuthPort }) {
       accionDerecha={<Insignia variante="primario">Fundación</Insignia>}
       pie="Montos enteros en COP · Offline-first"
     >
+      {tieneInvitacionPendiente && !enviado ? (
+        <Aviso variante="primario" icono="✉" role="status">
+          <p>
+            <strong className="text-hogar-tinta">Tienes una invitación pendiente:</strong> ingresa
+            con tu correo para aceptar y unirte al hogar.
+          </p>
+        </Aviso>
+      ) : null}
+
       {enviado ? (
         <Aviso variante="primario" icono="✓" role="status">
           <p>Ingresá el código que enviamos a {correo.trim()}.</p>
@@ -321,6 +338,19 @@ function AltaHogar({
         </form>
       </Tarjeta>
 
+      <Tarjeta acento="primario">
+        <h2 className="m-0 mb-3 text-[0.9375rem] font-extrabold text-hogar-tinta">
+          ¿Te invitaron a un hogar existente?
+        </h2>
+        <p className="m-0 mb-3 text-sm text-hogar-tinta-suave">
+          Si te compartieron un enlace o código de invitación, únete directamente sin crear un
+          hogar aparte.
+        </p>
+        <Link to="/unirme" className={`${claseBotonSecundario} w-full no-underline`}>
+          Tengo una invitación
+        </Link>
+      </Tarjeta>
+
       <Aviso variante="indigo" icono="ℹ">
         <p>
           <strong className="text-hogar-tinta">Aporte libre:</strong> cada miembro ve solo los
@@ -348,11 +378,13 @@ const enlacesNucleos = [
 
 function ResumenHogar({
   hogar,
+  invitaciones,
   onSalir,
   saliendo,
   errorSalir,
 }: {
   hogar: Hogar
+  invitaciones?: Servicios['invitaciones']
   onSalir: () => void
   saliendo: boolean
   errorSalir: string
@@ -437,10 +469,14 @@ function ResumenHogar({
         </ul>
       </section>
 
-      {estadoInvitacion(hogar.miembroActual.rol) === 'pendiente' ? (
-        <Aviso variante="indigo" icono="◷">
-          <p>La invitación a nuevos miembros todavía no está disponible.</p>
-        </Aviso>
+      {hogar.miembroActual.rol === 'admin' ? (
+        invitaciones ? (
+          <TarjetaInvitacionHogar hogar={hogar} invitaciones={invitaciones} />
+        ) : estadoInvitacion(hogar.miembroActual.rol) === 'pendiente' ? (
+          <Aviso variante="indigo" icono="◷">
+            <p>La invitación a nuevos miembros todavía no está disponible.</p>
+          </Aviso>
+        ) : null
       ) : null}
 
       <section aria-labelledby="nucleos-titulo" className="flex flex-col gap-2.5">
@@ -558,6 +594,7 @@ function HogarConSesion({ servicios, sesion }: { servicios: Servicios; sesion: S
   }
 
   if (!carga) {
+    const destinoPorDefecto = leerTokenInvitacionPendiente() ? '/unirme' : '/crear-hogar'
     return (
       <Routes>
         <Route
@@ -572,7 +609,19 @@ function HogarConSesion({ servicios, sesion }: { servicios: Servicios; sesion: S
             />
           }
         />
-        <Route path="*" element={<Navigate to="/crear-hogar" replace />} />
+        <Route
+          path="/unirme"
+          element={
+            <PantallaUnirmeHogar
+              invitaciones={servicios.invitaciones}
+              recargarHogar={recargar}
+              onSalir={salir}
+              saliendo={ocupado}
+              errorSalir={error}
+            />
+          }
+        />
+        <Route path="*" element={<Navigate to={destinoPorDefecto} replace />} />
       </Routes>
     )
   }
@@ -597,10 +646,36 @@ function HogarConSesion({ servicios, sesion }: { servicios: Servicios; sesion: S
         element={
           <ResumenHogar
             hogar={carga}
+            invitaciones={servicios.invitaciones}
             onSalir={salir}
             saliendo={ocupado}
             errorSalir={error}
           />
+        }
+      />
+      <Route
+        path="/unirme"
+        element={
+          <ShellApp
+            titulo={carga.nombre}
+            subtitulo="Ya perteneces a un hogar activo"
+            volverA="/hogar"
+            etiquetaVolver={`Volver a ${carga.nombre}`}
+            mostrarNavegacion
+          >
+            <Aviso variante="indigo" icono="ℹ">
+              <p>
+                Tu cuenta ya forma parte de <strong className="text-hogar-tinta">{carga.nombre}</strong>.
+              </p>
+            </Aviso>
+            <Link
+              to="/hogar"
+              className={`${claseBotonPrimario} w-full no-underline`}
+              onClick={() => limpiarTokenInvitacionPendiente()}
+            >
+              Volver a {carga.nombre}
+            </Link>
+          </ShellApp>
         }
       />
       {servicios.obligaciones ? (
@@ -696,6 +771,15 @@ function HogarConSesion({ servicios, sesion }: { servicios: Servicios; sesion: S
   return contenido
 }
 
+function RedireccionInvitacionSinSesion() {
+  const [params] = useSearchParams()
+  const token = params.get('token')
+  if (token) {
+    guardarTokenInvitacionPendiente(token)
+  }
+  return <Navigate to="/ingresar" replace />
+}
+
 export function RutasFundacion({ servicios }: { servicios: Servicios }) {
   const [sesion, setSesion] = useState<Sesion | null | undefined>(undefined)
   const { auth } = servicios
@@ -725,6 +809,7 @@ export function RutasFundacion({ servicios }: { servicios: Servicios }) {
   return (
     <Routes>
       <Route path="/ingresar" element={<Ingreso auth={auth} />} />
+      <Route path="/unirme" element={<RedireccionInvitacionSinSesion />} />
       <Route path="*" element={<Navigate to="/ingresar" replace />} />
     </Routes>
   )
