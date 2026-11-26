@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { AlcanceCompra, ControladorCompraRapida } from './compraRapida'
 import type { ControladorBalance } from './balance'
+import type { ControladorMascotas } from './mascotas'
 import type { ControladorObligaciones } from './obligaciones'
 
 export type Sesion = { usuarioId: string }
@@ -36,6 +37,8 @@ export type Servicios = {
   obligaciones?: (alcance: AlcanceCompra) => ControladorObligaciones
   /** Núcleo 3: controlador de Balance de pareja y exportación (ver `balance.ts`). */
   balance?: (alcance: AlcanceCompra) => ControladorBalance
+  /** Núcleo 4: controlador de Despensa de mascotas (ver `mascotas.ts`). */
+  mascotas?: (alcance: AlcanceCompra) => ControladorMascotas
 }
 
 export class ErrorFundacion extends Error {}

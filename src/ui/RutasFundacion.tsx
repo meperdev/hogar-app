@@ -44,6 +44,10 @@ import { PantallaAjustesExportar } from './balance/PantallaAjustesExportar'
 import { PantallaBalance } from './balance/PantallaBalance'
 import { PantallaRegistrarIngreso } from './balance/PantallaRegistrarIngreso'
 import { PantallaTransferirFondo } from './balance/PantallaTransferirFondo'
+import { ProveedorMascotas } from './mascotas/ContextoMascotas'
+import { PantallaMascotas } from './mascotas/PantallaMascotas'
+import { PantallaNuevoInsumo } from './mascotas/PantallaNuevoInsumo'
+import { PantallaRecomprarInsumo } from './mascotas/PantallaRecomprarInsumo'
 
 function mensaje(error: unknown, porDefecto: string) {
   return error instanceof ErrorFundacion ? error.message : porDefecto
@@ -623,7 +627,18 @@ function HogarConSesion({ servicios, sesion }: { servicios: Servicios; sesion: S
           <Route path="/balance/*" element={<Navigate to="/balance" replace />} />
         </>
       )}
-      <Route path="/mascotas" element={<PantallaMascotasVacia hogar={carga} />} />
+      {servicios.mascotas ? (
+        <>
+          <Route path="/mascotas" element={<PantallaMascotas />} />
+          <Route path="/mascotas/nuevo-insumo" element={<PantallaNuevoInsumo />} />
+          <Route path="/mascotas/recomprar/:itemId" element={<PantallaRecomprarInsumo />} />
+        </>
+      ) : (
+        <>
+          <Route path="/mascotas" element={<PantallaMascotasVacia hogar={carga} />} />
+          <Route path="/mascotas/*" element={<Navigate to="/mascotas" replace />} />
+        </>
+      )}
       <Route
         path="/ajustes"
         element={
@@ -661,6 +676,13 @@ function HogarConSesion({ servicios, sesion }: { servicios: Servicios; sesion: S
       <ProveedorObligaciones hogar={carga} crearControlador={servicios.obligaciones}>
         {contenido}
       </ProveedorObligaciones>
+    )
+  }
+  if (servicios.mascotas) {
+    contenido = (
+      <ProveedorMascotas hogar={carga} crearControlador={servicios.mascotas}>
+        {contenido}
+      </ProveedorMascotas>
     )
   }
   if (servicios.compras) {
