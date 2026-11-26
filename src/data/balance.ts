@@ -41,6 +41,7 @@ const esquemaMedio = z.object({
   tipo: z.enum(['efectivo', 'cuenta']),
   owner_tipo: z.enum(['miembro', 'hogar']),
   owner_miembro_id: z.uuid().nullable(),
+  activo: z.boolean(),
 })
 
 const esquemaCompra = z.object({
@@ -166,9 +167,8 @@ export function crearRemotoBalance(cliente: SupabaseClient): RemotoBalance {
           .order('nombre'),
         cliente
           .from('medio_de_pago')
-          .select('id,nombre,tipo,owner_tipo,owner_miembro_id')
+          .select('id,nombre,tipo,owner_tipo,owner_miembro_id,activo')
           .eq('hogar_id', hogarId)
-          .eq('activo', true)
           .is('eliminado_en', null),
         cliente
           .from('compra')

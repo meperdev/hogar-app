@@ -996,17 +996,15 @@ create policy exportaciones_select on storage.objects
   using (
     bucket_id = 'exportaciones'
     and (
-      (
-        path_tokens[1] = 'hogar'
-        and private.es_uuid(path_tokens[2])
-        and private.puede_ver(path_tokens[2]::uuid, 'hogar', null)
-      )
-      or (
-        path_tokens[1] = 'personal'
-        and private.es_uuid(path_tokens[2])
-        and private.es_uuid(path_tokens[3])
-        and private.puede_ver(path_tokens[2]::uuid, 'personal', path_tokens[3]::uuid)
-      )
+      case
+        when path_tokens[1] = 'hogar' and private.es_uuid(path_tokens[2]) then
+          private.puede_ver(path_tokens[2]::uuid, 'hogar', null)
+        when path_tokens[1] = 'personal'
+             and private.es_uuid(path_tokens[2])
+             and private.es_uuid(path_tokens[3]) then
+          private.puede_ver(path_tokens[2]::uuid, 'personal', path_tokens[3]::uuid)
+        else false
+      end
     )
   );
 

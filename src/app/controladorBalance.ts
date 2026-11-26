@@ -43,6 +43,7 @@ export type DatosBalance = {
     tipo: 'efectivo' | 'cuenta'
     owner_tipo: 'miembro' | 'hogar'
     owner_miembro_id: string | null
+    activo: boolean
   }>
   compras: Array<{
     id: string
@@ -392,17 +393,19 @@ export function crearControladorBalance(
     async mediosParaAporte() {
       const d = await vigentes()
       const nombres = new Map(d.miembros.map((m) => [m.id, m.nombre]))
-      const opciones = d.medios.map((m) => ({
-        id: m.id,
-        nombre: m.nombre,
-        tipo: m.tipo,
-        ownerTipo: m.owner_tipo,
-        duenoMiembroId: m.owner_miembro_id,
-        duenoNombre:
-          m.owner_miembro_id !== null
-            ? (nombres.get(m.owner_miembro_id) ?? 'Miembro')
-            : null,
-      }))
+      const opciones = d.medios
+        .filter((m) => m.activo)
+        .map((m) => ({
+          id: m.id,
+          nombre: m.nombre,
+          tipo: m.tipo,
+          ownerTipo: m.owner_tipo,
+          duenoMiembroId: m.owner_miembro_id,
+          duenoNombre:
+            m.owner_miembro_id !== null
+              ? (nombres.get(m.owner_miembro_id) ?? 'Miembro')
+              : null,
+        }))
       return {
         origenes: opciones.filter((m) => m.ownerTipo === 'miembro'),
         destinos: opciones.filter((m) => m.ownerTipo === 'hogar'),

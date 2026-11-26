@@ -60,11 +60,6 @@ export function BarraProporcional({
   miembros: AporteMiembroVista[]
   totalAportes: number
 }) {
-  const primero = miembros[0]
-  const segundo = miembros[1]
-  const anchoPrimero =
-    totalAportes > 0 && primero ? Math.round((primero.aporte * 100) / totalAportes) : 50
-  const anchoSegundo = Math.max(0, 100 - anchoPrimero)
   const etiqueta = miembros
     .map((m) => `${m.nombre} ${m.pctTotal}`)
     .join(', ')
@@ -76,23 +71,26 @@ export function BarraProporcional({
         role="img"
         aria-label={`Distribución de aportes: ${etiqueta}`}
       >
-        {totalAportes > 0 ? (
-          <>
-            {primero && primero.aporte > 0 ? (
-              <div className="h-full bg-hogar-primario" style={{ width: `${anchoPrimero}%` }} />
-            ) : null}
-            {segundo && segundo.aporte > 0 ? (
-              <div className="h-full hogar-barra-indigo" style={{ width: `${anchoSegundo}%` }} />
-            ) : null}
-          </>
-        ) : null}
+        {totalAportes > 0
+          ? miembros.map((m, idx) =>
+              m.aporte > 0 ? (
+                <div
+                  key={m.miembroId}
+                  className={`h-full ${
+                    idx % 2 === 0 ? 'bg-hogar-primario' : 'hogar-barra-indigo'
+                  }`}
+                  style={{ width: `${(m.aporte * 100) / totalAportes}%` }}
+                />
+              ) : null,
+            )
+          : null}
       </div>
       <div className="mt-2 flex flex-wrap justify-between gap-2 text-[0.8125rem] text-hogar-tinta">
         {miembros.map((m, idx) => (
           <span key={m.miembroId} className="inline-flex items-center gap-1.5">
             <span
               className={`inline-block size-3 rounded-sm border border-hogar-tinta ${
-                idx === 0 ? 'bg-hogar-primario' : 'hogar-muestra-indigo'
+                idx % 2 === 0 ? 'bg-hogar-primario' : 'hogar-muestra-indigo'
               }`}
               aria-hidden="true"
             />

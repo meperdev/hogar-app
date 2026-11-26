@@ -28,9 +28,9 @@ function crearPuertoMemoria(): BalancePort & {
       { id: BETO, nombre: 'Beto', activo: true },
     ],
     medios: [
-      { id: CUENTA_ANA, nombre: 'Cuenta Ana', tipo: 'cuenta', owner_tipo: 'miembro', owner_miembro_id: ANA },
-      { id: CUENTA_BETO, nombre: 'Cuenta Beto', tipo: 'cuenta', owner_tipo: 'miembro', owner_miembro_id: BETO },
-      { id: CUENTA_COMUN, nombre: 'Cuenta común', tipo: 'cuenta', owner_tipo: 'hogar', owner_miembro_id: null },
+      { id: CUENTA_ANA, nombre: 'Cuenta Ana', tipo: 'cuenta', owner_tipo: 'miembro', owner_miembro_id: ANA, activo: true },
+      { id: CUENTA_BETO, nombre: 'Cuenta Beto', tipo: 'cuenta', owner_tipo: 'miembro', owner_miembro_id: BETO, activo: true },
+      { id: CUENTA_COMUN, nombre: 'Cuenta común', tipo: 'cuenta', owner_tipo: 'hogar', owner_miembro_id: null, activo: true },
     ],
     compras: [
       { id: 'c-1', fecha: '2026-11-08', monto_total: 200_000, ambito: 'hogar', miembro_id: null, pago_tipo: 'contado', medio_de_pago_id: CUENTA_ANA, financiada_por_pasivo_id: null },
@@ -219,5 +219,19 @@ describe('controlador de balance de pareja', () => {
     expect(res.personalZip.nombreArchivo).toBe('personal-2026-11-25.zip')
     expect(res.hogarZip.bytes.length).toBeGreaterThan(0)
     expect(res.personalZip.bytes.length).toBeGreaterThan(0)
+  })
+
+  it('conserva aportes históricos de medios archivados y solo oculta los inactivos al transferir (I9)', async () => {
+    const port = crearPuertoMemoria()
+    port.datos.medios[0]!.activo = false
+    const ctrl = crearControlador(port)
+
+    const vista = await ctrl.cargarMes('2026-11')
+    expect(vista.miembros.find((m) => m.miembroId === ANA)?.aporte).toBe(1_700_000)
+    expect(vista.totalAportes).toBe(3_000_000)
+
+    const medios = await ctrl.mediosParaAporte()
+    expect(medios.origenes.some((m) => m.id === CUENTA_ANA)).toBe(false)
+    expect(medios.origenes.some((m) => m.id === CUENTA_BETO)).toBe(true)
   })
 })

@@ -39,7 +39,7 @@ export function PantallaAjustesExportar({
   saliendo: boolean
   errorSalir: string
 }) {
-  const { hogar, controlador, alternarMostrarPctIngreso } = useBalance()
+  const { hogar, controlador, errorCarga, alternarMostrarPctIngreso } = useBalance()
   const [estado, setEstado] = useState<EstadoAjustes | null>(null)
   const [exportacion, setExportacion] = useState<ResultadoExportacion | null>(null)
   const [exportando, setExportando] = useState(false)
@@ -91,8 +91,10 @@ export function PantallaAjustesExportar({
   }
 
   async function cambiarPct(valor: boolean) {
-    await alternarMostrarPctIngreso(valor)
-    setEstado((prev) => (prev ? { ...prev, mostrarPctIngreso: valor } : prev))
+    const ok = await alternarMostrarPctIngreso(valor)
+    if (ok) {
+      setEstado((prev) => (prev ? { ...prev, mostrarPctIngreso: valor } : prev))
+    }
   }
 
   return (
@@ -133,9 +135,9 @@ export function PantallaAjustesExportar({
         </div>
       ) : null}
 
-      {error || errorSalir ? (
+      {error || errorCarga || errorSalir ? (
         <Aviso variante="peligro" icono="▲" role="alert">
-          <p>{error || errorSalir}</p>
+          <p>{error || errorCarga || errorSalir}</p>
         </Aviso>
       ) : null}
 

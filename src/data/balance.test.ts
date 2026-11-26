@@ -22,7 +22,7 @@ function datosMuestra(): DatosBalance {
       { id: BETO, nombre: 'Beto', activo: true },
     ],
     medios: [
-      { id: '01950000-0000-7000-8000-000000000011', nombre: 'Cuenta Ana', tipo: 'cuenta', owner_tipo: 'miembro', owner_miembro_id: ANA },
+      { id: '01950000-0000-7000-8000-000000000011', nombre: 'Cuenta Ana', tipo: 'cuenta', owner_tipo: 'miembro', owner_miembro_id: ANA, activo: true },
     ],
     compras: [],
     pasivos: [],

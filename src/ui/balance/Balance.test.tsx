@@ -43,9 +43,9 @@ function crearPuertoDePrueba(overrides?: Partial<DatosBalance>): BalancePort {
       { id: CAMILA, nombre: 'Camila', activo: true },
     ],
     medios: [
-      { id: CUENTA_SANTIAGO, nombre: 'Bancolombia · Santiago', tipo: 'cuenta', owner_tipo: 'miembro', owner_miembro_id: SANTIAGO },
-      { id: CUENTA_CAMILA, nombre: 'Nequi · Camila', tipo: 'cuenta', owner_tipo: 'miembro', owner_miembro_id: CAMILA },
-      { id: CUENTA_COMUN, nombre: 'Cuenta común · Hogar', tipo: 'cuenta', owner_tipo: 'hogar', owner_miembro_id: null },
+      { id: CUENTA_SANTIAGO, nombre: 'Bancolombia · Santiago', tipo: 'cuenta', owner_tipo: 'miembro', owner_miembro_id: SANTIAGO, activo: true },
+      { id: CUENTA_CAMILA, nombre: 'Nequi · Camila', tipo: 'cuenta', owner_tipo: 'miembro', owner_miembro_id: CAMILA, activo: true },
+      { id: CUENTA_COMUN, nombre: 'Cuenta común · Hogar', tipo: 'cuenta', owner_tipo: 'hogar', owner_miembro_id: null, activo: true },
     ],
     compras: [
       { id: 'c1', fecha: '2026-11-08', monto_total: 200_000, ambito: 'hogar', miembro_id: null, pago_tipo: 'contado', medio_de_pago_id: CUENTA_SANTIAGO, financiada_por_pasivo_id: null },
@@ -323,5 +323,18 @@ describe('UI del Núcleo 3 (Balance de pareja y exportación)', () => {
     )
     await clic(btnSalir ?? null)
     expect(salir).toHaveBeenCalledTimes(1)
+  })
+
+  it('en /ajustes no invierte el interruptor ni oculta errores si falla mostrar_pct_ingreso', async () => {
+    const port = crearPuertoDePrueba()
+    port.enviar = async () => ({ estado: 'rechazado', motivo: 'conflicto' })
+    const { contenedor } = await montar('/ajustes', port)
+
+    const switchCfg = contenedor.querySelector('#cfg-pct-ingreso') as HTMLInputElement
+    expect(switchCfg.checked).toBe(false)
+
+    await clic(switchCfg)
+    expect(switchCfg.checked).toBe(false)
+    expect(contenedor.querySelector('[role="alert"]')?.textContent).toContain('Otro dispositivo')
   })
 })

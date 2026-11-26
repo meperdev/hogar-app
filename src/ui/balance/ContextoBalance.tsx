@@ -12,7 +12,7 @@ type ValorContextoBalance = {
   errorCarga: string
   toast: string
   cambiarPeriodo: (nuevoPeriodo: string) => void
-  alternarMostrarPctIngreso: (valor: boolean) => Promise<void>
+  alternarMostrarPctIngreso: (valor: boolean) => Promise<boolean>
   alternarIncluirPersonales: (valor: boolean) => Promise<void>
   recargar: () => void
   notificar: (mensaje: string) => void
@@ -66,15 +66,17 @@ export function ProveedorBalance({
   }, [controlador, periodo, revision])
 
   const alternarMostrarPctIngreso = useCallback(
-    async (valor: boolean) => {
+    async (valor: boolean): Promise<boolean> => {
       setErrorCarga('')
       try {
         const actualizada = await controlador.cambiarMostrarPctIngreso(valor, periodo)
         setVista(actualizada)
+        return true
       } catch (causa) {
         setErrorCarga(
           causa instanceof Error ? causa.message : 'No pudimos actualizar la preferencia.',
         )
+        return false
       }
     },
     [controlador, periodo],
