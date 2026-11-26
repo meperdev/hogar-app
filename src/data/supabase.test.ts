@@ -47,4 +47,10 @@ describe('conectarSupabase', () => {
 
     expect(typeof servicios?.mascotas).toBe('function')
   })
+
+  it('conecta el puerto de invitaciones de miembros', () => {
+    const servicios = conectarSupabase('http://127.0.0.1:54321', CLAVE_PUBLICA)
+
+    expect(servicios?.invitaciones).toBeDefined()
+  })
 })
