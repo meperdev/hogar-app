@@ -120,6 +120,7 @@ export function PantallaUnirmeHogar({
               className={claseCampoTexto}
               placeholder="Pega aquí el enlace o código recibido"
               value={entradaToken}
+              aria-invalid={error ? 'true' : undefined}
               onChange={(e) => setEntradaToken(e.target.value)}
               disabled={ocupado}
               required

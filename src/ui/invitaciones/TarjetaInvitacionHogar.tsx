@@ -28,9 +28,11 @@ function IconoSobreInvitacion() {
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="2.2"
         strokeLinecap="round"
         strokeLinejoin="round"
+        aria-hidden="true"
+        focusable="false"
       >
         <path d="M4 8.5 12 14l8-5.5" />
         <rect x="3" y="6" width="18" height="13" rx="3" />
