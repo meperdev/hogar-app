@@ -125,7 +125,7 @@ export function crearControladorMascotas(dep: DependenciasMascotas): Controlador
     } catch {
       throw new ErrorMascotas(
         'red',
-        'No se pudo conectar con el servidor. Revisá tu conexión e intentá de nuevo.',
+        'No se pudo conectar con el servidor. Revisa tu conexión e intenta de nuevo.',
       )
     }
     if (resultado.estado === 'rechazado') {
@@ -246,10 +246,6 @@ export function crearControladorMascotas(dep: DependenciasMascotas): Controlador
         throw new ErrorMascotas('medio', 'Elige un medio de pago válido.')
       }
 
-      const categoriaMascotas =
-        datos.categorias.find((c) => c.nombre.trim().toLowerCase() === 'mascotas')?.id ??
-        item.categoriaId
-
       const lote = construirConManejo(() =>
         construirLoteRecompra(
           {
@@ -258,7 +254,7 @@ export function crearControladorMascotas(dep: DependenciasMascotas): Controlador
             itemId: item.id,
             itemMascotaId: item.mascotaId,
             mascotaId: item.mascotaId ?? entrada.mascotaId,
-            categoriaId: categoriaMascotas,
+            categoriaId: item.categoriaId,
             fecha: entrada.fecha,
             descripcion: entrada.descripcion || item.nombre,
             monto: entrada.monto,
