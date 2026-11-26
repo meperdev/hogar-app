@@ -205,4 +205,24 @@
   .hogar-cop {
     font-variant-numeric: tabular-nums;
   }
+
+  .hogar-barra-indigo {
+    background: repeating-linear-gradient(
+      -45deg,
+      var(--color-hogar-indigo),
+      var(--color-hogar-indigo) 6px,
+      #3d57a6 6px,
+      #3d57a6 12px
+    );
+  }
+
+  .hogar-muestra-indigo {
+    background: repeating-linear-gradient(
+      -45deg,
+      var(--color-hogar-indigo),
+      var(--color-hogar-indigo) 3px,
+      #526dc2 3px,
+      #526dc2 6px
+    );
+  }
 }

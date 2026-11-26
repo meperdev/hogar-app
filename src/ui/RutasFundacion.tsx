@@ -39,6 +39,11 @@ import { ProveedorObligaciones } from './obligaciones/ContextoObligaciones'
 import { PantallaNuevoPasivo } from './obligaciones/PantallaNuevoPasivo'
 import { PantallaObligaciones } from './obligaciones/PantallaObligaciones'
 import { PantallaRegistrarPago } from './obligaciones/PantallaRegistrarPago'
+import { ProveedorBalance } from './balance/ContextoBalance'
+import { PantallaAjustesExportar } from './balance/PantallaAjustesExportar'
+import { PantallaBalance } from './balance/PantallaBalance'
+import { PantallaRegistrarIngreso } from './balance/PantallaRegistrarIngreso'
+import { PantallaTransferirFondo } from './balance/PantallaTransferirFondo'
 
 function mensaje(error: unknown, porDefecto: string) {
   return error instanceof ErrorFundacion ? error.message : porDefecto
@@ -606,17 +611,36 @@ function HogarConSesion({ servicios, sesion }: { servicios: Servicios; sesion: S
           <Route path="/obligaciones/*" element={<Navigate to="/obligaciones" replace />} />
         </>
       )}
-      <Route path="/balance" element={<PantallaBalanceVacia hogar={carga} />} />
+      {servicios.balance ? (
+        <>
+          <Route path="/balance" element={<PantallaBalance />} />
+          <Route path="/balance/transferir" element={<PantallaTransferirFondo />} />
+          <Route path="/balance/nuevo-ingreso" element={<PantallaRegistrarIngreso />} />
+        </>
+      ) : (
+        <>
+          <Route path="/balance" element={<PantallaBalanceVacia hogar={carga} />} />
+          <Route path="/balance/*" element={<Navigate to="/balance" replace />} />
+        </>
+      )}
       <Route path="/mascotas" element={<PantallaMascotasVacia hogar={carga} />} />
       <Route
         path="/ajustes"
         element={
-          <PantallaAjustesFundacion
-            hogar={carga}
-            onSalir={salir}
-            saliendo={ocupado}
-            errorSalir={error}
-          />
+          servicios.balance ? (
+            <PantallaAjustesExportar
+              onSalir={salir}
+              saliendo={ocupado}
+              errorSalir={error}
+            />
+          ) : (
+            <PantallaAjustesFundacion
+              hogar={carga}
+              onSalir={salir}
+              saliendo={ocupado}
+              errorSalir={error}
+            />
+          )
         }
       />
       <Route path="/crear-hogar" element={<Navigate to="/compra" replace />} />
@@ -625,6 +649,13 @@ function HogarConSesion({ servicios, sesion }: { servicios: Servicios; sesion: S
   )
 
   let contenido = rutasHogar
+  if (servicios.balance) {
+    contenido = (
+      <ProveedorBalance hogar={carga} crearControlador={servicios.balance}>
+        {contenido}
+      </ProveedorBalance>
+    )
+  }
   if (servicios.obligaciones) {
     contenido = (
       <ProveedorObligaciones hogar={carga} crearControlador={servicios.obligaciones}>
