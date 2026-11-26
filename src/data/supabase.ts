@@ -8,6 +8,7 @@ import { ErrorFundacion, type Servicios } from '../app/fundacion'
 import { crearPuertoBalance, crearRemotoBalance } from './balance'
 import { crearPuertoCompraRapida, crearRemotoSupabase } from './compraRapida'
 import { AdministradorBaseActor } from './db'
+import { crearPuertoInvitaciones } from './invitaciones'
 import { crearPuertoMascotas, crearRemotoMascotas } from './mascotas'
 import { crearPuertoObligaciones, crearRemotoObligaciones } from './obligaciones'
 import { uuidV7 } from './uuid'
@@ -22,6 +23,7 @@ const miembro = z.object({
   nombre: z.string(),
   rol: z.enum(['admin', 'miembro']),
   activo: z.boolean(),
+  usuario_id: z.uuid().nullable(),
 })
 
 export function conectarSupabase(url: unknown, clavePublica: unknown): Servicios | null {
@@ -71,13 +73,16 @@ export function conectarSupabase(url: unknown, clavePublica: unknown): Servicios
         const [hogar, miembros] = await Promise.all([
           cliente.from('hogar').select('id,nombre').eq('id', hogarId)
             .is('eliminado_en', null).maybeSingle(),
-          cliente.from('miembro').select('id,nombre,rol,activo').eq('hogar_id', hogarId)
+          cliente.from('miembro').select('id,nombre,rol,activo,usuario_id').eq('hogar_id', hogarId)
             .is('eliminado_en', null).order('nombre'),
         ])
         if (hogar.error) throw hogar.error
         if (miembros.error) throw miembros.error
         if (!hogar.data) return null
-        const lista = miembro.array().parse(miembros.data)
+        const lista = miembro.array().parse(miembros.data).map(({ usuario_id, ...rest }) => ({
+          ...rest,
+          tieneCuenta: usuario_id !== null,
+        }))
         const miembroActual = lista.find((fila) => fila.id === id && fila.activo)
         if (!miembroActual) return null
         return {
@@ -97,6 +102,7 @@ export function conectarSupabase(url: unknown, clavePublica: unknown): Servicios
         return { hogarId: resultado.hogar_id, miembroId: resultado.miembro_id }
       },
     },
+    invitaciones: crearPuertoInvitaciones(cliente),
     compras: (alcance) =>
       crearControladorCompraRapida({
         port: crearPuertoCompraRapida({
