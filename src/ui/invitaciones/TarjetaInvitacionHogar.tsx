@@ -82,7 +82,7 @@ export function TarjetaInvitacionHogar({
   const origen =
     typeof window !== 'undefined' && window.location?.origin
       ? window.location.origin
-      : 'https://hogar-app.pages.dev'
+      : 'https://home.mepersoft.app'
 
   const enlacePostal = postal ? construirEnlaceInvitacion(origen, postal.token) : ''
   const mensajePostal = postal
