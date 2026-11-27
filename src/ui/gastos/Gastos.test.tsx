@@ -52,12 +52,24 @@ function vistaDemo(periodo: string, ambito: FiltroAmbitoGastos): VistaGastosMes 
           categoriaIcono: 'entretenimiento',
           ambito: 'personal',
           pagoTipo: 'contado',
+          medioDePagoId: 'm-nequi',
+          financiadaPorPasivoId: null,
+          obligacionId: null,
           medioNombre: 'Nequi',
           medioTipo: 'cuenta',
           cuotas: null,
           registradoPorNombre: 'Santiago',
           origen: 'manual',
         },
+      ],
+      categoriasDisponibles: [
+        { id: 'cat-mercado', nombre: 'Mercado', icono: 'mercado', orden: 1 },
+        { id: 'cat-transporte', nombre: 'Transporte', icono: 'transporte', orden: 2 },
+        { id: 'cat-cafe', nombre: 'Entretenimiento', icono: 'entretenimiento', orden: 3 },
+      ],
+      mediosDisponibles: [
+        { id: 'm-nequi', nombre: 'Nequi', tipo: 'cuenta' },
+        { id: 'm-bancolombia', nombre: 'Bancolombia', tipo: 'cuenta' },
       ],
     }
   }
@@ -101,6 +113,9 @@ function vistaDemo(periodo: string, ambito: FiltroAmbitoGastos): VistaGastosMes 
         categoriaIcono: 'mercado',
         ambito: 'hogar',
         pagoTipo: 'contado',
+        medioDePagoId: 'm-bancolombia',
+        financiadaPorPasivoId: null,
+        obligacionId: null,
         medioNombre: 'Bancolombia',
         medioTipo: 'cuenta',
         cuotas: null,
@@ -117,12 +132,24 @@ function vistaDemo(periodo: string, ambito: FiltroAmbitoGastos): VistaGastosMes 
         categoriaIcono: 'transporte',
         ambito: 'hogar',
         pagoTipo: 'financiado',
+        medioDePagoId: null,
+        financiadaPorPasivoId: null,
+        obligacionId: null,
         medioNombre: 'Visa ••4521',
         medioTipo: 'tarjeta',
         cuotas: 3,
         registradoPorNombre: 'Laura',
         origen: 'manual',
       },
+    ],
+    categoriasDisponibles: [
+      { id: 'cat-mercado', nombre: 'Mercado', icono: 'mercado', orden: 1 },
+      { id: 'cat-transporte', nombre: 'Transporte', icono: 'transporte', orden: 2 },
+      { id: 'cat-cafe', nombre: 'Entretenimiento', icono: 'entretenimiento', orden: 3 },
+    ],
+    mediosDisponibles: [
+      { id: 'm-nequi', nombre: 'Nequi', tipo: 'cuenta' },
+      { id: 'm-bancolombia', nombre: 'Bancolombia', tipo: 'cuenta' },
     ],
   }
 }
@@ -139,7 +166,15 @@ afterEach(async () => {
   vi.unstubAllGlobals()
 })
 
-async function montar(controlador: ControladorGastos, periodoInicial = '2026-11') {
+async function montar(
+  controladorParcial: Pick<ControladorGastos, 'cargarMes'> & Partial<ControladorGastos>,
+  periodoInicial = '2026-11',
+) {
+  const controlador: ControladorGastos = {
+    editarCompra: vi.fn(async () => {}),
+    anularCompra: vi.fn(async () => {}),
+    ...controladorParcial,
+  }
   const contenedor = document.createElement('div')
   document.body.append(contenedor)
   const raiz = createRoot(contenedor)
@@ -232,6 +267,8 @@ describe('UI Gastos generales', () => {
       comparativaAnterior: null,
       categorias: [],
       movimientos: [],
+      categoriasDisponibles: [],
+      mediosDisponibles: [],
     }))
     const { contenedor } = await montar({ cargarMes })
 
@@ -240,5 +277,105 @@ describe('UI Gastos generales', () => {
       (a) => a.textContent?.trim() === 'Registrar compra',
     )
     expect(linkRegistrar?.getAttribute('href')).toBe('/compra')
+  })
+
+  it('permite editar una compra de contado, recarga y muestra aviso de confirmación', async () => {
+    const cargarMes = vi.fn(async (p: string, a: FiltroAmbitoGastos) => vistaDemo(p, a))
+    const editarCompra = vi.fn(async () => {})
+    const { contenedor } = await montar({ cargarMes, editarCompra })
+
+    await act(async () => {
+      botonPorTexto(contenedor, 'D1')?.click()
+    })
+    const dialogo = contenedor.querySelector('[role="dialog"]')
+    expect(dialogo).not.toBeNull()
+
+    const escribir = (el: HTMLInputElement | HTMLSelectElement, valor: string) => {
+      const proto = el instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype
+      Object.getOwnPropertyDescriptor(proto, 'value')?.set?.call(el, valor)
+      el.dispatchEvent(new Event('input', { bubbles: true }))
+      el.dispatchEvent(new Event('change', { bubbles: true }))
+    }
+
+    await act(async () => {
+      escribir(contenedor.querySelector('#editar-gasto-descripcion') as HTMLInputElement, 'D1 corregido')
+      escribir(contenedor.querySelector('#editar-gasto-monto') as HTMLInputElement, '75000')
+      escribir(contenedor.querySelector('#editar-gasto-fecha') as HTMLInputElement, '2026-11-19')
+      escribir(contenedor.querySelector('#editar-gasto-categoria') as HTMLSelectElement, 'cat-transporte')
+      escribir(contenedor.querySelector('#editar-gasto-medio') as HTMLSelectElement, 'm-nequi')
+    })
+
+    const form = dialogo?.querySelector('form')
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(editarCompra).toHaveBeenCalledWith({
+      compraId: 'g1',
+      descripcion: 'D1 corregido',
+      categoriaId: 'cat-transporte',
+      montoTotal: 75000,
+      fecha: '2026-11-19',
+      medioDePagoId: 'm-nequi',
+    })
+    expect(contenedor.querySelector('[role="dialog"]')).toBeNull()
+    expect(contenedor.querySelector('[role="status"]')?.textContent).toContain('Compra actualizada')
+    expect(cargarMes).toHaveBeenCalledTimes(2)
+  })
+
+  it('restringe edición de monto, fecha y medio en compras a cuotas', async () => {
+    const cargarMes = vi.fn(async (p: string, a: FiltroAmbitoGastos) => vistaDemo(p, a))
+    const editarCompra = vi.fn(async () => {})
+    const { contenedor } = await montar({ cargarMes, editarCompra })
+
+    await act(async () => {
+      botonPorTexto(contenedor, 'Uber')?.click()
+    })
+    const dialogo = contenedor.querySelector('[role="dialog"]')
+    expect(dialogo?.textContent).toContain('solo puedes editar descripción y categoría')
+    expect((contenedor.querySelector('#editar-gasto-monto') as HTMLInputElement).disabled).toBe(true)
+    expect((contenedor.querySelector('#editar-gasto-fecha') as HTMLInputElement).disabled).toBe(true)
+    expect(contenedor.querySelector('#editar-gasto-medio')).toBeNull()
+
+    await act(async () => {
+      const desc = contenedor.querySelector('#editar-gasto-descripcion') as HTMLInputElement
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(desc, 'Uber aeropuerto')
+      desc.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+
+    await act(async () => {
+      dialogo?.querySelector('form')?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(editarCompra).toHaveBeenCalledWith({
+      compraId: 'g2',
+      descripcion: 'Uber aeropuerto',
+      categoriaId: 'cat-transporte',
+    })
+  })
+
+  it('anula una compra en dos pasos, recarga y muestra aviso de anulación', async () => {
+    const cargarMes = vi.fn(async (p: string, a: FiltroAmbitoGastos) => vistaDemo(p, a))
+    const anularCompra = vi.fn(async () => {})
+    const { contenedor } = await montar({ cargarMes, anularCompra })
+
+    await act(async () => {
+      botonPorTexto(contenedor, 'D1')?.click()
+    })
+    await act(async () => {
+      botonPorTexto(contenedor, 'Anular compra')?.click()
+    })
+
+    expect(contenedor.textContent).toContain('¿Seguro que quieres anular esta compra?')
+    expect(anularCompra).not.toHaveBeenCalled()
+
+    await act(async () => {
+      botonPorTexto(contenedor, 'Confirmar anulación')?.click()
+    })
+
+    expect(anularCompra).toHaveBeenCalledWith('g1')
+    expect(contenedor.querySelector('[role="dialog"]')).toBeNull()
+    expect(contenedor.querySelector('[role="status"]')?.textContent).toContain('Compra anulada')
+    expect(cargarMes).toHaveBeenCalledTimes(2)
   })
 })

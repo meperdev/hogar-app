@@ -249,10 +249,14 @@ export function ListaCategoriasGasto({
   )
 }
 
+export { ModalEditarGasto } from './ModalEditarGasto'
+
 export function ListaMovimientosGasto({
   movimientos,
+  onSeleccionar,
 }: {
   movimientos: MovimientoGasto[]
+  onSeleccionar?: ((mov: MovimientoGasto) => void) | undefined
 }) {
   return (
     <ul className="m-0 flex list-none flex-col gap-2 p-0">
@@ -269,9 +273,8 @@ export function ListaMovimientosGasto({
         const { Logo } = identidad
         const titulo = mov.descripcion.trim() || mov.categoriaNombre
 
-        return (
-          <li key={mov.id}>
-            <Tarjeta className="flex items-center justify-between gap-3 p-3">
+        const tarjeta = (
+          <Tarjeta className="flex items-center justify-between gap-3 p-3 transition hover:border-hogar-borde-fuerte">
               <div className="flex min-w-0 flex-1 items-center gap-2.5">
                 <span
                   className="grid size-10 shrink-0 place-items-center rounded-2xl shadow-[0_3px_8px_-2px_rgba(16,24,20,0.22)]"
@@ -300,10 +303,32 @@ export function ListaMovimientosGasto({
                   ) : null}
                 </div>
               </div>
-              <span className="hogar-cop shrink-0 text-sm font-extrabold text-hogar-tinta">
-                {formatearPesos(mov.montoTotal)}
-              </span>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <span className="hogar-cop text-sm font-extrabold text-hogar-tinta">
+                  {formatearPesos(mov.montoTotal)}
+                </span>
+                {onSeleccionar ? (
+                  <span aria-hidden="true" className="text-base font-bold text-hogar-tinta-tenue">
+                    ›
+                  </span>
+                ) : null}
+              </div>
             </Tarjeta>
+        )
+
+        return (
+          <li key={mov.id}>
+            {onSeleccionar ? (
+              <button
+                type="button"
+                onClick={() => onSeleccionar(mov)}
+                className="block w-full cursor-pointer rounded-2xl border-0 bg-transparent p-0 text-left focus-visible:outline-2 focus-visible:outline-hogar-primario"
+              >
+                {tarjeta}
+              </button>
+            ) : (
+              tarjeta
+            )}
           </li>
         )
       })}

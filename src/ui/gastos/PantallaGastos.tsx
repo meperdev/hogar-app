@@ -25,6 +25,8 @@ import {
   SelectorAmbitoGastos,
 } from './PiezasGastos'
 
+import { ModalEditarGasto } from './ModalEditarGasto'
+
 export function PantallaGastos() {
   const {
     periodo,
@@ -32,13 +34,20 @@ export function PantallaGastos() {
     vista,
     cargando,
     errorCarga,
+    toast,
+    limpiarToast,
     cambiarPeriodo,
     cambiarAmbito,
     recargar,
+    editarCompra,
+    anularCompra,
   } = useGastos()
 
   const [categoriaActivaId, setCategoriaActivaId] = useState<string | null>(null)
   const [busqueda, setBusqueda] = useState('')
+  const [movSeleccionado, setMovSeleccionado] = useState<
+    NonNullable<typeof vista>['movimientos'][number] | null
+  >(null)
   const primeraCargaRef = useRef(true)
 
   useEffect(() => {
@@ -96,6 +105,24 @@ export function PantallaGastos() {
       }
       mostrarNavegacion
     >
+      {toast ? (
+        <div
+          className="hogar-toast flex items-center justify-between gap-2 rounded-2xl bg-hogar-tinta px-3.5 py-2.5 text-sm text-white shadow-[var(--hogar-shadow-elevated)]"
+          role="status"
+          aria-live="polite"
+        >
+          <span>{toast}</span>
+          <button
+            type="button"
+            onClick={limpiarToast}
+            className="cursor-pointer rounded-lg border-0 bg-white/15 px-2 py-0.5 text-xs font-bold text-white hover:bg-white/25"
+            aria-label="Cerrar aviso"
+          >
+            ✕
+          </button>
+        </div>
+      ) : null}
+
       {vista?.sinConexion ? (
         <Aviso variante="ambar" icono="◷" role="status">
           <p>Modo sin conexión: mostrando la última copia guardada en este dispositivo.</p>
@@ -269,7 +296,10 @@ export function PantallaGastos() {
           </div>
 
           {movimientosFiltrados.length > 0 ? (
-            <ListaMovimientosGasto movimientos={movimientosFiltrados} />
+            <ListaMovimientosGasto
+              movimientos={movimientosFiltrados}
+              onSeleccionar={setMovSeleccionado}
+            />
           ) : (
             <p className={claseAyudaCampo}>
               Ninguna compra coincide con «{busqueda.trim()}».
@@ -277,6 +307,15 @@ export function PantallaGastos() {
           )}
         </section>
       ) : null}
+
+      <ModalEditarGasto
+        movimiento={movSeleccionado}
+        categorias={vista?.categoriasDisponibles ?? []}
+        medios={vista?.mediosDisponibles ?? []}
+        onCerrar={() => setMovSeleccionado(null)}
+        onGuardar={editarCompra}
+        onAnular={anularCompra}
+      />
     </ShellApp>
   )
 }

@@ -20,9 +20,13 @@ type ValorContextoGastos = {
   vista: VistaGastosMes | null
   cargando: boolean
   errorCarga: string
+  toast: string
+  limpiarToast: () => void
   cambiarPeriodo: (siguiente: string) => void
   cambiarAmbito: (siguiente: FiltroAmbitoGastos) => void
   recargar: () => void
+  editarCompra: ControladorGastos['editarCompra']
+  anularCompra: ControladorGastos['anularCompra']
 }
 
 const ContextoGastos = createContext<ValorContextoGastos | null>(null)
@@ -52,6 +56,7 @@ export function ProveedorGastos({
   const [vista, setVista] = useState<VistaGastosMes | null>(null)
   const [cargando, setCargando] = useState(true)
   const [errorCarga, setErrorCarga] = useState('')
+  const [toast, setToast] = useState('')
   const [revision, setRevision] = useState(0)
 
   useEffect(() => {
@@ -81,6 +86,35 @@ export function ProveedorGastos({
     setRevision((actual) => actual + 1)
   }, [])
 
+  const limpiarToast = useCallback(() => {
+    setToast('')
+  }, [])
+
+  const mostrarToast = useCallback((mensaje: string) => {
+    setToast(mensaje)
+    setTimeout(() => {
+      setToast((actual) => (actual === mensaje ? '' : actual))
+    }, 3500)
+  }, [])
+
+  const editarCompra: ControladorGastos['editarCompra'] = useCallback(
+    async (entrada) => {
+      await controlador.editarCompra(entrada)
+      mostrarToast('Compra actualizada')
+      recargar()
+    },
+    [controlador, mostrarToast, recargar],
+  )
+
+  const anularCompra: ControladorGastos['anularCompra'] = useCallback(
+    async (compraId) => {
+      await controlador.anularCompra(compraId)
+      mostrarToast('Compra anulada')
+      recargar()
+    },
+    [controlador, mostrarToast, recargar],
+  )
+
   return (
     <ContextoGastos.Provider
       value={{
@@ -91,9 +125,13 @@ export function ProveedorGastos({
         vista,
         cargando,
         errorCarga,
+        toast,
+        limpiarToast,
         cambiarPeriodo: setPeriodo,
         cambiarAmbito: setAmbito,
         recargar,
+        editarCompra,
+        anularCompra,
       }}
     >
       {children}
