@@ -262,7 +262,7 @@ export function TarjetaIngresoFijo({
             </summary>
             <div className="flex flex-col gap-2.5 border-t border-hogar-borde bg-hogar-fondo p-3">
               <div className="grid grid-cols-2 gap-2">
-                <div className="flex flex-col gap-1">
+                <div className="flex min-w-0 flex-col gap-1 overflow-hidden">
                   <label
                     htmlFor={`monto-rec-${item.serieId}`}
                     className={claseEtiquetaCampo}
@@ -283,7 +283,7 @@ export function TarjetaIngresoFijo({
                     }}
                   />
                 </div>
-                <div className="flex flex-col gap-1">
+                <div className="flex min-w-0 flex-col gap-1 overflow-hidden">
                   <label
                     htmlFor={`fecha-rec-${item.serieId}`}
                     className={claseEtiquetaCampo}

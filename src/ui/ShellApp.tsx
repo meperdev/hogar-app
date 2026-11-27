@@ -26,7 +26,7 @@ export function NavegacionInferior() {
           key={to}
           to={to}
           className={({ isActive }) =>
-            `group flex min-h-11 min-w-11 max-w-full flex-col items-center justify-center gap-0.5 rounded-2xl px-0.5 py-1 text-center text-[0.625rem] leading-tight break-words no-underline transition-transform duration-150 active:scale-95 ${
+            `group flex min-h-11 min-w-0 max-w-full flex-col items-center justify-center gap-0.5 overflow-hidden rounded-2xl px-0.5 py-1 text-center text-[0.625rem] leading-tight no-underline transition-transform duration-150 active:scale-95 ${
               isActive
                 ? 'font-extrabold text-hogar-primario'
                 : 'font-semibold text-hogar-tinta-suave hover:text-hogar-tinta'
@@ -44,7 +44,7 @@ export function NavegacionInferior() {
               >
                 <Icono className="block size-5 shrink-0" />
               </span>
-              <span>{etiqueta}</span>
+              <span className="block w-full truncate">{etiqueta}</span>
             </>
           )}
         </NavLink>

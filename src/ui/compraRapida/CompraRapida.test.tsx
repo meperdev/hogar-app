@@ -309,4 +309,32 @@ describe('Compra rápida UI (controlador real)', () => {
     expect(contenedor.querySelector<HTMLInputElement>('#nota-compra')?.value).toBe('D1')
     expect(boton(contenedor, '✓ Mercado')?.getAttribute('aria-pressed')).toBe('true')
   })
+
+  it('contiene nombres largos de categorías y selector de ámbito sin desbordar las celdas', async () => {
+    const port = new PuertoEnMemoria({
+      ...CATALOGO_PRUEBA,
+      categorias: [
+        { id: '018f4a1e-0000-7000-8000-000000000101', nombre: 'Hogar y electrodomésticos', icono: 'hogar', orden: 1 },
+        { id: '018f4a1e-0000-7000-8000-000000000102', nombre: 'Entretenimiento', icono: 'entretenimiento', orden: 2 },
+      ],
+    })
+    const controlador = crearControladorCompraRapida({
+      port,
+      alcance: { hogarId: hogarDePrueba().id, miembroId: hogarDePrueba().miembroActual.id },
+      ahora: () => new Date('2026-11-22T15:00:00Z'),
+      nuevoId: () => '018f4a1e-0000-7000-8000-000000000902',
+      programar: () => {},
+    })
+    const { contenedor } = await montarApp({ controlador })
+
+    const btnLargo = boton(contenedor, 'Hogar y electrodomésticos')
+    expect(btnLargo).toBeDefined()
+    expect(btnLargo?.className).toContain('flex-col')
+    expect(btnLargo?.className).toContain('min-w-0')
+    expect(btnLargo?.className).toContain('overflow-hidden')
+
+    const btnAmbito = boton(contenedor, 'Personal (solo yo)')
+    expect(btnAmbito?.className).toContain('min-w-0')
+    expect(btnAmbito?.className).toContain('overflow-hidden')
+  })
 })

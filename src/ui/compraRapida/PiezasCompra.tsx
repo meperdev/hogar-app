@@ -32,7 +32,7 @@ export function SelectorAmbito({
   ariaLabel?: string | undefined
 }) {
   const base =
-    'relative z-10 inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-[12px] border-0 bg-transparent px-2.5 py-1.5 text-sm font-bold cursor-pointer transition-colors duration-200'
+    'relative z-10 inline-flex min-h-11 w-full min-w-0 items-center justify-center gap-1 overflow-hidden rounded-[12px] border-0 bg-transparent px-1.5 py-1.5 text-[0.8125rem] font-bold leading-tight cursor-pointer transition-colors duration-200'
   return (
     <div
       className="relative grid grid-cols-2 rounded-2xl bg-[#e3e7e2] p-1 shadow-[inset_0_1px_2px_rgba(16,24,20,0.08)]"
@@ -56,7 +56,7 @@ export function SelectorAmbito({
           onCambiar('hogar')
         }}
       >
-        {ambito === 'hogar' ? '✓ Hogar' : 'Hogar'}
+        <span className="block w-full truncate">{ambito === 'hogar' ? '✓ Hogar' : 'Hogar'}</span>
       </button>
       <button
         type="button"
@@ -67,7 +67,9 @@ export function SelectorAmbito({
           onCambiar('personal')
         }}
       >
-        {ambito === 'personal' ? '✓ Personal (solo yo)' : 'Personal (solo yo)'}
+        <span className="block w-full truncate">
+          {ambito === 'personal' ? '✓ Personal (solo yo)' : 'Personal (solo yo)'}
+        </span>
       </button>
     </div>
   )
@@ -101,7 +103,7 @@ export function GrillaCategorias({
             key={cat.id}
             ref={idx === 0 ? primerChipRef : undefined}
             type="button"
-            className={`inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-1.5 rounded-2xl border px-2 py-2 text-center text-[0.8125rem] font-semibold leading-tight break-words transition-all duration-150 active:scale-[0.96] ${
+            className={`flex min-h-[64px] w-full min-w-0 max-w-full cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-2xl border px-1.5 py-2 text-center transition-all duration-150 active:scale-[0.96] ${
               activa
                 ? 'border-transparent bg-gradient-to-b from-[#136e56] to-[#0c4e3d] text-white shadow-[0_4px_10px_-3px_rgba(15,92,72,0.38)]'
                 : 'border-hogar-borde bg-hogar-superficie text-hogar-tinta shadow-[0_1px_2px_rgba(16,24,20,0.04)] hover:bg-hogar-superficie-suave'
@@ -115,9 +117,11 @@ export function GrillaCategorias({
             <IconoCategoria
               nombre={cat.nombre}
               icono={cat.icono}
-              className={`size-4 shrink-0 ${activa ? 'text-[#9be8d0]' : 'text-hogar-tinta-suave'}`}
+              className={`size-[18px] shrink-0 ${activa ? 'text-[#9be8d0]' : 'text-hogar-tinta-suave'}`}
             />
-            <span>{activa ? `✓ ${cat.nombre}` : cat.nombre}</span>
+            <span className="block w-full min-w-0 text-[0.72rem] font-bold leading-[1.15] tracking-[-0.01em] break-words [overflow-wrap:anywhere] line-clamp-2">
+              {activa ? `✓ ${cat.nombre}` : cat.nombre}
+            </span>
           </button>
         )
       })}
@@ -155,10 +159,10 @@ export function CarruselMedios({
             key={m.id}
             ref={idx === 0 ? primerMedioRef : undefined}
             type="button"
-            className={`hogar-card-medio flex min-h-[86px] min-w-[152px] max-w-[168px] shrink-0 snap-start cursor-pointer flex-col justify-between gap-2.5 rounded-[20px] border-0 p-3.5 text-left active:scale-[0.97] ${
+            className={`hogar-card-medio flex min-h-[86px] min-w-[152px] max-w-[168px] shrink-0 snap-start cursor-pointer flex-col justify-between gap-2.5 overflow-hidden rounded-[20px] border-0 p-3.5 text-left active:scale-[0.97] ${
               activo
-                ? 'hogar-card-medio--activa -translate-y-0.5 scale-[1.015] opacity-100'
-                : 'scale-[0.985] opacity-80 hover:opacity-100'
+                ? 'hogar-card-medio--activa -translate-y-0.5 opacity-100'
+                : 'opacity-85 hover:opacity-100'
             }`}
             style={{
               background: identidad.gradiente,
@@ -243,7 +247,7 @@ export function CarruselComercios({
           <button
             key={c.id}
             type="button"
-            className={`inline-flex min-h-11 shrink-0 snap-start cursor-pointer items-center gap-2 rounded-full border-2 px-3.5 py-2 text-[0.8125rem] font-bold transition-all duration-150 active:scale-[0.95] ${
+            className={`inline-flex min-h-11 max-w-[180px] shrink-0 snap-start cursor-pointer items-center gap-2 overflow-hidden whitespace-nowrap rounded-full border-2 px-3.5 py-2 text-[0.8125rem] font-bold transition-all duration-150 active:scale-[0.95] ${
               activo ? '-translate-y-0.5 ring-2 ring-hogar-primario ring-offset-1' : 'opacity-95 hover:opacity-100'
             }`}
             style={{
@@ -259,7 +263,7 @@ export function CarruselComercios({
             }}
           >
             <Logo className="size-4 shrink-0" />
-            <span>{c.nombre}</span>
+            <span className="truncate">{c.nombre}</span>
             {activo ? <IconoCheckSvg className="hogar-pop size-3.5 shrink-0" /> : null}
           </button>
         )
@@ -295,7 +299,7 @@ export function ChipsCuotas({
           <button
             key={n}
             type="button"
-            className={`inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-2xl border px-1 py-2 text-[0.8125rem] font-semibold transition-all duration-150 active:scale-[0.96] ${activo ? claseActivo : claseInactivo}`}
+            className={`inline-flex min-h-11 w-full min-w-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl border px-1 py-2 text-[0.8125rem] font-semibold transition-all duration-150 active:scale-[0.96] ${activo ? claseActivo : claseInactivo}`}
             aria-pressed={activo}
             aria-label={n === 1 ? '1 cuota' : `${n} cuotas`}
             onClick={() => {
@@ -309,7 +313,7 @@ export function ChipsCuotas({
       })}
       <button
         type="button"
-        className={`inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-2xl border px-1 py-2 text-[0.8125rem] font-semibold transition-all duration-150 active:scale-[0.96] ${
+        className={`inline-flex min-h-11 w-full min-w-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl border px-1 py-2 text-[0.8125rem] font-semibold transition-all duration-150 active:scale-[0.96] ${
           esOtro
             ? 'border-transparent bg-gradient-to-b from-[#3650a0] to-[#263a78] text-white shadow-[0_3px_8px_-2px_rgba(45,67,135,0.4)]'
             : claseInactivo

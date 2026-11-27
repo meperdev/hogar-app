@@ -31,7 +31,7 @@ export function SelectorAmbitoGastos({
   onCambiar: (siguiente: FiltroAmbitoGastos) => void
 }) {
   const base =
-    'relative z-10 inline-flex min-h-11 min-w-11 items-center justify-center rounded-[12px] border-0 bg-transparent px-1.5 py-1.5 text-center text-xs font-bold cursor-pointer transition-colors duration-200'
+    'relative z-10 inline-flex min-h-11 w-full min-w-0 items-center justify-center overflow-hidden rounded-[12px] border-0 bg-transparent px-1 py-1.5 text-center text-[0.72rem] font-bold leading-tight cursor-pointer transition-colors duration-200'
   const desplazamiento =
     ambito === 'hogar'
       ? 'translate-x-0 bg-gradient-to-b from-[#136e56] to-[#0c4e3d]'
@@ -55,7 +55,7 @@ export function SelectorAmbitoGastos({
         aria-pressed={ambito === 'hogar'}
         onClick={() => onCambiar('hogar')}
       >
-        Hogar
+        <span className="block w-full truncate">Hogar</span>
       </button>
       <button
         type="button"
@@ -63,7 +63,7 @@ export function SelectorAmbitoGastos({
         aria-pressed={ambito === 'personal'}
         onClick={() => onCambiar('personal')}
       >
-        Mis personales
+        <span className="block w-full truncate">Mis personales</span>
       </button>
       <button
         type="button"
@@ -71,7 +71,7 @@ export function SelectorAmbitoGastos({
         aria-pressed={ambito === 'todos'}
         onClick={() => onCambiar('todos')}
       >
-        Todos
+        <span className="block w-full truncate">Todos</span>
       </button>
     </div>
   )

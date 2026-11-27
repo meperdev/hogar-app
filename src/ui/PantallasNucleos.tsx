@@ -123,38 +123,47 @@ export function PantallaObligacionesVacia({ hogar }: { hogar: Hogar }) {
           Resumen mensual sin movimientos
         </h2>
         <div className="grid grid-cols-3 gap-2">
-          <article className="flex min-w-0 flex-col gap-1 rounded-xl border border-hogar-borde border-t-4 border-t-hogar-primario bg-hogar-superficie px-2 py-2.5">
-            <span className="text-xs font-bold leading-tight text-hogar-tinta-suave">
-              Consumo real (hogar)
+          <article className="flex min-w-0 flex-col justify-between gap-2 overflow-hidden rounded-2xl border border-hogar-borde bg-hogar-superficie p-2.5 shadow-[var(--hogar-shadow-card)]">
+            <span className="flex min-w-0 items-start gap-1.5 text-[0.6875rem] font-bold leading-[1.2] text-hogar-tinta-suave">
+              <span className="mt-[3px] size-2 shrink-0 rounded-full bg-hogar-primario" aria-hidden="true" />
+              <span className="min-w-0 break-words">Consumo real (hogar)</span>
             </span>
-            <span className="hogar-cop text-[0.9375rem] font-extrabold text-hogar-tinta">
-              $0
-            </span>
-            <span className="text-[0.6875rem] leading-tight text-hogar-tinta-suave">
-              1 vez por compra
-            </span>
+            <div className="mt-auto flex min-w-0 flex-col gap-0.5">
+              <span className="hogar-cop text-[0.9375rem] font-extrabold leading-tight tracking-tight text-hogar-tinta break-words">
+                $0
+              </span>
+              <span className="text-[0.65rem] leading-[1.2] text-hogar-tinta-suave break-words">
+                1 vez por compra
+              </span>
+            </div>
           </article>
-          <article className="flex min-w-0 flex-col gap-1 rounded-xl border border-hogar-borde border-t-4 border-t-hogar-indigo bg-hogar-superficie px-2 py-2.5">
-            <span className="text-xs font-bold leading-tight text-hogar-tinta-suave">
-              Capital pagado (cuotas)
+          <article className="flex min-w-0 flex-col justify-between gap-2 overflow-hidden rounded-2xl border border-hogar-borde bg-hogar-superficie p-2.5 shadow-[var(--hogar-shadow-card)]">
+            <span className="flex min-w-0 items-start gap-1.5 text-[0.6875rem] font-bold leading-[1.2] text-hogar-tinta-suave">
+              <span className="mt-[3px] size-2 shrink-0 rounded-full bg-hogar-indigo" aria-hidden="true" />
+              <span className="min-w-0 break-words">Capital pagado (cuotas)</span>
             </span>
-            <span className="hogar-cop text-[0.9375rem] font-extrabold text-hogar-tinta">
-              $0
-            </span>
-            <span className="text-[0.6875rem] leading-tight text-hogar-tinta-suave">
-              $0 pendiente
-            </span>
+            <div className="mt-auto flex min-w-0 flex-col gap-0.5">
+              <span className="hogar-cop text-[0.9375rem] font-extrabold leading-tight tracking-tight text-hogar-tinta break-words">
+                $0
+              </span>
+              <span className="text-[0.65rem] leading-[1.2] text-hogar-tinta-suave break-words">
+                $0 pendiente
+              </span>
+            </div>
           </article>
-          <article className="flex min-w-0 flex-col gap-1 rounded-xl border border-hogar-borde border-t-4 border-t-hogar-ambar bg-hogar-superficie px-2 py-2.5">
-            <span className="text-xs font-bold leading-tight text-hogar-tinta-suave">
-              Costo financ.
+          <article className="flex min-w-0 flex-col justify-between gap-2 overflow-hidden rounded-2xl border border-hogar-borde bg-hogar-superficie p-2.5 shadow-[var(--hogar-shadow-card)]">
+            <span className="flex min-w-0 items-start gap-1.5 text-[0.6875rem] font-bold leading-[1.2] text-hogar-tinta-suave">
+              <span className="mt-[3px] size-2 shrink-0 rounded-full bg-hogar-ambar" aria-hidden="true" />
+              <span className="min-w-0 break-words">Costo financ.</span>
             </span>
-            <span className="hogar-cop text-[0.9375rem] font-extrabold text-hogar-tinta">
-              $0
-            </span>
-            <span className="text-[0.6875rem] leading-tight text-hogar-tinta-suave">
-              Balde aparte
-            </span>
+            <div className="mt-auto flex min-w-0 flex-col gap-0.5">
+              <span className="hogar-cop text-[0.9375rem] font-extrabold leading-tight tracking-tight text-hogar-tinta break-words">
+                $0
+              </span>
+              <span className="text-[0.65rem] leading-[1.2] text-hogar-tinta-suave break-words">
+                Balde aparte
+              </span>
+            </div>
           </article>
         </div>
       </section>
