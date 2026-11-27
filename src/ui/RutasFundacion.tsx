@@ -32,6 +32,7 @@ import {
   PantallaAjustesFundacion,
   PantallaBalanceVacia,
   PantallaCompraVacia,
+  PantallaGastosVacia,
   PantallaMascotasVacia,
   PantallaObligacionesVacia,
 } from './PantallasNucleos'
@@ -40,6 +41,8 @@ import { ProveedorCompraRapida, useRecargarCatalogoCompraOpcional } from './comp
 import { PantallaCompraCuotas } from './compraRapida/PantallaCompraCuotas'
 import { PantallaCompraRapida } from './compraRapida/PantallaCompraRapida'
 import { PantallaEscanearFactura } from './compraRapida/PantallaEscanearFactura'
+import { ProveedorGastos } from './gastos/ContextoGastos'
+import { PantallaGastos } from './gastos/PantallaGastos'
 import { ProveedorObligaciones } from './obligaciones/ContextoObligaciones'
 import { PantallaNuevoPasivo } from './obligaciones/PantallaNuevoPasivo'
 import { PantallaObligaciones } from './obligaciones/PantallaObligaciones'
@@ -364,6 +367,7 @@ function AltaHogar({
 
 const enlacesNucleos = [
   { to: '/compra', titulo: 'Compra rápida', nota: 'Ámbito hogar o personal en pocos toques' },
+  { to: '/gastos', titulo: 'Gastos generales', nota: 'Resumen por categoría y movimientos del mes' },
   {
     to: '/obligaciones',
     titulo: 'Obligaciones del mes',
@@ -710,6 +714,11 @@ function HogarConSesion({ servicios, sesion }: { servicios: Servicios; sesion: S
           <Route path="/balance/*" element={<Navigate to="/balance" replace />} />
         </>
       )}
+      {servicios.gastos ? (
+        <Route path="/gastos" element={<PantallaGastos />} />
+      ) : (
+        <Route path="/gastos" element={<PantallaGastosVacia hogar={carga} />} />
+      )}
       {servicios.mascotas ? (
         <>
           <Route path="/mascotas" element={<PantallaMascotas />} />
@@ -773,6 +782,13 @@ function HogarConSesion({ servicios, sesion }: { servicios: Servicios; sesion: S
       <ProveedorCompraRapida hogar={carga} crearControlador={servicios.compras}>
         {contenido}
       </ProveedorCompraRapida>
+    )
+  }
+  if (servicios.gastos) {
+    contenido = (
+      <ProveedorGastos hogar={carga} crearControlador={servicios.gastos}>
+        {contenido}
+      </ProveedorGastos>
     )
   }
 

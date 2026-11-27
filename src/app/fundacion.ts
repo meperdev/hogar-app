@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { AlcanceCompra, ControladorCompraRapida } from './compraRapida'
 import type { ControladorBalance } from './balance'
+import type { ControladorGastos } from './gastos'
 import type { InvitacionesPort } from './invitaciones'
 import type { ControladorMascotas } from './mascotas'
 import type { MediosDePagoPort } from './mediosDePago'
@@ -49,6 +50,8 @@ export type Servicios = {
   balance?: (alcance: AlcanceCompra) => ControladorBalance
   /** Núcleo 4: controlador de Despensa de mascotas (ver `mascotas.ts`). */
   mascotas?: (alcance: AlcanceCompra) => ControladorMascotas
+  /** Panel de gastos generales por categoría y movimientos del mes. */
+  gastos?: (alcance: AlcanceCompra) => ControladorGastos
 }
 
 export class ErrorFundacion extends Error {}

@@ -111,3 +111,22 @@ export function IconoQr({ className = 'size-[18px]' }: { className?: string | un
     </svg>
   )
 }
+
+export function IconoGastos({ className = 'size-[22px]' }: { className?: string | undefined }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+      <path d="M12 3v9h9" />
+    </svg>
+  )
+}

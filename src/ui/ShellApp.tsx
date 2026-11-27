@@ -4,6 +4,7 @@ import { claseBotonIcono } from './ComponentesBase'
 import {
   IconoBalance,
   IconoCompra,
+  IconoGastos,
   IconoHogar,
   IconoMascotas,
   IconoObligaciones,
@@ -11,6 +12,7 @@ import {
 
 const destinosNavegacion = [
   { to: '/compra', etiqueta: 'Compra', Icono: IconoCompra },
+  { to: '/gastos', etiqueta: 'Gastos', Icono: IconoGastos },
   { to: '/obligaciones', etiqueta: 'Obligaciones', Icono: IconoObligaciones },
   { to: '/balance', etiqueta: 'Balance', Icono: IconoBalance },
   { to: '/mascotas', etiqueta: 'Mascotas', Icono: IconoMascotas },
@@ -24,7 +26,7 @@ export function NavegacionInferior() {
           key={to}
           to={to}
           className={({ isActive }) =>
-            `group flex min-h-11 min-w-11 max-w-full flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1 text-center text-[0.6875rem] leading-tight break-words no-underline transition-transform duration-150 active:scale-95 ${
+            `group flex min-h-11 min-w-11 max-w-full flex-col items-center justify-center gap-0.5 rounded-2xl px-0.5 py-1 text-center text-[0.625rem] leading-tight break-words no-underline transition-transform duration-150 active:scale-95 ${
               isActive
                 ? 'font-extrabold text-hogar-primario'
                 : 'font-semibold text-hogar-tinta-suave hover:text-hogar-tinta'
@@ -34,7 +36,7 @@ export function NavegacionInferior() {
           {({ isActive }) => (
             <>
               <span
-                className={`inline-flex items-center justify-center rounded-full px-3.5 py-1 transition-all duration-200 ${
+                className={`inline-flex items-center justify-center rounded-full px-2.5 py-1 transition-all duration-200 ${
                   isActive
                     ? 'bg-hogar-primario-suave text-hogar-primario shadow-[inset_0_0_0_1px_rgba(15,92,72,0.14)]'
                     : 'bg-transparent text-current group-hover:bg-hogar-superficie-suave'
