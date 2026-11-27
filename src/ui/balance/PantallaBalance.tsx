@@ -94,7 +94,7 @@ export function PantallaBalance() {
     >
       {toast ? (
         <div
-          className="flex items-center justify-between gap-2 rounded-xl bg-hogar-tinta px-3.5 py-2.5 text-sm text-white"
+          className="hogar-toast flex items-center justify-between gap-2 rounded-2xl bg-hogar-tinta px-3.5 py-2.5 text-sm text-white shadow-[var(--hogar-shadow-elevated)]"
           role="status"
           aria-live="polite"
         >
@@ -123,7 +123,7 @@ export function PantallaBalance() {
       ) : null}
 
       <div
-        className="flex items-center justify-between gap-2 rounded-xl border border-hogar-borde bg-hogar-superficie p-1"
+        className="flex items-center justify-between gap-2 rounded-2xl border border-hogar-borde bg-hogar-superficie p-1.5 shadow-[var(--hogar-shadow-card)]"
         role="group"
         aria-label="Cambiar mes calendario del balance"
       >

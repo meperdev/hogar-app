@@ -178,8 +178,8 @@ export function TarjetaMediosDePago({
                   <button
                     key={atajo.nombre}
                     type="button"
-                    className="inline-flex min-h-11 shrink-0 snap-start cursor-pointer items-center gap-2 rounded-full px-3.5 py-2 text-xs font-bold"
-                    style={{ backgroundColor: idVisual.fondo, color: idVisual.texto }}
+                    className="inline-flex min-h-11 shrink-0 snap-start cursor-pointer items-center gap-2 rounded-full border-0 px-3.5 py-2 text-xs font-bold shadow-[0_2px_8px_-2px_rgba(16,24,20,0.22)] transition-transform duration-150 active:scale-[0.95]"
+                    style={{ background: idVisual.gradiente, color: idVisual.texto }}
                     onClick={() => {
                       setNombre(atajo.nombre)
                       setTipo(atajo.tipo)
@@ -268,8 +268,8 @@ export function TarjetaMediosDePago({
                 <Tarjeta className="flex items-center justify-between gap-2.5">
                   <div className="flex min-w-0 flex-1 items-center gap-2.5">
                     <span
-                      className="grid size-10 shrink-0 place-items-center rounded-xl"
-                      style={{ backgroundColor: idVisual.fondo, color: idVisual.texto }}
+                      className="grid size-10 shrink-0 place-items-center rounded-2xl shadow-[0_3px_8px_-2px_rgba(16,24,20,0.24)]"
+                      style={{ background: idVisual.gradiente, color: idVisual.texto }}
                       aria-hidden="true"
                     >
                       <Logo className="size-5" />
@@ -306,10 +306,10 @@ export function TarjetaMediosDePago({
       )}
 
       {archivados.length > 0 ? (
-        <details className="overflow-hidden rounded-xl border border-hogar-borde bg-hogar-superficie">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-bold text-hogar-tinta-suave">
+        <details className="hogar-details overflow-hidden rounded-2xl border border-hogar-borde bg-hogar-superficie shadow-[var(--hogar-shadow-card)]">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-3.5 py-2 text-xs font-bold text-hogar-tinta-suave">
             <span>Medios archivados ({archivados.length})</span>
-            <span aria-hidden="true">▾</span>
+            <span className="hogar-chevron inline-block" aria-hidden="true">▾</span>
           </summary>
           <ul className="m-0 flex list-none flex-col gap-2 border-t border-hogar-borde bg-hogar-fondo p-2.5">
             {archivados.map((medio) => (

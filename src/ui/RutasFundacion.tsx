@@ -498,13 +498,13 @@ function ResumenHogar({
             <li key={item.to}>
               <Link
                 to={item.to}
-                className="flex min-h-11 items-center justify-between gap-3 rounded-xl border-[1.5px] border-hogar-borde-fuerte bg-hogar-superficie px-3.5 py-2.5 text-hogar-tinta no-underline hover:border-hogar-primario hover:bg-hogar-primario-suave hover:text-hogar-primario"
+                className="group flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-hogar-borde bg-hogar-superficie px-3.5 py-3 text-hogar-tinta shadow-[var(--hogar-shadow-card)] no-underline transition-all duration-150 hover:border-hogar-primario/30 hover:bg-hogar-primario-suave/60 hover:text-hogar-primario active:scale-[0.99]"
               >
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-bold">{item.titulo}</span>
                   <span className="block text-xs text-hogar-tinta-suave">{item.nota}</span>
                 </span>
-                <span className="shrink-0 font-bold" aria-hidden="true">
+                <span className="shrink-0 font-bold transition-transform duration-150 group-hover:translate-x-0.5" aria-hidden="true">
                   →
                 </span>
               </Link>

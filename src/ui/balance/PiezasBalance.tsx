@@ -28,7 +28,7 @@ export function InterruptorBalance({
   onChange: (valor: boolean) => void
 }) {
   return (
-    <div className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-hogar-borde bg-hogar-superficie px-3.5 py-2.5">
+    <div className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-hogar-borde bg-hogar-superficie px-3.5 py-2.5 shadow-[var(--hogar-shadow-card)]">
       <div className="min-w-0 flex-1">
         <label
           htmlFor={id}
@@ -46,7 +46,7 @@ export function InterruptorBalance({
           checked={checked}
           disabled={disabled}
           onChange={(e) => onChange(e.target.checked)}
-          className="size-6 cursor-pointer accent-hogar-primario"
+          className="hogar-switch"
         />
       </div>
     </div>
@@ -67,7 +67,7 @@ export function BarraProporcional({
   return (
     <div>
       <div
-        className="flex h-3.5 w-full overflow-hidden rounded-full border border-hogar-borde-fuerte bg-hogar-superficie-suave"
+        className="flex h-3.5 w-full overflow-hidden rounded-full bg-hogar-superficie-suave p-0.5"
         role="img"
         aria-label={`Distribución de aportes: ${etiqueta}`}
       >
@@ -76,7 +76,7 @@ export function BarraProporcional({
               m.aporte > 0 ? (
                 <div
                   key={m.miembroId}
-                  className={`h-full ${
+                  className={`h-full transition-[width] duration-500 ease-out first:rounded-l-full last:rounded-r-full ${
                     idx % 2 === 0 ? 'bg-hogar-primario' : 'hogar-barra-indigo'
                   }`}
                   style={{ width: `${(m.aporte * 100) / totalAportes}%` }}
@@ -89,7 +89,7 @@ export function BarraProporcional({
         {miembros.map((m, idx) => (
           <span key={m.miembroId} className="inline-flex items-center gap-1.5">
             <span
-              className={`inline-block size-3 rounded-sm border border-hogar-tinta ${
+              className={`inline-block size-3 rounded-full ${
                 idx % 2 === 0 ? 'bg-hogar-primario' : 'hogar-muestra-indigo'
               }`}
               aria-hidden="true"
@@ -255,10 +255,10 @@ export function TarjetaIngresoFijo({
         ) : null}
 
         {!esRecibido ? (
-          <details className="overflow-hidden rounded-xl border border-hogar-borde-fuerte bg-hogar-superficie">
+          <details className="hogar-details overflow-hidden rounded-2xl border border-hogar-borde bg-hogar-superficie">
             <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-sm font-bold text-hogar-tinta">
               <span>Marcar recibido (puede variar el monto)</span>
-              <span aria-hidden="true">▾</span>
+              <span className="hogar-chevron inline-block" aria-hidden="true">▾</span>
             </summary>
             <div className="flex flex-col gap-2.5 border-t border-hogar-borde bg-hogar-fondo p-3">
               <div className="grid grid-cols-2 gap-2">

@@ -15,7 +15,7 @@ import {
 } from '../ComponentesBase'
 import { IconoQr } from '../Iconos'
 import { ShellApp } from '../ShellApp'
-import type { ComercioRapido } from '../marcas'
+import { identidadMedio, type ComercioRapido } from '../marcas'
 import { useCompraRapida, type DatosRecompra } from './ContextoCompraRapida'
 import {
   CarruselComercios,
@@ -59,12 +59,24 @@ export function PantallaCompraRapida() {
   const [errorValidacion, setErrorValidacion] = useState<ErrorBorrador | null>(null)
   const [avisoCuotas, setAvisoCuotas] = useState('')
   const montoRef = useRef<HTMLInputElement>(null)
+  const montoBoxRef = useRef<HTMLDivElement>(null)
   const primerChipRef = useRef<HTMLButtonElement>(null)
   const primerMedioRef = useRef<HTMLButtonElement>(null)
   const notaDetailsRef = useRef<HTMLDetailsElement>(null)
   const notaRef = useRef<HTMLInputElement>(null)
   const fechaRef = useRef<HTMLInputElement>(null)
   const recompraRef = useRef(false)
+
+  function pulsarMonto() {
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      navigator.vibrate(6)
+    }
+    const el = montoBoxRef.current
+    if (!el) return
+    el.classList.remove('hogar-monto-pulse')
+    void el.offsetWidth
+    el.classList.add('hogar-monto-pulse')
+  }
 
   useEffect(() => {
     const estado = location.state as { recompra?: DatosRecompra } | null
@@ -203,7 +215,7 @@ export function PantallaCompraRapida() {
     >
       {toastGuardado ? (
         <div
-          className="flex items-center justify-between gap-2 rounded-xl bg-hogar-tinta px-3 py-2 text-sm text-white"
+          className="hogar-toast flex items-center justify-between gap-2 rounded-2xl bg-hogar-tinta px-3.5 py-2 text-sm text-white shadow-[var(--hogar-shadow-elevated)]"
           role="status"
           aria-live="polite"
         >
@@ -310,26 +322,44 @@ export function PantallaCompraRapida() {
         <h2 id="monto-heading" className="sr-only">
           Monto en pesos colombianos
         </h2>
-        <div className="rounded-2xl border-2 border-hogar-borde-fuerte bg-hogar-superficie px-3 py-1.5 text-right">
+        <div className="rounded-[22px] border border-hogar-borde bg-hogar-superficie px-4 py-2.5 text-right shadow-[var(--hogar-shadow-card)]">
           <div className="mb-0.5 flex items-center justify-between gap-2 text-[0.8125rem] text-hogar-tinta-suave">
-            <label htmlFor="monto-input" className="font-bold text-hogar-tinta-suave">
-              Monto
+            <label htmlFor="monto-input" className="inline-flex items-center gap-1.5 font-bold text-hogar-tinta-suave">
+              {medioSeleccionado ? (
+                <span
+                  className="inline-block size-2 rounded-full"
+                  style={{
+                    backgroundColor: identidadMedio(
+                      medioSeleccionado.nombre,
+                      medioSeleccionado.tipo === 'tarjeta'
+                        ? 'tarjeta'
+                        : medioSeleccionado.tipo === 'prestamo'
+                          ? 'prestamo'
+                          : 'medio',
+                    ).fondo,
+                  }}
+                  aria-hidden="true"
+                />
+              ) : null}
+              <span>Monto</span>
             </label>
             <Insignia variante="neutral">{badgeMonto}</Insignia>
           </div>
-          <input
-            ref={montoRef}
-            id="monto-input"
-            className="hogar-cop min-h-[46px] min-w-11 w-full border-0 bg-transparent py-0.5 text-right text-[2rem] font-extrabold leading-[1.15] tracking-tight text-hogar-tinta"
-            type="text"
-            inputMode="numeric"
-            value={formatearPesos(borrador.monto)}
-            aria-invalid={errorValidacion?.campo === 'monto' ? 'true' : undefined}
-            onChange={(e) => {
-              setErrorValidacion(null)
-              setBorrador((p) => ({ ...p, monto: parsearDigitosCop(e.target.value) }))
-            }}
-          />
+          <div ref={montoBoxRef}>
+            <input
+              ref={montoRef}
+              id="monto-input"
+              className="hogar-cop min-h-[46px] min-w-11 w-full border-0 bg-transparent py-0.5 text-right text-[2.125rem] font-extrabold leading-[1.1] tracking-tight text-hogar-tinta focus:outline-none"
+              type="text"
+              inputMode="numeric"
+              value={formatearPesos(borrador.monto)}
+              aria-invalid={errorValidacion?.campo === 'monto' ? 'true' : undefined}
+              onChange={(e) => {
+                setErrorValidacion(null)
+                setBorrador((p) => ({ ...p, monto: parsearDigitosCop(e.target.value) }))
+              }}
+            />
+          </div>
         </div>
       </section>
 
@@ -454,19 +484,19 @@ export function PantallaCompraRapida() {
         <h2 id="teclado-heading" className="sr-only">
           Teclado numérico en pesos colombianos
         </h2>
-        <div className="grid grid-cols-3 gap-[5px]" role="group" aria-label="Teclado numérico COP">
+        <div className="grid grid-cols-3 gap-1.5" role="group" aria-label="Teclado numérico COP">
           {TECLAS.map((t) => {
             const estilo =
               t === '000'
-                ? 'border-hogar-primario bg-hogar-primario-suave text-hogar-primario text-[1.0625rem]'
+                ? 'border-hogar-primario/20 bg-hogar-primario-suave text-hogar-primario text-[1.0625rem] shadow-[0_2px_0_rgba(15,92,72,0.14)]'
                 : t === 'borrar'
-                  ? 'border-hogar-borde-fuerte bg-hogar-superficie-suave text-hogar-tinta text-base'
-                  : 'border-hogar-borde-fuerte bg-hogar-superficie text-hogar-tinta text-[1.1875rem]'
+                  ? 'border-hogar-borde bg-hogar-superficie-suave text-hogar-tinta text-base shadow-[0_2px_0_rgba(16,24,20,0.06)]'
+                  : 'border-hogar-borde bg-hogar-superficie text-hogar-tinta text-[1.1875rem] shadow-[0_2px_0_rgba(16,24,20,0.06),0_1px_2px_rgba(16,24,20,0.04)]'
             return (
               <button
                 key={t}
                 type="button"
-                className={`hogar-cop inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-xl border-[1.5px] font-extrabold hover:opacity-90 ${estilo}`}
+                className={`hogar-cop inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-2xl border font-extrabold transition-all duration-100 active:translate-y-[1px] active:scale-[0.96] active:shadow-none ${estilo}`}
                 aria-label={
                   t === '000'
                     ? 'Agregar tres ceros (miles)'
@@ -475,6 +505,7 @@ export function PantallaCompraRapida() {
                       : undefined
                 }
                 onClick={() => {
+                  pulsarMonto()
                   setErrorValidacion(null)
                   setBorrador((p) => ({ ...p, monto: aplicarTeclaCop(p.monto, t) }))
                 }}
@@ -488,14 +519,16 @@ export function PantallaCompraRapida() {
 
       <details
         ref={notaDetailsRef}
-        className="overflow-hidden rounded-xl border-[1.5px] border-hogar-borde-fuerte bg-hogar-superficie"
+        className="hogar-details overflow-hidden rounded-2xl border border-hogar-borde bg-hogar-superficie shadow-[var(--hogar-shadow-card)]"
       >
-        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-sm font-semibold text-hogar-tinta">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3.5 py-2 text-sm font-semibold text-hogar-tinta">
           <span>
             Nota o fecha
             {borrador.descripcion.trim() ? `: ${borrador.descripcion.trim()}` : ''}
           </span>
-          <span aria-hidden="true">▾</span>
+          <span className="hogar-chevron inline-block" aria-hidden="true">
+            ▾
+          </span>
         </summary>
         <div className="flex flex-col gap-2.5 border-t border-hogar-borde bg-hogar-fondo px-3 py-2.5">
           <div className="flex flex-col gap-1.5">

@@ -65,7 +65,7 @@ export function BarraNivel({
       aria-valuetext={`${nivel} % restante`}
     >
       <div
-        className={`h-full rounded-full ${COLOR_BARRA[estado]}`}
+        className={`h-full rounded-full transition-[width] duration-500 ease-out ${COLOR_BARRA[estado]}`}
         style={{
           width: `${nivel}%`,
           backgroundImage:
@@ -176,9 +176,10 @@ export function TarjetaInsumo({
             : 'Recomprar'}
         </Link>
 
-        <details className="rounded-xl border border-hogar-borde bg-hogar-superficie-suave px-3 py-2">
-          <summary className="cursor-pointer list-none text-xs font-bold text-hogar-tinta">
-            Ajustar nivel observado
+        <details className="hogar-details rounded-2xl border border-hogar-borde bg-hogar-superficie-suave px-3 py-2">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 text-xs font-bold text-hogar-tinta">
+            <span>Ajustar nivel observado</span>
+            <span className="hogar-chevron inline-block" aria-hidden="true">▾</span>
           </summary>
           <form className="mt-2.5 flex flex-col gap-2" onSubmit={enviarAjuste} noValidate>
             <div className="flex flex-wrap gap-1.5">

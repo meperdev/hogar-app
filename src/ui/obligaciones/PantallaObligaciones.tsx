@@ -65,7 +65,7 @@ export function PantallaObligaciones() {
       barraAccion={<Link to={ctaPrincipal.destino} className={`${claseBotonPrimario} w-full no-underline`} data-sin-scroll>{ctaPrincipal.etiqueta}</Link>}
     >
       {toast ? (
-        <div className="flex items-center justify-between gap-2 rounded-xl bg-hogar-tinta px-3.5 py-2.5 text-sm text-white" role="status" aria-live="polite">
+        <div className="hogar-toast flex items-center justify-between gap-2 rounded-2xl bg-hogar-tinta px-3.5 py-2.5 text-sm text-white shadow-[var(--hogar-shadow-elevated)]" role="status" aria-live="polite">
           <span className="min-w-0 flex-1 break-words">✓ {toast}</span>
           <button type="button" className="inline-flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent px-2 font-bold text-[#9be8d0] underline" onClick={limpiarToast}>Cerrar</button>
         </div>
@@ -81,35 +81,46 @@ export function PantallaObligaciones() {
       <section aria-labelledby="resumen-contable-heading">
         <h2 id="resumen-contable-heading" className="sr-only">Resumen separado de consumo real del hogar, capital pagado de cuotas y costo financiero</h2>
         <div className="grid grid-cols-3 gap-2">
-          <article className="flex min-w-0 flex-col gap-1 rounded-xl border border-hogar-borde border-t-4 border-t-hogar-primario bg-hogar-superficie px-2 py-2.5">
-            <span className="text-xs font-bold leading-tight text-hogar-tinta-suave">{incluirPersonales ? 'Consumo real (+ pers.)' : 'Consumo real (hogar)'}</span>
+          <article className="flex min-w-0 flex-col gap-1 rounded-2xl border border-hogar-borde bg-hogar-superficie px-2.5 py-2.5 shadow-[var(--hogar-shadow-card)]">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold leading-tight text-hogar-tinta-suave">
+              <span className="size-2 shrink-0 rounded-full bg-hogar-primario" aria-hidden="true" />
+              <span>{incluirPersonales ? 'Consumo real (+ pers.)' : 'Consumo real (hogar)'}</span>
+            </span>
             <span className="hogar-cop text-[0.9375rem] font-extrabold text-hogar-tinta break-words">{formatearPesos(resumen.consumoReal)}</span>
             <span className="text-[0.6875rem] leading-tight text-hogar-tinta-suave">{incluirPersonales ? 'Hogar + tus personales' : 'Solo hogar · 1 vez por compra'}</span>
           </article>
-          <article className="flex min-w-0 flex-col gap-1 rounded-xl border border-hogar-borde border-t-4 border-t-hogar-indigo bg-hogar-superficie px-2 py-2.5">
-            <span className="text-xs font-bold leading-tight text-hogar-tinta-suave">Capital pagado (cuotas)</span>
+          <article className="flex min-w-0 flex-col gap-1 rounded-2xl border border-hogar-borde bg-hogar-superficie px-2.5 py-2.5 shadow-[var(--hogar-shadow-card)]">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold leading-tight text-hogar-tinta-suave">
+              <span className="size-2 shrink-0 rounded-full bg-hogar-indigo" aria-hidden="true" />
+              <span>Capital pagado (cuotas)</span>
+            </span>
             <span className="hogar-cop text-[0.9375rem] font-extrabold text-hogar-tinta break-words">{formatearPesos(resumen.capitalPagado)}</span>
             <span className="hogar-cop text-[0.6875rem] leading-tight text-hogar-tinta-suave">Pagado · {formatearPesos(resumen.capitalPendiente)} pend.</span>
           </article>
-          <article className="flex min-w-0 flex-col gap-1 rounded-xl border border-hogar-borde border-t-4 border-t-hogar-ambar bg-hogar-superficie px-2 py-2.5">
-            <span className="text-xs font-bold leading-tight text-hogar-tinta-suave">Costo financ.</span>
+          <article className="flex min-w-0 flex-col gap-1 rounded-2xl border border-hogar-borde bg-hogar-superficie px-2.5 py-2.5 shadow-[var(--hogar-shadow-card)]">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold leading-tight text-hogar-tinta-suave">
+              <span className="size-2 shrink-0 rounded-full bg-hogar-ambar" aria-hidden="true" />
+              <span>Costo financ.</span>
+            </span>
             <span className="hogar-cop text-[0.9375rem] font-extrabold text-hogar-tinta break-words">{formatearPesos(resumen.costoFinanciero)}</span>
             <span className="hogar-cop text-[0.6875rem] leading-tight text-hogar-tinta-suave">{notaCosto}</span>
           </article>
         </div>
       </section>
 
-      <div className="flex items-center justify-between gap-2 rounded-xl border border-hogar-borde bg-hogar-superficie p-1" role="region" aria-label="Cambiar mes calendario">
+      <div className="flex items-center justify-between gap-2 rounded-2xl border border-hogar-borde bg-hogar-superficie p-1.5 shadow-[var(--hogar-shadow-card)]" role="region" aria-label="Cambiar mes calendario">
         <button type="button" className={claseBotonIcono} aria-label="Mes anterior" onClick={() => cambiarPeriodo(desplazarPeriodo(periodo, -1))}>‹</button>
         <span className="text-[0.9375rem] font-extrabold text-hogar-tinta">{formatearPeriodoEs(periodo)}</span>
         <button type="button" className={claseBotonIcono} aria-label="Mes siguiente" onClick={() => cambiarPeriodo(desplazarPeriodo(periodo, 1))}>›</button>
       </div>
 
-      <div className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-hogar-borde bg-hogar-superficie px-3 py-1.5">
+      <div className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-hogar-borde bg-hogar-superficie px-3.5 py-2 shadow-[var(--hogar-shadow-card)]">
         <label htmlFor="toggle-incluir-personales" className="min-w-0 flex-1 cursor-pointer text-sm font-bold text-hogar-tinta">
           Incluir mis gastos personales
         </label>
-        <input id="toggle-incluir-personales" type="checkbox" role="switch" checked={incluirPersonales} onChange={(e) => void alternarIncluirPersonales(e.target.checked)} className="size-6 min-h-11 min-w-11 shrink-0 cursor-pointer accent-hogar-primario" />
+        <div className="flex min-h-11 min-w-11 shrink-0 items-center justify-center">
+          <input id="toggle-incluir-personales" type="checkbox" role="switch" checked={incluirPersonales} onChange={(e) => void alternarIncluirPersonales(e.target.checked)} className="hogar-switch" />
+        </div>
       </div>
 
       {cargando && !agenda ? (
