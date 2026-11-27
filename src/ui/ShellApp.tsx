@@ -24,15 +24,27 @@ export function NavegacionInferior() {
           key={to}
           to={to}
           className={({ isActive }) =>
-            `flex min-h-11 min-w-11 max-w-full flex-col items-center justify-center gap-[3px] border-t-[3px] px-1 py-1.5 text-center text-xs break-words no-underline ${
+            `group flex min-h-11 min-w-11 max-w-full flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1 text-center text-[0.6875rem] leading-tight break-words no-underline transition-transform duration-150 active:scale-95 ${
               isActive
-                ? 'border-t-hogar-primario bg-hogar-primario-suave font-extrabold text-hogar-primario'
-                : 'border-t-transparent font-semibold text-hogar-tinta-suave hover:bg-hogar-superficie-suave hover:text-hogar-tinta'
+                ? 'font-extrabold text-hogar-primario'
+                : 'font-semibold text-hogar-tinta-suave hover:text-hogar-tinta'
             }`
           }
         >
-          <Icono className="block size-[22px] shrink-0" />
-          <span>{etiqueta}</span>
+          {({ isActive }) => (
+            <>
+              <span
+                className={`inline-flex items-center justify-center rounded-full px-3.5 py-1 transition-all duration-200 ${
+                  isActive
+                    ? 'bg-hogar-primario-suave text-hogar-primario shadow-[inset_0_0_0_1px_rgba(15,92,72,0.14)]'
+                    : 'bg-transparent text-current group-hover:bg-hogar-superficie-suave'
+                }`}
+              >
+                <Icono className="block size-5 shrink-0" />
+              </span>
+              <span>{etiqueta}</span>
+            </>
+          )}
         </NavLink>
       ))}
     </nav>
@@ -100,7 +112,7 @@ export function ShellApp({
             </Link>
           ) : marcaInicio ? (
             <span
-              className="grid size-10 shrink-0 place-items-center rounded-xl bg-hogar-primario text-white"
+              className="grid size-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-b from-[#136e56] to-[#0c4e3d] text-white shadow-[0_4px_10px_-3px_rgba(15,92,72,0.4)]"
               aria-hidden="true"
             >
               <IconoHogar className="size-5" />
@@ -112,7 +124,7 @@ export function ShellApp({
               aria-label="Mi perfil, hogar y cerrar sesión"
               title="Mi perfil y hogar"
             >
-              <IconoHogar className="size-5" />
+              <IconoHogar className="size-5 text-hogar-primario" />
             </Link>
           ) : null}
 
@@ -131,12 +143,17 @@ export function ShellApp({
         {accionDerecha ? <div className="shrink-0">{accionDerecha}</div> : null}
       </header>
 
-      <main id="contenido" tabIndex={-1} className={claseMain}>
+      <main
+        id="contenido"
+        key={pathname}
+        tabIndex={-1}
+        className={`${claseMain} hogar-pantalla-enter`}
+      >
         {children}
       </main>
 
       {pie && !mostrarNavegacion ? (
-        <footer className="shrink-0 border-t border-hogar-borde bg-hogar-superficie px-4 py-3 text-center text-xs font-medium text-hogar-tinta-suave">
+        <footer className="shrink-0 border-t border-hogar-borde bg-hogar-superficie/90 px-4 py-3 text-center text-xs font-medium text-hogar-tinta-suave">
           {pie}
         </footer>
       ) : null}

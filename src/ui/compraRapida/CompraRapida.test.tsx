@@ -276,4 +276,37 @@ describe('Compra rápida UI (controlador real)', () => {
       vi.unstubAllGlobals()
     }
   })
+
+  it('muestra cards deslizables de métodos de pago y comercios con marca que sugieren categoría', async () => {
+    const port = new PuertoEnMemoria({
+      ...CATALOGO_PRUEBA,
+      medios: [
+        { tipo: 'medio', id: '018f4a1e-0000-7000-8000-000000000210', nombre: 'Bancolombia', ambito: null },
+        { tipo: 'medio', id: '018f4a1e-0000-7000-8000-000000000211', nombre: 'Bre-B', ambito: null },
+        { tipo: 'medio', id: '018f4a1e-0000-7000-8000-000000000212', nombre: 'Efectivo', ambito: null },
+      ],
+    })
+    const controlador = crearControladorCompraRapida({
+      port,
+      alcance: { hogarId: hogarDePrueba().id, miembroId: hogarDePrueba().miembroActual.id },
+      ahora: () => new Date('2026-11-22T15:00:00Z'),
+      nuevoId: () => '018f4a1e-0000-7000-8000-000000000901',
+      programar: () => {},
+    })
+    const { contenedor } = await montarApp({ controlador })
+
+    const carruselMedios = contenedor.querySelector('[aria-label="Elegir medio de pago"]')
+    expect(carruselMedios?.className).toContain('hogar-carrusel')
+    expect(boton(contenedor, 'Bancolombia')).toBeDefined()
+    expect(boton(contenedor, 'Bre-B')).toBeDefined()
+    await act(async () => boton(contenedor, 'Bre-B')?.click())
+    expect(boton(contenedor, 'Bre-B')?.getAttribute('aria-pressed')).toBe('true')
+
+    const carruselComercios = contenedor.querySelector('[aria-label="Comercios frecuentes"]')
+    expect(carruselComercios?.className).toContain('hogar-carrusel')
+    await act(async () => boton(contenedor, 'D1')?.click())
+    expect(boton(contenedor, 'D1')?.getAttribute('aria-pressed')).toBe('true')
+    expect(contenedor.querySelector<HTMLInputElement>('#nota-compra')?.value).toBe('D1')
+    expect(boton(contenedor, '✓ Mercado')?.getAttribute('aria-pressed')).toBe('true')
+  })
 })

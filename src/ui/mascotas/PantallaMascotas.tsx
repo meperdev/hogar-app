@@ -69,7 +69,7 @@ export function PantallaMascotas() {
   const nombresMascotas = mascotasActivas.map((m) => m.nombre).join(' y ')
   const subtitulo =
     (nombresMascotas ? `${nombresMascotas} · ` : `${hogar.nombre} · `)
-    + (alertasCount === 1 ? '1 alerta (<= umbral)' : `${alertasCount} alertas (<= umbral)`)
+    + (alertasCount === 0 ? 'Al día' : alertasCount === 1 ? '1 alerta' : `${alertasCount} alertas`)
 
   async function manejarAjustarNivel(itemId: string, nivelPct: number) {
     await controlador.ajustarNivel({ itemDespensaId: itemId, nivelPct })
@@ -118,7 +118,7 @@ export function PantallaMascotas() {
     >
       {toast ? (
         <div
-          className="flex items-center justify-between gap-2 rounded-xl bg-hogar-tinta px-3.5 py-2.5 text-sm text-white"
+          className="hogar-toast flex items-center justify-between gap-2 rounded-2xl bg-hogar-tinta px-3.5 py-2.5 text-sm text-white shadow-[var(--hogar-shadow-elevated)]"
           role="status"
           aria-live="polite"
         >
@@ -149,7 +149,7 @@ export function PantallaMascotas() {
       ) : null}
 
       <div
-        className="flex items-center justify-between gap-2 rounded-xl border border-hogar-borde bg-hogar-superficie p-1"
+        className="flex items-center justify-between gap-2 rounded-2xl border border-hogar-borde bg-hogar-superficie p-1.5 shadow-[var(--hogar-shadow-card)]"
         role="region"
         aria-label="Cambiar mes calendario"
       >
@@ -189,9 +189,10 @@ export function PantallaMascotas() {
           </span>
         </div>
 
-        <details className="rounded-xl border border-hogar-borde bg-hogar-superficie-suave px-3 py-2">
-          <summary className="cursor-pointer list-none text-xs font-bold text-hogar-tinta">
-            Ver desglose reconciliable ({gastoMes?.compras.length ?? 0} compras)
+        <details className="hogar-details rounded-2xl border border-hogar-borde bg-hogar-superficie-suave px-3 py-2">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 text-xs font-bold text-hogar-tinta">
+            <span>Ver desglose reconciliable ({gastoMes?.compras.length ?? 0} compras)</span>
+            <span className="hogar-chevron inline-block" aria-hidden="true">▾</span>
           </summary>
           <div className="mt-2.5 flex flex-col gap-2">
             {gastoMes && gastoMes.compras.length > 0 ? (
@@ -266,9 +267,10 @@ export function PantallaMascotas() {
         </button>
       </div>
 
-      <details className="rounded-xl border border-hogar-borde bg-hogar-superficie px-3 py-2">
-        <summary className="cursor-pointer list-none text-xs font-bold text-hogar-tinta">
-          + Agregar mascota
+      <details className="hogar-details rounded-2xl border border-hogar-borde bg-hogar-superficie px-3.5 py-2 shadow-[var(--hogar-shadow-card)]">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 text-xs font-bold text-hogar-tinta">
+          <span>+ Agregar mascota</span>
+          <span className="hogar-chevron inline-block" aria-hidden="true">▾</span>
         </summary>
         <form className="mt-2.5 flex flex-col gap-2.5" onSubmit={manejarCrearMascota} noValidate>
           <div className="flex flex-col gap-1">
