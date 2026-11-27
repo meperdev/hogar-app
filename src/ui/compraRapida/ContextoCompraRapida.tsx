@@ -306,3 +306,7 @@ export function useCompraRapida(): ValorContexto {
   if (!ctx) throw new Error('useCompraRapida debe usarse dentro de ProveedorCompraRapida')
   return ctx
 }
+
+export function useRecargarCatalogoCompraOpcional(): (() => void) | null {
+  return useContext(ContextoCompraRapida)?.recargarCatalogo ?? null
+}

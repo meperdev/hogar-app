@@ -5,7 +5,7 @@ begin;
 
 set search_path = public, extensions;
 
-select plan(48);
+select plan(50);
 
 -- Los conteos de este archivo son globales: se parte de una base de fundación
 -- vacía dentro de la transacción, sin depender de datos de desarrollo locales.
@@ -95,10 +95,16 @@ select results_eq(
             ('Mascotas'), ('Hogar y electrodomésticos'), ('Entretenimiento'), ('Otros') $$,
   'las categorías por defecto son las canónicas y van en orden');
 
+select is((select count(*)::int from public.medio_de_pago), 2, 'el alta siembra dos medios de pago');
+select results_eq(
+  $$ select nombre from public.medio_de_pago order by nombre $$,
+  $$ values ('Efectivo (Ana)'::text), ('Fondo común') $$,
+  'los medios por defecto son Efectivo del creador y Fondo común');
+
 reset role;
 
-select is((select ultimo_seq from public.hogar_seq), 11::bigint,
-  'el carril del hogar numera el hogar, el miembro y las nueve categorías');
+select is((select ultimo_seq from public.hogar_seq), 13::bigint,
+  'el carril del hogar numera el hogar, el miembro, las nueve categorías y los dos medios');
 select is((select actualizado_por from public.hogar), (select id from public.miembro),
   'el autor del hogar es su primer admin');
 select is((select count(*)::int from public.personal_seq), 1, 'el alta crea un carril personal');
@@ -107,8 +113,8 @@ select is((select ultimo_seq from public.personal_seq), 0::bigint,
 select is(
   (select array_agg(seq order by seq) from
      (select seq from public.hogar union all select seq from public.miembro
-      union all select seq from public.categoria) s),
-  array[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]::bigint[],
+      union all select seq from public.categoria union all select seq from public.medio_de_pago) s),
+  array[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]::bigint[],
   'la numeración del carril del hogar es contigua, sin saltos');
 select is((select count(*)::int from public.miembro
            where hogar_id = (select hogar_id from public.personal_seq)),
@@ -132,7 +138,7 @@ reset role;
 
 select is((select count(*)::int from public.hogar), 1, 'el intento rechazado no crea hogar');
 select is((select count(*)::int from public.categoria), 9, 'el intento rechazado no crea categorías');
-select is((select ultimo_seq from public.hogar_seq), 11::bigint,
+select is((select ultimo_seq from public.hogar_seq), 13::bigint,
   'el intento rechazado no mueve el contador del hogar');
 
 select set_config('request.jwt.claims',
@@ -203,7 +209,7 @@ select is((select count(*)::int from public.miembro
 select is((select count(*)::int from public.categoria), 18, 'el alta fallida no deja categorías');
 select is((select count(*)::int from public.hogar_seq), 2, 'el alta fallida no deja contador de hogar');
 select is((select count(*)::int from public.personal_seq), 2, 'el alta fallida no deja carril personal');
-select is((select ultimo_seq from public.hogar_seq order by ultimo_seq desc limit 1), 11::bigint,
+select is((select ultimo_seq from public.hogar_seq order by ultimo_seq desc limit 1), 13::bigint,
   'el alta fallida no mueve los contadores existentes');
 
 drop trigger fundacion_test_fallar_categoria on public.categoria;

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { claseBotonIcono } from './ComponentesBase'
 import {
   IconoBalance,
@@ -66,6 +66,10 @@ export function ShellApp({
   pie?: string | undefined
   children: ReactNode
 }) {
+  const { pathname } = useLocation()
+  const mostrarAccesoPerfil =
+    mostrarNavegacion && !volverA && !marcaInicio && pathname !== '/hogar'
+
   const claseEspacioInferior = mostrarNavegacion
     ? compacto
       ? 'hogar-main-compacto'
@@ -76,13 +80,11 @@ export function ShellApp({
       ? 'hogar-main-sin-nav-con-cta'
       : 'pb-7'
 
-  const claseCabecera = compacto
-    ? 'sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-hogar-borde bg-hogar-superficie px-3.5 py-2'
-    : 'sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-hogar-borde bg-hogar-superficie px-4 py-3'
+  const claseCabecera = compacto ? 'hogar-header hogar-header--compacto' : 'hogar-header'
 
   const claseMain = compacto
-    ? `flex flex-1 flex-col outline-none ${claseEspacioInferior}`
-    : `flex flex-1 flex-col gap-3.5 px-4 pt-3.5 outline-none ${claseEspacioInferior}`
+    ? `hogar-main-scroll flex flex-col outline-none ${claseEspacioInferior}`
+    : `hogar-main-scroll flex flex-col gap-3.5 px-4 pt-3.5 outline-none ${claseEspacioInferior}`
 
   return (
     <div className="hogar-shell">
@@ -103,6 +105,15 @@ export function ShellApp({
             >
               <IconoHogar className="size-5" />
             </span>
+          ) : mostrarAccesoPerfil ? (
+            <Link
+              to="/hogar"
+              className={claseBotonIcono}
+              aria-label="Mi perfil, hogar y cerrar sesión"
+              title="Mi perfil y hogar"
+            >
+              <IconoHogar className="size-5" />
+            </Link>
           ) : null}
 
           <div className="min-w-0 flex-1">
@@ -125,7 +136,7 @@ export function ShellApp({
       </main>
 
       {pie && !mostrarNavegacion ? (
-        <footer className="border-t border-hogar-borde bg-hogar-superficie px-4 py-3 text-center text-xs font-medium text-hogar-tinta-suave">
+        <footer className="shrink-0 border-t border-hogar-borde bg-hogar-superficie px-4 py-3 text-center text-xs font-medium text-hogar-tinta-suave">
           {pie}
         </footer>
       ) : null}

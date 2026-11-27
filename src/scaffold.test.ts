@@ -72,6 +72,10 @@ describe('Seam de la App', () => {
     const raiz = document.getElementById('root');
     expect(raiz?.querySelector('h1')?.textContent).toBe('Configurá Supabase');
     expect(raiz?.textContent).toContain('Fundación');
+
+    const gesto = new Event('gesturestart', { cancelable: true });
+    document.dispatchEvent(gesto);
+    expect(gesto.defaultPrevented).toBe(true);
   });
 });
 
@@ -119,6 +123,8 @@ describe('Manifiesto e index de la PWA', () => {
     expect(rutasAbsolutas).toEqual(['/src/main.tsx']);
     expect(htmlCrudo).toContain('<html lang="es">');
     expect(htmlCrudo).toContain('id="root"');
+    expect(htmlCrudo).toContain('maximum-scale=1');
+    expect(htmlCrudo).toContain('viewport-fit=cover');
   });
 });
 

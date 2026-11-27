@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import jsQR from 'jsqr'
 import type { Ambito, CompraExistente, DatosFactura } from '../../app/compraRapida'
 import { hoyCivil } from '../../domain/fechas'
 import { formatearPesos } from '../../domain/pesos'
@@ -26,6 +27,7 @@ export function PantallaEscanearFactura() {
   const [visor, setVisor] = useState<Visor>({ paso: 'leyendo', errorQr: '' })
   const [textoQr, setTextoQr] = useState('')
   const [camaraActiva, setCamaraActiva] = useState(false)
+  const [errorCamara, setErrorCamara] = useState('')
   const [ambitoLocal, setAmbitoLocal] = useState<Ambito>(borrador.ambito)
   const [categoriaLocal, setCategoriaLocal] = useState<string | null>(borrador.categoriaId)
   const [montoLocal, setMontoLocal] = useState(0)
@@ -50,26 +52,84 @@ export function PantallaEscanearFactura() {
   }
 
   useEffect(() => {
-    if (visor.paso !== 'leyendo' || !navigator.mediaDevices?.getUserMedia || !window.BarcodeDetector) return
+    if (visor.paso !== 'leyendo' || !navigator.mediaDevices?.getUserMedia) return
     let cancelado = false
     let stream: MediaStream | null = null
     let timer: ReturnType<typeof setInterval> | null = null
-    void navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then((media) => {
-      if (cancelado) return media.getTracks().forEach((t) => t.stop())
-      stream = media
-      setCamaraActiva(true)
-      if (videoRef.current) videoRef.current.srcObject = media
-      const Detector = window.BarcodeDetector
-      if (!Detector) return
-      const detector = new Detector({ formats: ['qr_code'] })
-      timer = setInterval(() => {
-        if (!videoRef.current || cancelado) return
-        void detector.detect(videoRef.current).then((codes) => {
-          const val = codes[0]?.rawValue
-          if (val && !cancelado) void procesarQr(val)
-        }).catch(() => {})
-      }, 450)
-    }).catch(() => !cancelado && setCamaraActiva(false))
+    let leyendoFrame = false
+    const lienzo = document.createElement('canvas')
+    const contexto = lienzo.getContext('2d', { willReadFrequently: true })
+    setErrorCamara('')
+
+    void navigator.mediaDevices
+      .getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
+      .then((media) => {
+        if (cancelado) {
+          media.getTracks().forEach((t) => t.stop())
+          return
+        }
+        stream = media
+        setCamaraActiva(true)
+        if (videoRef.current) {
+          videoRef.current.srcObject = media
+          void videoRef.current.play().catch(() => {})
+        }
+        const Detector = window.BarcodeDetector
+        const detector = Detector ? new Detector({ formats: ['qr_code'] }) : null
+
+        timer = setInterval(() => {
+          const video = videoRef.current
+          if (!video || cancelado || leyendoFrame) return
+          leyendoFrame = true
+
+          if (detector) {
+            void detector
+              .detect(video)
+              .then((codes) => {
+                const val = codes[0]?.rawValue
+                if (val && !cancelado) {
+                  if (timer) clearInterval(timer)
+                  void procesarQr(val)
+                }
+              })
+              .catch(() => {})
+              .finally(() => {
+                leyendoFrame = false
+              })
+            return
+          }
+
+          try {
+            if (contexto && video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+              const escala = Math.min(1, 640 / video.videoWidth)
+              const ancho = Math.max(1, Math.round(video.videoWidth * escala))
+              const alto = Math.max(1, Math.round(video.videoHeight * escala))
+              if (lienzo.width !== ancho || lienzo.height !== alto) {
+                lienzo.width = ancho
+                lienzo.height = alto
+              }
+              contexto.drawImage(video, 0, 0, ancho, alto)
+              const imagen = contexto.getImageData(0, 0, ancho, alto)
+              const resultado = jsQR(imagen.data, ancho, alto, {
+                inversionAttempts: 'dontInvert',
+              })
+              if (resultado?.data && !cancelado) {
+                if (timer) clearInterval(timer)
+                void procesarQr(resultado.data)
+              }
+            }
+          } finally {
+            leyendoFrame = false
+          }
+        }, 280)
+      })
+      .catch(() => {
+        if (!cancelado) {
+          setCamaraActiva(false)
+          setErrorCamara('No pudimos abrir la cámara. Revisá los permisos del navegador o pegá el QR abajo.')
+        }
+      })
+
     return () => {
       cancelado = true
       setCamaraActiva(false)
@@ -155,8 +215,9 @@ export function PantallaEscanearFactura() {
                 <span className="text-[0.8125rem] font-bold">Apunta al QR de la factura</span>
               </div>
             )}
-            <p className="m-0 text-[0.8125rem] text-[#d6e2dd]">Lectura 100 % local sin consultar la DIAN. Si tu navegador no tiene BarcodeDetector, pegá el QR abajo.</p>
+            <p className="m-0 text-[0.8125rem] text-[#d6e2dd]">Lectura 100 % local en tu dispositivo sin consultar la DIAN. Si preferís, pegá el QR abajo.</p>
           </div>
+          {errorCamara ? <Aviso variante="ambar" icono="▲" role="status"><p>{errorCamara}</p></Aviso> : null}
           {visor.errorQr ? <Aviso variante="ambar" icono="▲" role="alert"><p>{visor.errorQr}</p></Aviso> : null}
           <form className="flex flex-col gap-2" onSubmit={(e: FormEvent<HTMLFormElement>) => { e.preventDefault(); void procesarQr(textoQr) }}>
             <label htmlFor="qr-texto-manual" className={claseEtiquetaCampo}>Pegar contenido o URL del QR DIAN</label>
@@ -231,7 +292,7 @@ export function PantallaEscanearFactura() {
             <input id="url-comercio" className={claseCampoTexto} type="text" placeholder="Ej. 890900608 · D1" value={comercioLocal} onChange={(e) => setComercioLocal(e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-2.5">
-            <div className="flex flex-col gap-1.5">
+            <div className="min-w-0 max-w-full overflow-hidden flex flex-col gap-1.5">
               <label htmlFor="url-fecha" className={claseEtiquetaCampo}>Fecha factura</label>
               <input id="url-fecha" className={claseCampoTexto} type="date" value={fechaLocal} onChange={(e) => setFechaLocal(e.target.value)} />
             </div>

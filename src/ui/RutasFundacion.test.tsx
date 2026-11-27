@@ -341,4 +341,70 @@ describe('Shell autenticado, navegación e invitaciones', () => {
       'La invitación a nuevos miembros todavía no está disponible.',
     )
   })
+
+  it('muestra acceso directo al perfil/hogar desde Compra y permite agregar medios de pago', async () => {
+    const listar = vi.fn(async () => [
+      {
+        id: 'mp-1',
+        nombre: 'Efectivo (Ana)',
+        tipo: 'efectivo' as const,
+        ownerTipo: 'miembro' as const,
+        ownerMiembroId: 'ana-id',
+        activo: true,
+      },
+    ])
+    const crear = vi.fn(async (entrada: { nombre: string; tipo: 'efectivo' | 'cuenta'; ownerTipo: 'miembro' | 'hogar' }) => ({
+      id: 'mp-2',
+      nombre: entrada.nombre.trim(),
+      tipo: entrada.tipo,
+      ownerTipo: entrada.ownerTipo,
+      ownerMiembroId: entrada.ownerTipo === 'miembro' ? 'ana-id' : null,
+      activo: true,
+    }))
+    const { servicios, notificar } = crearServiciosBase({
+      cargar: vi.fn(async () => hogarEjemplo('admin')),
+    })
+    servicios.mediosDePago = {
+      listar,
+      crear,
+      cambiarActivo: vi.fn(async (id, activo) => ({ id, activo })),
+    }
+
+    const { contenedor } = await montar(servicios)
+    await act(async () => notificar({ usuarioId: 'ana' }))
+
+    const linkPerfil = contenedor.querySelector<HTMLAnchorElement>(
+      'a[aria-label="Mi perfil, hogar y cerrar sesión"]',
+    )
+    expect(linkPerfil).not.toBeNull()
+    await act(async () => {
+      linkPerfil?.click()
+    })
+    expect(contenedor.querySelector('h1')?.textContent).toBe('Casa de Ana')
+    expect(contenedor.textContent).toContain('Medios de pago (contado)')
+    expect(contenedor.textContent).toContain('Efectivo (Ana)')
+
+    const botonAgregar = [...contenedor.querySelectorAll('button')].find(
+      (b) => b.textContent === '+ Agregar medio',
+    )
+    expect(botonAgregar).toBeDefined()
+    await act(async () => {
+      botonAgregar?.click()
+    })
+
+    const inputNombre = contenedor.querySelector<HTMLInputElement>('#medio-nuevo-nombre')
+    expect(inputNombre).not.toBeNull()
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
+      setter?.call(inputNombre, 'Nequi Ana')
+      inputNombre?.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    const form = inputNombre?.closest('form')
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(crear).toHaveBeenCalledWith({ nombre: 'Nequi Ana', tipo: 'cuenta', ownerTipo: 'miembro' })
+    expect(contenedor.textContent).toContain('Nequi Ana')
+  })
 })

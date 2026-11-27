@@ -9,6 +9,9 @@ import type { Hogar, Servicios, Sesion } from '../../app/fundacion'
 import { PuertoEnMemoria } from '../../app/puertoEnMemoria'
 import { RutasFundacion } from '../RutasFundacion'
 
+const mockJsQr = vi.hoisted(() => vi.fn())
+vi.mock('jsqr', () => ({ default: mockJsQr }))
+
 const raices: Root[] = []
 const CUFE_VALIDO = 'a8f39d2c'.repeat(12)
 const CUFE_URL = 'c4b18e09'.repeat(12)
@@ -220,5 +223,55 @@ describe('Compra rápida UI (controlador real)', () => {
     await act(async () => boton(contenedor, 'Leer contenido QR localmente')?.click())
     expect(contenedor.textContent).toContain('QR solo con URL')
     expect(contenedor.querySelector<HTMLInputElement>('#url-cufe')?.value).toBe(CUFE_URL)
+  })
+
+  it('abre la cámara y decodifica el QR con jsqr cuando falta BarcodeDetector (iOS Safari)', async () => {
+    const { controlador } = crearControladorReal(hogarDePrueba())
+    const stopTrack = vi.fn()
+    const getUserMedia = vi.fn(async () => ({ getTracks: () => [{ stop: stopTrack }] }))
+    vi.stubGlobal('BarcodeDetector', undefined)
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia },
+    })
+
+    const ctxSpy = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      drawImage: vi.fn(),
+      getImageData: vi.fn(() => ({
+        data: new Uint8ClampedArray(640 * 480 * 4),
+        width: 640,
+        height: 480,
+      })),
+    } as unknown as CanvasRenderingContext2D)
+    const playSpy = vi.spyOn(HTMLVideoElement.prototype, 'play').mockResolvedValue(undefined)
+
+    const qrCampos = `NumFac: FE99\nFecFac: 2026-11-22\nNitFac: 890900608\nValIva: 13571\nValTolFac: 85000\nCUFE: ${CUFE_VALIDO}`
+    mockJsQr.mockReturnValue({ data: qrCampos })
+
+    try {
+      const { contenedor } = await montarApp({ controlador, rutaInicial: '/compra/escanear' })
+      expect(getUserMedia).toHaveBeenCalledTimes(1)
+      const video = contenedor.querySelector('video')
+      expect(video).not.toBeNull()
+      if (video) {
+        Object.defineProperty(video, 'readyState', { configurable: true, value: 4 })
+        Object.defineProperty(video, 'videoWidth', { configurable: true, value: 640 })
+        Object.defineProperty(video, 'videoHeight', { configurable: true, value: 480 })
+      }
+
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 350))
+      })
+
+      expect(mockJsQr).toHaveBeenCalled()
+      expect(contenedor.textContent).toContain('Precargado para confirmar')
+      expect(contenedor.textContent).toContain('Almacenes Éxito')
+      expect(stopTrack).toHaveBeenCalled()
+    } finally {
+      mockJsQr.mockReset()
+      ctxSpy.mockRestore()
+      playSpy.mockRestore()
+      vi.unstubAllGlobals()
+    }
   })
 })
