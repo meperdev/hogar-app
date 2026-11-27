@@ -1,6 +1,13 @@
+import { esFechaCivil } from '../domain/fechas'
 import { calcularResumenGastos, type FiltroAmbitoGastos } from '../domain/gastos'
+import { esPesos } from '../domain/pesos'
 import type { AlcanceCompra } from './compraRapida'
-import type { ControladorGastos, VistaGastosMes } from './gastos'
+import {
+  ErrorGastos,
+  type ControladorGastos,
+  type EditarCompraEntrada,
+  type VistaGastosMes,
+} from './gastos'
 
 export type DatosGastos = {
   compras: Array<{
@@ -14,6 +21,7 @@ export type DatosGastos = {
     pago_tipo: 'contado' | 'financiado'
     medio_de_pago_id: string | null
     financiada_por_pasivo_id: string | null
+    obligacion_id: string | null
     registrado_por: string
     origen: 'manual' | 'qr' | 'ocr' | 'correo'
   }>
@@ -22,11 +30,13 @@ export type DatosGastos = {
     nombre: string
     icono: string | null
     orden: number
+    activa: boolean
   }>
   medios: Array<{
     id: string
     nombre: string
     tipo: 'efectivo' | 'cuenta'
+    activo: boolean
   }>
   pasivos: Array<{
     id: string
@@ -46,6 +56,8 @@ export type DatosGastos = {
 
 export interface GastosPort {
   cargar(): Promise<{ datos: DatosGastos; sinConexion: boolean }>
+  editarCompra(entrada: EditarCompraEntrada): Promise<void>
+  anularCompra(compraId: string): Promise<void>
 }
 
 export function crearControladorGastos(d: {
@@ -70,6 +82,7 @@ export function crearControladorGastos(d: {
           pagoTipo: c.pago_tipo,
           medioDePagoId: c.medio_de_pago_id,
           financiadaPorPasivoId: c.financiada_por_pasivo_id,
+          obligacionId: c.obligacion_id,
           registradoPor: c.registrado_por,
           origen: c.origen,
         })),
@@ -84,6 +97,27 @@ export function crearControladorGastos(d: {
         miembros: datos.miembros,
       })
       return { ...resumen, sinConexion }
+    },
+
+    async editarCompra(entrada: EditarCompraEntrada): Promise<void> {
+      const descripcion = entrada.descripcion.trim()
+      if (descripcion.length > 200) {
+        throw new ErrorGastos('La descripción no puede superar 200 caracteres.')
+      }
+      if (entrada.montoTotal !== undefined && (!esPesos(entrada.montoTotal) || entrada.montoTotal <= 0)) {
+        throw new ErrorGastos('Ingresa un monto entero mayor a $0.')
+      }
+      if (entrada.fecha !== undefined && !esFechaCivil(entrada.fecha)) {
+        throw new ErrorGastos('Selecciona una fecha válida.')
+      }
+      await d.port.editarCompra({
+        ...entrada,
+        descripcion,
+      })
+    },
+
+    async anularCompra(compraId: string): Promise<void> {
+      await d.port.anularCompra(compraId)
     },
   }
 }

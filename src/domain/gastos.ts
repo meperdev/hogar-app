@@ -16,6 +16,7 @@ export type CompraGasto = {
   pagoTipo: 'contado' | 'financiado'
   medioDePagoId: string | null
   financiadaPorPasivoId: string | null
+  obligacionId: string | null
   registradoPor: string
   origen: 'manual' | 'qr' | 'ocr' | 'correo'
 }
@@ -25,12 +26,14 @@ export type CategoriaGasto = {
   nombre: string
   icono: string | null
   orden: number
+  activa?: boolean | undefined
 }
 
 export type MedioGasto = {
   id: string
   nombre: string
   tipo: 'efectivo' | 'cuenta'
+  activo?: boolean | undefined
 }
 
 export type PasivoGasto = {
@@ -82,6 +85,9 @@ export type MovimientoGasto = {
   categoriaIcono: string | null
   ambito: 'hogar' | 'personal'
   pagoTipo: 'contado' | 'financiado'
+  medioDePagoId: string | null
+  financiadaPorPasivoId: string | null
+  obligacionId: string | null
   medioNombre: string
   medioTipo: TipoMedioGasto
   cuotas: number | null
@@ -104,6 +110,8 @@ export type ResumenGastosMes = {
   comparativaAnterior: ComparativaMesAnterior | null
   categorias: CategoriaResumenGasto[]
   movimientos: MovimientoGasto[]
+  categoriasDisponibles: CategoriaGasto[]
+  mediosDisponibles: MedioGasto[]
 }
 
 export function periodoAnterior(periodo: string): string {
@@ -234,6 +242,9 @@ export function calcularResumenGastos(entrada: EntradaResumenGastos): ResumenGas
       categoriaIcono,
       ambito: compra.ambito,
       pagoTipo: compra.pagoTipo,
+      medioDePagoId: compra.medioDePagoId,
+      financiadaPorPasivoId: compra.financiadaPorPasivoId,
+      obligacionId: compra.obligacionId,
       medioNombre: medioResuelto.medioNombre,
       medioTipo: medioResuelto.medioTipo,
       cuotas: medioResuelto.cuotas,
@@ -276,6 +287,16 @@ export function calcularResumenGastos(entrada: EntradaResumenGastos): ResumenGas
         }
       : null
 
+  const categoriasDisponibles = entrada.categorias
+    .filter((c) => c.activa !== false)
+    .slice()
+    .sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre, 'es'))
+
+  const mediosDisponibles = entrada.medios
+    .filter((m) => m.activo !== false)
+    .slice()
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+
   return {
     periodo: entrada.periodo,
     ambito: entrada.ambito,
@@ -285,5 +306,7 @@ export function calcularResumenGastos(entrada: EntradaResumenGastos): ResumenGas
     comparativaAnterior,
     categorias,
     movimientos,
+    categoriasDisponibles,
+    mediosDisponibles,
   }
 }
