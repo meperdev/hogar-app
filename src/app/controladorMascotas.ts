@@ -203,6 +203,7 @@ export function crearControladorMascotas(dep: DependenciasMascotas): Controlador
           {
             hogarId: alcance.hogarId,
             mascotaId: entrada.mascotaId,
+            mascotaIds: entrada.mascotaIds,
             nombre: entrada.nombre,
             tipo: entrada.tipo,
             categoriaId: entrada.categoriaId,

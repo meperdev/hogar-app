@@ -71,6 +71,9 @@ function crearControladorMock(overrides?: Partial<ControladorObligaciones>) {
       ? { pasivoId: 'pas-visa', cuotaId, medioId: 'med-nequi', fecha: '2026-11-24', capital: 50_000, interes: null, nota: '' }
       : { pasivoId: 'pas-visa', cuotaId, medioId: 'med-nequi', fecha: '2026-11-25', capital: 100_000, interes: 6_299, nota: '' },
   )
+  const prepararPagoPasivo = vi.fn(async (pasivoId: string): Promise<BorradorPago> => ({
+    pasivoId, cuotaId: null, medioId: 'med-nequi', fecha: '2026-11-27', capital: 1_426_000, interes: null, nota: '',
+  }))
   const evaluarPago = vi.fn(async (b: BorradorPago): Promise<EvaluacionPago> => {
     const monto = b.capital + (b.interes ?? 0)
     const medio = MEDIOS.find((m) => m.id === b.medioId)
@@ -94,7 +97,7 @@ function crearControladorMock(overrides?: Partial<ControladorObligaciones>) {
 
   const controlador: ControladorObligaciones = {
     cargarMes, leerIncluirPersonales: vi.fn(async () => incluirPersonales), guardarIncluirPersonales,
-    medios: vi.fn(async () => MEDIOS), prepararPagoCuota, evaluarPago, registrarPago,
+    medios: vi.fn(async () => MEDIOS), prepararPagoCuota, prepararPagoPasivo, evaluarPago, registrarPago,
     registrarPagoObligacion, equivalenciaTasa, validarPasivo, crearPasivo, ...overrides,
   }
   return { controlador, espias: { cargarMes, guardarIncluirPersonales, registrarPago, registrarPagoObligacion, equivalenciaTasa, crearPasivo } }
@@ -282,5 +285,37 @@ describe('Obligaciones del mes UI', () => {
         plan: expect.objectContaining({ origen: 'desembolso', capital: 8_400_000, calendario: null }),
       }),
     )
+  })
+
+  it('muestra pasivos sin calendario en Obligaciones y prepara su abono libre en /obligaciones/pagar/pasivo/:id', async () => {
+    const agendaConPasivo: AgendaMes = {
+      ...agendaBase('2026-11'),
+      pasivos: [{
+        pasivoId: 'pas-kiroi',
+        nombre: 'Cuenta pendiente Kiroi',
+        tipo: 'deuda',
+        ambito: 'hogar',
+        titular: { tipo: 'hogar' },
+        saldoPendiente: 1_426_000,
+        tieneSinCalendario: true,
+      }],
+    }
+    const { controlador } = crearControladorMock({
+      cargarMes: vi.fn(async () => agendaConPasivo),
+    })
+    const { contenedor } = await montar({ rutaInicial: '/obligaciones', controlador })
+
+    expect(contenedor.textContent).toContain('Tarjetas, créditos y deudas')
+    expect(contenedor.textContent).toContain('Cuenta pendiente Kiroi')
+    expect(contenedor.textContent).toContain('Abonos libres')
+    expect(contenedor.textContent).toContain('$1.426.000')
+    expect(contenedor.querySelector('a[href="/obligaciones/pagar/pasivo/pas-kiroi"]')).not.toBeNull()
+
+    const { contenedor: contAbono } = await montar({
+      rutaInicial: '/obligaciones/pagar/pasivo/pas-kiroi',
+      controlador,
+    })
+    expect(contAbono.textContent).toContain('Abono libre · Cuenta pendiente Kiroi')
+    expect(contAbono.querySelector<HTMLInputElement>('#pago-capital')?.value).toBe('$1.426.000')
   })
 })

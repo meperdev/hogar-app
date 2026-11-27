@@ -31,6 +31,7 @@ export type EntradaCrearMascota = {
 export type EntradaCrearInsumo = {
   nombre: string
   mascotaId: string | null
+  mascotaIds?: string[] | undefined
   tipo: TipoInsumo
   categoriaId: string
   frecuenciaDias: number | null

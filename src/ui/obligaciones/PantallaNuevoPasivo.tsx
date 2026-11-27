@@ -2,13 +2,12 @@ import { useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { Ambito, BorradorPasivo, ErrorFormulario } from '../../app/obligaciones'
 import { hoyCivil } from '../../domain/fechas'
-import { formatearPesos } from '../../domain/pesos'
 import {
-  Aviso, AyudaInfo, Insignia, Tarjeta, claseAyudaCampo, claseBotonPrimario,
+  Aviso, AyudaInfo, CampoMontoCop, Insignia, Tarjeta, claseAyudaCampo, claseBotonPrimario,
   claseBotonSecundario, claseCampoTexto, claseEtiquetaCampo,
 } from '../ComponentesBase'
 import { ShellApp } from '../ShellApp'
-import { formatearPorcentajeEs, parsearDigitosCop } from '../compraRapida/formatoCop'
+import { formatearPorcentajeEs } from '../compraRapida/formatoCop'
 import { useObligaciones } from './ContextoObligaciones'
 import { ATAJOS_ENTIDADES_FINANCIERAS, identidadMedio } from '../marcas'
 import { TarjetaRadio, parsearPorcentajeEs } from './PiezasObligaciones'
@@ -210,7 +209,7 @@ export function PantallaNuevoPasivo() {
               </div>
               <div className="flex min-w-0 flex-col gap-1.5">
                 <label htmlFor="cupo-cop" className={claseEtiquetaCampo}>Cupo en COP (opcional)</label>
-                <input id="cupo-cop" className={`${claseCampoTexto} hogar-cop font-bold`} type="text" inputMode="numeric" placeholder="Ej. $6.000.000" value={cupo > 0 ? formatearPesos(cupo) : ''} onChange={(e) => setCupo(parsearDigitosCop(e.target.value))} />
+                <CampoMontoCop id="cupo-cop" className="font-bold" placeholder="Ej. $6.000.000" valor={cupo} onCambiar={setCupo} />
               </div>
             </div>
           </>
@@ -318,7 +317,7 @@ export function PantallaNuevoPasivo() {
           </div>
           <div className="flex flex-col gap-1.5">
             <label htmlFor="saldo-inicial-cop" className={claseEtiquetaCampo}>Capital inicial o desembolso en COP (opcional)</label>
-            <input id="saldo-inicial-cop" className={`${claseCampoTexto} hogar-cop text-xl font-extrabold`} type="text" inputMode="numeric" placeholder="Ej. $8.400.000" value={capitalPlan > 0 ? formatearPesos(capitalPlan) : ''} onChange={(e) => setCapitalPlan(parsearDigitosCop(e.target.value))} />
+            <CampoMontoCop id="saldo-inicial-cop" className="text-xl font-extrabold" placeholder="Ej. $8.400.000" valor={capitalPlan} onCambiar={setCapitalPlan} />
           </div>
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center gap-1.5">

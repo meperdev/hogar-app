@@ -58,6 +58,16 @@ export type ItemObligacion = {
 
 export type ItemAgenda = ItemCuota | ItemObligacion
 
+export type ItemPasivoSaldo = {
+  pasivoId: string
+  nombre: string
+  tipo: 'tarjeta' | 'credito' | 'deuda'
+  ambito: Ambito
+  titular: Titular
+  saldoPendiente: number
+  tieneSinCalendario: boolean
+}
+
 /** Las tres tarjetas: derivadas, nunca guardadas ni sumadas entre sí. */
 export type ResumenMes = {
   periodo: string
@@ -76,6 +86,7 @@ export type AgendaMes = {
   vencidas: ItemAgenda[]
   pendientes: ItemAgenda[]
   pagadas: ItemAgenda[]
+  pasivos?: ItemPasivoSaldo[] | undefined
 }
 
 export type MedioPagoOpcion = {
@@ -169,6 +180,7 @@ export interface ControladorObligaciones {
 
   /** Borrador precargado para pagar una cuota completa en su vencimiento. */
   prepararPagoCuota(cuotaId: string): Promise<BorradorPago>
+  prepararPagoPasivo(pasivoId: string): Promise<BorradorPago>
   evaluarPago(borrador: BorradorPago): Promise<EvaluacionPago>
   /** `dividirSobrepago` solo tras la confirmación explícita del aviso de sobrepago. */
   registrarPago(borrador: BorradorPago, opciones: { dividirSobrepago: boolean }): Promise<ResultadoRegistro>

@@ -1,14 +1,14 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { ErrorMascotas } from '../../app/controladorMascotas'
-import type { EspecieMascota } from '../../domain/mascotas'
+import { mascotasDeItem, type EspecieMascota } from '../../domain/mascotas'
 import { formatearPesos } from '../../domain/pesos'
 import {
   Aviso,
   AyudaInfo,
+  SelectorMes,
   Tarjeta,
   claseAyudaCampo,
-  claseBotonIcono,
   claseBotonPequenoPrimario,
   claseBotonPequenoSecundario,
   claseBotonPrimario,
@@ -17,7 +17,7 @@ import {
 } from '../ComponentesBase'
 import { ShellApp } from '../ShellApp'
 import { formatearFechaCortaEs } from '../compraRapida/formatoCop'
-import { desplazarPeriodo, formatearPeriodoEs } from '../obligaciones/PiezasObligaciones'
+import { formatearPeriodoEs } from '../periodos'
 import { useMascotas } from './ContextoMascotas'
 import { TarjetaInsumo } from './PiezasMascotas'
 
@@ -45,9 +45,10 @@ export function PantallaMascotas() {
   const alertasCount = items.filter((e) => e.alerta).length
 
   const itemsFiltrados = items.filter((e) => {
+    const ids = mascotasDeItem(e.item)
     if (filtroMascota === 'todas') return true
-    if (filtroMascota === 'compartido') return e.item.mascotaId === null
-    return e.item.mascotaId === filtroMascota || e.item.mascotaId === null
+    if (filtroMascota === 'compartido') return ids.length === 0
+    return ids.length === 0 || ids.includes(filtroMascota)
   })
 
   const primerInsumo = itemsFiltrados[0]?.item ?? items[0]?.item ?? null
@@ -135,31 +136,7 @@ export function PantallaMascotas() {
         </Aviso>
       ) : null}
 
-      <div
-        className="flex items-center justify-between gap-2 rounded-2xl border border-hogar-borde bg-hogar-superficie p-1.5 shadow-[var(--hogar-shadow-card)]"
-        role="region"
-        aria-label="Cambiar mes calendario"
-      >
-        <button
-          type="button"
-          className={claseBotonIcono}
-          aria-label="Mes anterior"
-          onClick={() => cambiarPeriodo(desplazarPeriodo(periodo, -1))}
-        >
-          ‹
-        </button>
-        <span className="text-[0.9375rem] font-extrabold text-hogar-tinta">
-          {formatearPeriodoEs(periodo)}
-        </span>
-        <button
-          type="button"
-          className={claseBotonIcono}
-          aria-label="Mes siguiente"
-          onClick={() => cambiarPeriodo(desplazarPeriodo(periodo, 1))}
-        >
-          ›
-        </button>
-      </div>
+      <SelectorMes periodo={periodo} onCambiar={cambiarPeriodo} />
 
       <Tarjeta acento="primario" className="flex flex-col gap-2.5">
         <div className="flex flex-wrap items-center justify-between gap-2">

@@ -1,5 +1,8 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from 'react'
 import { createPortal } from 'react-dom'
+import { formatearPesos } from '../domain/pesos'
+import { parsearDigitosCop } from './compraRapida/formatoCop'
+import { desplazarPeriodo, formatearPeriodoEs } from './periodos'
 
 const botonBase =
   'inline-flex min-h-11 min-w-11 max-w-full items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-center text-[0.9375rem] font-bold leading-tight whitespace-normal break-words transition-all duration-150 active:scale-[0.98] cursor-pointer disabled:cursor-not-allowed disabled:opacity-60'
@@ -212,6 +215,212 @@ export function Aviso({
         {icono}
       </span>
       <div className="min-w-0 flex-1 space-y-1 break-words">{children}</div>
+    </div>
+  )
+}
+
+export function CampoMontoCop({
+  valor,
+  onCambiar,
+  id,
+  placeholder = '$0',
+  className = '',
+  inputRef,
+  disabled = false,
+  'aria-label': ariaLabel,
+  'aria-describedby': ariaDescribedBy,
+  'aria-invalid': ariaInvalid,
+}: {
+  valor: number | null
+  onCambiar: (monto: number) => void
+  id?: string | undefined
+  placeholder?: string | undefined
+  className?: string | undefined
+  inputRef?: Ref<HTMLInputElement> | undefined
+  disabled?: boolean | undefined
+  'aria-label'?: string | undefined
+  'aria-describedby'?: string | undefined
+  'aria-invalid'?: 'true' | undefined
+}) {
+  return (
+    <input
+      ref={inputRef}
+      id={id}
+      className={`${claseCampoTexto} hogar-cop ${className}`.trim()}
+      type="text"
+      inputMode="numeric"
+      placeholder={placeholder}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      aria-describedby={ariaDescribedBy}
+      aria-invalid={ariaInvalid}
+      value={valor && valor > 0 ? formatearPesos(valor) : ''}
+      onChange={(e) => onCambiar(parsearDigitosCop(e.target.value))}
+    />
+  )
+}
+
+export function TarjetaRadio({
+  id,
+  name,
+  value,
+  checked,
+  disabled = false,
+  onChange,
+  children,
+}: {
+  id: string
+  name: string
+  value: string
+  checked: boolean
+  disabled?: boolean | undefined
+  onChange: () => void
+  children: ReactNode
+}) {
+  return (
+    <label
+      htmlFor={id}
+      className={`relative flex min-h-[46px] min-w-11 items-center gap-2 rounded-xl border-[1.5px] px-3 py-2.5 text-sm font-semibold transition-colors ${
+        disabled
+          ? 'cursor-not-allowed border-hogar-borde bg-hogar-superficie-suave text-hogar-tinta-suave opacity-65'
+          : checked
+            ? 'cursor-pointer border-hogar-primario bg-hogar-primario-suave text-hogar-tinta'
+            : 'cursor-pointer border-hogar-borde-fuerte bg-hogar-superficie text-hogar-tinta hover:bg-hogar-superficie-suave'
+      }`}
+    >
+      <input
+        id={id}
+        type="radio"
+        name={name}
+        value={value}
+        checked={checked}
+        disabled={disabled}
+        onChange={onChange}
+        className="m-0 size-[18px] shrink-0 accent-hogar-primario"
+      />
+      <span className="min-w-0 break-words leading-tight">{children}</span>
+    </label>
+  )
+}
+
+export function TarjetaSeleccion({
+  id,
+  checked,
+  disabled = false,
+  onChange,
+  children,
+}: {
+  id: string
+  checked: boolean
+  disabled?: boolean | undefined
+  onChange: (checked: boolean) => void
+  children: ReactNode
+}) {
+  return (
+    <label
+      htmlFor={id}
+      className={`relative flex min-h-11 min-w-11 items-center gap-2 rounded-xl border-[1.5px] px-3 py-2 text-sm font-bold transition-colors ${
+        disabled
+          ? 'cursor-not-allowed border-hogar-borde bg-hogar-superficie-suave text-hogar-tinta-suave opacity-65'
+          : checked
+            ? 'cursor-pointer border-hogar-primario bg-hogar-primario-suave text-hogar-primario-fuerte'
+            : 'cursor-pointer border-hogar-borde-fuerte bg-hogar-superficie text-hogar-tinta hover:bg-hogar-superficie-suave'
+      }`}
+    >
+      <input
+        id={id}
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.checked)}
+        className="m-0 size-[18px] shrink-0 accent-hogar-primario"
+      />
+      <span className="min-w-0 break-words leading-tight">{children}</span>
+    </label>
+  )
+}
+
+export function FilaSwitchPersonal({
+  id,
+  checked,
+  disabled = false,
+  onChange,
+  etiqueta = 'Incluir mis gastos personales',
+  ayuda,
+  etiquetaAyuda = 'Información sobre gastos personales',
+}: {
+  id: string
+  checked: boolean
+  disabled?: boolean | undefined
+  onChange: (valor: boolean) => void
+  etiqueta?: string | undefined
+  ayuda?: string | undefined
+  etiquetaAyuda?: string | undefined
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2 border-t border-hogar-borde/80 bg-hogar-fondo/45 px-3 py-2">
+      <div className="flex min-w-0 items-center gap-1.5">
+        <label
+          htmlFor={id}
+          className="cursor-pointer text-xs font-bold text-hogar-tinta-suave"
+        >
+          {etiqueta}
+        </label>
+        {ayuda ? <AyudaInfo etiqueta={etiquetaAyuda} texto={ayuda} /> : null}
+      </div>
+      <input
+        id={id}
+        type="checkbox"
+        role="switch"
+        checked={checked}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.checked)}
+        className="hogar-switch hogar-switch--sm"
+      />
+    </div>
+  )
+}
+
+export function SelectorMes({
+  periodo,
+  onCambiar,
+  ariaLabel = 'Cambiar mes calendario',
+  subtitulo,
+  pie,
+}: {
+  periodo: string
+  onCambiar: (siguiente: string) => void
+  ariaLabel?: string | undefined
+  subtitulo?: ReactNode | undefined
+  pie?: ReactNode | undefined
+}) {
+  return (
+    <div className="shrink-0 overflow-hidden rounded-2xl border border-hogar-borde bg-hogar-superficie shadow-[var(--hogar-shadow-card)]">
+      <div className="flex items-center justify-between gap-2 p-1.5" role="group" aria-label={ariaLabel}>
+        <button
+          type="button"
+          className={claseBotonIcono}
+          aria-label="Mes anterior"
+          onClick={() => onCambiar(desplazarPeriodo(periodo, -1))}
+        >
+          ‹
+        </button>
+        <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-center">
+          <span className="text-[0.9375rem] font-extrabold leading-tight text-hogar-tinta">
+            {formatearPeriodoEs(periodo)}
+          </span>
+          {subtitulo ?? null}
+        </div>
+        <button
+          type="button"
+          className={claseBotonIcono}
+          aria-label="Mes siguiente"
+          onClick={() => onCambiar(desplazarPeriodo(periodo, 1))}
+        >
+          ›
+        </button>
+      </div>
+      {pie ?? null}
     </div>
   )
 }

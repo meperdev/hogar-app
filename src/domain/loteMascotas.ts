@@ -49,6 +49,7 @@ export type FilaMascota = {
 export type FilaItemDespensa = {
   id: string
   mascota_id: string | null
+  mascota_ids?: string[] | undefined
   nombre: string
   tipo: TipoInsumo
   categoria_id: string
@@ -157,6 +158,7 @@ export function construirLoteItemDespensa(
   e: {
     hogarId: string
     mascotaId: string | null
+    mascotaIds?: string[] | undefined
     nombre: string
     tipo: TipoInsumo
     categoriaId: string
@@ -179,6 +181,10 @@ export function construirLoteItemDespensa(
   if (e.montoHabitual !== null && (!Number.isSafeInteger(e.montoHabitual) || e.montoHabitual <= 0)) {
     throw new ErrorLoteMascotas('montoHabitual', 'El monto habitual debe ser un entero mayor a $0')
   }
+  const mascotaIds = [
+    ...new Set((e.mascotaIds ?? (e.mascotaId ? [e.mascotaId] : [])).filter(Boolean)),
+  ]
+  const mascotaId = mascotaIds.length === 1 ? mascotaIds[0]! : null
 
   return {
     lote_id: nuevoId(),
@@ -189,7 +195,8 @@ export function construirLoteItemDespensa(
       item_despensa: [
         {
           id: nuevoId(),
-          mascota_id: e.mascotaId,
+          mascota_id: mascotaId,
+          mascota_ids: mascotaIds,
           nombre,
           tipo: e.tipo,
           categoria_id: e.categoriaId,

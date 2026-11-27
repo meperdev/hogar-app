@@ -3,12 +3,13 @@ import type { ItemAgenda, ItemCuota } from '../../app/obligaciones'
 import { hoyCivil } from '../../domain/fechas'
 import { formatearPesos } from '../../domain/pesos'
 import {
-  Aviso, Tarjeta, claseAyudaCampo, claseBotonIcono,
-  claseBotonPequenoSecundario, claseBotonPrimario,
+  Aviso, FilaSwitchPersonal, Insignia, SelectorMes, Tarjeta, claseAyudaCampo,
+  claseBotonPequenoPrimario, claseBotonPequenoSecundario, claseBotonPrimario,
 } from '../ComponentesBase'
 import { ShellApp } from '../ShellApp'
 import { useObligaciones } from './ContextoObligaciones'
-import { TarjetaItemAgenda, desplazarPeriodo, formatearPeriodoEs, montoPendienteItem, nombreMesPeriodoEs } from './PiezasObligaciones'
+import { TarjetaItemAgenda, etiquetaAmbitoTitular, montoPendienteItem } from './PiezasObligaciones'
+import { formatearPeriodoEs, nombreMesPeriodoEs } from '../periodos'
 
 function ctaParaItem(item: ItemAgenda): { destino: string; etiqueta: string } {
   if (item.tipo === 'cuota') {
@@ -37,10 +38,12 @@ export function PantallaObligaciones() {
   const vencidas = agenda?.vencidas ?? []
   const pendientes = agenda?.pendientes ?? []
   const pagadas = agenda?.pagadas ?? []
+  const pasivos = agenda?.pasivos ?? []
   const resumen = agenda?.resumen ?? { periodo, consumoReal: 0, capitalPagado: 0, capitalPendiente: 0, costoFinanciero: 0 }
 
   const totalPendientes = pendientes.reduce((acc, it) => acc + montoPendienteItem(it), 0)
   const totalVencidas = vencidas.reduce((acc, it) => acc + montoPendienteItem(it), 0)
+  const totalSaldoPasivos = pasivos.reduce((acc, p) => acc + p.saldoPendiente, 0)
   const abiertasCount = vencidas.length + pendientes.length
 
   const interesPag = pagadas.filter((i): i is ItemCuota => i.tipo === 'cuota').reduce((acc, c) => acc + (c.interes ?? 0), 0)
@@ -48,9 +51,15 @@ export function PantallaObligaciones() {
   const notaCosto = interesPag > 0 || interesPend > 0 ? `${formatearPesos(interesPag)} pag. · ${formatearPesos(interesPend)} pend.` : 'Balde aparte'
 
   const primerPendiente = vencidas[0] ?? pendientes[0] ?? null
+  const primerPasivoConSaldo = pasivos.find((p) => p.saldoPendiente > 0) ?? null
   const ctaPrincipal = primerPendiente
     ? ctaParaItem(primerPendiente)
-    : { destino: '/obligaciones/nuevo-pasivo', etiqueta: '+ Agregar tarjeta, crédito o deuda' }
+    : primerPasivoConSaldo
+      ? {
+          destino: `/obligaciones/pagar/pasivo/${encodeURIComponent(primerPasivoConSaldo.pasivoId)}`,
+          etiqueta: `Registrar abono · ${primerPasivoConSaldo.nombre} (${formatearPesos(primerPasivoConSaldo.saldoPendiente)})`,
+        }
+      : { destino: '/obligaciones/nuevo-pasivo', etiqueta: '+ Agregar tarjeta, crédito o deuda' }
 
   const mesTexto = nombreMesPeriodoEs(periodo)
   const subtituloMes = `${formatearPeriodoEs(periodo)} · ${abiertasCount === 0 ? 'Al día' : abiertasCount === 1 ? '1 pendiente' : `${abiertasCount} pendientes`}`
@@ -62,7 +71,7 @@ export function PantallaObligaciones() {
       mostrarNavegacion
       etiquetaBarraAccion="Acción principal de obligaciones"
       barraAccion={
-        primerPendiente ? (
+        primerPendiente || primerPasivoConSaldo ? (
           <div className="flex items-center gap-2">
             <Link to={ctaPrincipal.destino} className={`${claseBotonPrimario} flex-1 no-underline`} data-sin-scroll>
               {ctaPrincipal.etiqueta}
@@ -127,20 +136,20 @@ export function PantallaObligaciones() {
         </div>
       </section>
 
-      <div className="flex items-center justify-between gap-2 rounded-2xl border border-hogar-borde bg-hogar-superficie p-1.5 shadow-[var(--hogar-shadow-card)]" role="region" aria-label="Cambiar mes calendario">
-        <button type="button" className={claseBotonIcono} aria-label="Mes anterior" onClick={() => cambiarPeriodo(desplazarPeriodo(periodo, -1))}>‹</button>
-        <span className="text-[0.9375rem] font-extrabold text-hogar-tinta">{formatearPeriodoEs(periodo)}</span>
-        <button type="button" className={claseBotonIcono} aria-label="Mes siguiente" onClick={() => cambiarPeriodo(desplazarPeriodo(periodo, 1))}>›</button>
-      </div>
-
-      <div className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-hogar-borde bg-hogar-superficie px-3.5 py-2 shadow-[var(--hogar-shadow-card)]">
-        <label htmlFor="toggle-incluir-personales" className="min-w-0 flex-1 cursor-pointer text-sm font-bold text-hogar-tinta">
-          Incluir mis gastos personales
-        </label>
-        <div className="flex min-h-11 min-w-11 shrink-0 items-center justify-center">
-          <input id="toggle-incluir-personales" type="checkbox" role="switch" checked={incluirPersonales} onChange={(e) => void alternarIncluirPersonales(e.target.checked)} className="hogar-switch" />
-        </div>
-      </div>
+      <SelectorMes
+        periodo={periodo}
+        onCambiar={cambiarPeriodo}
+        ariaLabel="Cambiar mes calendario"
+        pie={
+          <FilaSwitchPersonal
+            id="toggle-incluir-personales"
+            checked={incluirPersonales}
+            onChange={(v) => void alternarIncluirPersonales(v)}
+            ayuda="Apagado por defecto. Incluye tus pasivos y compras personales sin mezclarlos con el hogar."
+            etiquetaAyuda="Información sobre gastos personales en obligaciones"
+          />
+        }
+      />
 
       {cargando && !agenda ? (
         <Aviso variante="indigo" icono="◷" role="status"><p className="font-bold">Cargando obligaciones de {mesTexto}…</p></Aviso>
@@ -169,6 +178,61 @@ export function PantallaObligaciones() {
           </Tarjeta>
         ) : null}
       </section>
+
+      {pasivos.length > 0 ? (
+        <section aria-labelledby="pasivos-activos-heading" className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 id="pasivos-activos-heading" className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">
+              Tarjetas, créditos y deudas
+            </h2>
+            <span className="hogar-cop text-[0.8125rem] font-bold text-hogar-tinta-suave">
+              {totalSaldoPasivos > 0 ? `${formatearPesos(totalSaldoPasivos)} saldo` : 'Al día'}
+            </span>
+          </div>
+          <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+            {pasivos.map((p) => (
+              <li key={p.pasivoId}>
+                <Tarjeta
+                  acento={p.saldoPendiente > 0 ? 'indigo' : 'ninguno'}
+                  className="flex flex-col gap-2.5"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta break-words">
+                        {p.nombre}
+                      </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        <Insignia variante={p.ambito === 'hogar' ? 'primario' : 'neutral'}>
+                          {etiquetaAmbitoTitular(p.ambito, p.titular)}
+                        </Insignia>
+                        {p.tieneSinCalendario && p.saldoPendiente > 0 ? (
+                          <Insignia variante="indigo">Abonos libres</Insignia>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <span className="block text-[0.6875rem] font-bold uppercase tracking-wide text-hogar-tinta-suave">
+                        Saldo
+                      </span>
+                      <span className="hogar-cop text-base font-extrabold text-hogar-tinta">
+                        {formatearPesos(p.saldoPendiente)}
+                      </span>
+                    </div>
+                  </div>
+                  {p.saldoPendiente > 0 ? (
+                    <Link
+                      to={`/obligaciones/pagar/pasivo/${encodeURIComponent(p.pasivoId)}`}
+                      className={`${claseBotonPequenoPrimario} w-full no-underline`}
+                    >
+                      Registrar abono
+                    </Link>
+                  ) : null}
+                </Tarjeta>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section aria-labelledby="pagadas-heading" className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center justify-between gap-2">

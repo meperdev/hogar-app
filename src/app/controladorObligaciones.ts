@@ -4,6 +4,7 @@ import {
   cargoCuota,
   estadosFifo,
   evaluarAbono,
+  recorrerLibro,
   type LibroPasivo,
 } from '../domain/deuda'
 import { hoyCivil } from '../domain/fechas'
@@ -23,6 +24,7 @@ import type {
   EvaluacionPago,
   ItemAgenda,
   ItemCuota,
+  ItemPasivoSaldo,
   Titular,
 } from './obligaciones'
 
@@ -228,12 +230,24 @@ export function crearControladorObligaciones(dep: DependenciasObligaciones): Con
       })
 
       const items: ItemAgenda[] = []
+      const pasivosSaldo: ItemPasivoSaldo[] = []
       for (const { pasivo, libro } of libros) {
         if (!visible(pasivo.ambito, pasivo.owner_miembro_id, incluir)) continue
         const estados = estadosFifo(libro, fechaHoy)
         const titular: Titular = pasivo.owner_miembro_id === null
           ? { tipo: 'hogar' }
           : { tipo: 'miembro', miembroId: pasivo.owner_miembro_id, nombre: nombreMiembro(d, pasivo.owner_miembro_id) }
+        const nombrePasivo = pasivo.ultimos_4 ? `${pasivo.nombre} ••${pasivo.ultimos_4}` : pasivo.nombre
+        const saldoPendiente = Math.max(0, recorrerLibro(libro, null).saldo)
+        pasivosSaldo.push({
+          pasivoId: pasivo.id,
+          nombre: nombrePasivo,
+          tipo: pasivo.tipo,
+          ambito: pasivo.ambito,
+          titular,
+          saldoPendiente,
+          tieneSinCalendario: libro.planes.some((p) => p.sistema === 'sin_calendario'),
+        })
         for (const cuota of libro.cuotas) {
           if (periodoDe(cuota.fechaVencimiento) !== periodo) continue
           const plan = d.planes.find((p) => p.id === cuota.planId)
@@ -284,7 +298,8 @@ export function crearControladorObligaciones(dep: DependenciasObligaciones): Con
         })
       }
       items.sort((a, b) => a.fechaVencimiento.localeCompare(b.fechaVencimiento))
-      const agenda: AgendaMes = { resumen: { periodo, ...resumen }, vencidas: [], pendientes: [], pagadas: [] }
+      pasivosSaldo.sort((a, b) => b.saldoPendiente - a.saldoPendiente || a.nombre.localeCompare(b.nombre))
+      const agenda: AgendaMes = { resumen: { periodo, ...resumen }, vencidas: [], pendientes: [], pagadas: [], pasivos: pasivosSaldo }
       for (const item of items) {
         if (item.estado === 'pagada') agenda.pagadas.push(item)
         else if (item.estado === 'vencida' || (item.estado === 'parcial' && item.fechaVencimiento < fechaHoy)) agenda.vencidas.push(item)
@@ -317,6 +332,22 @@ export function crearControladorObligaciones(dep: DependenciasObligaciones): Con
         fecha: cuota.fecha_vencimiento,
         capital: cuota.capital,
         interes: costo?.monto ?? null,
+        nota: '',
+      }
+    },
+
+    async prepararPagoPasivo(pasivoId) {
+      const d = await vigentes()
+      const pasivo = d.pasivos.find((p) => p.id === pasivoId)
+      if (!pasivo) throw new ErrorObligaciones('pasivo', 'El pasivo no existe o no lo puedes ver')
+      const saldoPendiente = Math.max(0, recorrerLibro(libroDe(d, pasivoId), null).saldo)
+      return {
+        pasivoId,
+        cuotaId: null,
+        medioId: null,
+        fecha: hoy(),
+        capital: saldoPendiente,
+        interes: null,
         nota: '',
       }
     },

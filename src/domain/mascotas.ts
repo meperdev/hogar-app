@@ -16,6 +16,7 @@ export type Mascota = {
 export type ItemDespensa = {
   id: string
   mascotaId: string | null
+  mascotaIds?: string[] | undefined
   nombre: string
   tipo: TipoInsumo
   categoriaId: string
@@ -23,6 +24,14 @@ export type ItemDespensa = {
   umbralAlertaPct: number
   montoHabitual: number | null
   activo: boolean
+}
+
+/** Lista normalizada de IDs de mascotas asociadas al insumo (`[]` = compartido entre todas). */
+export function mascotasDeItem(item: Pick<ItemDespensa, 'mascotaId' | 'mascotaIds'>): string[] {
+  if (item.mascotaIds && item.mascotaIds.length > 0) {
+    return [...new Set(item.mascotaIds)]
+  }
+  return item.mascotaId ? [item.mascotaId] : []
 }
 
 export type ObservacionNivel = {

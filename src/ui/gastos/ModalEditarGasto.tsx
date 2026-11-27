@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { EditarCompraEntrada } from '../../app/gastos'
 import type { CategoriaGasto, MedioGasto, MovimientoGasto } from '../../domain/gastos'
-import { formatearPesos } from '../../domain/pesos'
 import {
   Aviso,
+  CampoMontoCop,
   Insignia,
   claseAyudaCampo,
   claseBotonPequenoSecundario,
@@ -12,7 +12,6 @@ import {
   claseCampoTexto,
   claseEtiquetaCampo,
 } from '../ComponentesBase'
-import { parsearDigitosCop } from '../compraRapida/formatoCop'
 
 export function ModalEditarGasto({
   movimiento,
@@ -181,15 +180,12 @@ export function ModalEditarGasto({
             <label htmlFor="editar-gasto-monto" className={claseEtiquetaCampo}>
               Monto total (COP)
             </label>
-            <input
+            <CampoMontoCop
               id="editar-gasto-monto"
-              type="text"
-              inputMode="numeric"
-              placeholder="$0"
-              value={monto > 0 ? formatearPesos(monto) : ''}
-              onChange={(evento) => setMonto(parsearDigitosCop(evento.target.value))}
+              valor={monto}
+              onCambiar={setMonto}
               disabled={guardando || esFinanciado}
-              className={`${claseCampoTexto} hogar-cop font-bold`}
+              className="font-bold"
             />
           </div>
 

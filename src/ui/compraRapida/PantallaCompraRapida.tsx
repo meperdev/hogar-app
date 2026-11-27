@@ -421,12 +421,12 @@ export function PantallaCompraRapida() {
 
       <section
         aria-labelledby="monto-heading"
-        className="sticky top-0 z-20 -mx-3.5 bg-[linear-gradient(to_bottom,var(--color-hogar-fondo)_76%,rgba(243,245,242,0.9)_89%,transparent_100%)] px-3.5 pt-2 pb-3"
+        className="pointer-events-none sticky top-2 z-20"
       >
         <h2 id="monto-heading" className="sr-only">
           Monto en pesos colombianos
         </h2>
-        <div className="rounded-[22px] border border-hogar-borde bg-hogar-superficie px-3.5 py-2 text-right shadow-[0_12px_26px_-10px_rgba(16,24,20,0.22),0_2px_6px_-1px_rgba(16,24,20,0.08)]">
+        <div className="pointer-events-auto rounded-[22px] border border-hogar-borde-fuerte/75 bg-hogar-superficie/96 px-3.5 py-2 text-right shadow-[0_14px_32px_-8px_rgba(16,24,20,0.24),0_2px_8px_rgba(16,24,20,0.08)] backdrop-blur-md">
           <div className="mb-0.5 flex items-center justify-between gap-2 text-[0.8125rem] text-hogar-tinta-suave">
             <label htmlFor="monto-input" className="inline-flex items-center gap-1.5 font-bold text-hogar-tinta-suave">
               {medioSeleccionado ? (
