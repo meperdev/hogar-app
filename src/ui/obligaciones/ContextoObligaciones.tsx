@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { AlcanceCompra } from '../../app/compraRapida'
 import type { Hogar } from '../../app/fundacion'
-import type { AgendaMes, ControladorObligaciones, ItemCuota, ItemObligacion, MedioPagoOpcion } from '../../app/obligaciones'
+import type { AgendaMes, ControladorObligaciones, ItemCuota, ItemObligacion, ItemPasivoSaldo, MedioPagoOpcion } from '../../app/obligaciones'
 import { hoyCivil } from '../../domain/fechas'
 import { useNotificacionesOpcional } from '../Notificaciones'
 
@@ -22,6 +22,7 @@ type ValorContextoObligaciones = {
   limpiarToast: () => void
   buscarCuota: (cuotaId: string) => ItemCuota | null
   buscarObligacion: (obligacionId: string) => ItemObligacion | null
+  buscarPasivo: (pasivoId: string) => ItemPasivoSaldo | null
 }
 
 const ContextoObligaciones = createContext<ValorContextoObligaciones | null>(null)
@@ -95,6 +96,10 @@ export function ProveedorObligaciones({
     (obligacionId: string) => todos.find((i): i is ItemObligacion => i.tipo === 'obligacion' && i.obligacionId === obligacionId) ?? null,
     [todos],
   )
+  const buscarPasivo = useCallback(
+    (pasivoId: string) => agenda?.pasivos?.find((p) => p.pasivoId === pasivoId) ?? null,
+    [agenda],
+  )
 
   return (
     <ContextoObligaciones.Provider
@@ -104,7 +109,7 @@ export function ProveedorObligaciones({
         recargar: () => setRevision((actual) => actual + 1),
         mostrarToast,
         limpiarToast: () => setToast(''),
-        buscarCuota, buscarObligacion,
+        buscarCuota, buscarObligacion, buscarPasivo,
       }}
     >
       {children}

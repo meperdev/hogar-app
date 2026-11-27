@@ -2,40 +2,11 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import type { Ambito, ItemAgenda, Titular } from '../../app/obligaciones'
 import { formatearPesos } from '../../domain/pesos'
-import { Insignia, Tarjeta, claseAyudaCampo, claseBotonSecundario, type AcentoTarjeta } from '../ComponentesBase'
+import { Insignia, Tarjeta, TarjetaRadio, claseAyudaCampo, claseBotonSecundario, type AcentoTarjeta } from '../ComponentesBase'
 import { formatearFechaCortaEs } from '../compraRapida/formatoCop'
-
-const MESES = [
-  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
-] as const
-
-function partirPeriodo(periodo: string) {
-  const m = /^(\d{4})-(\d{2})$/.exec(periodo)
-  if (!m) return null
-  const mes = Number(m[2])
-  return mes >= 1 && mes <= 12 ? { anio: Number(m[1]), mes } : null
-}
-
-export function formatearPeriodoEs(periodo: string): string {
-  const p = partirPeriodo(periodo)
-  if (!p) return periodo
-  const nombre = MESES[p.mes - 1] ?? ''
-  return `${nombre.charAt(0).toUpperCase()}${nombre.slice(1)} ${p.anio}`
-}
-
-export function nombreMesPeriodoEs(periodo: string): string {
-  const p = partirPeriodo(periodo)
-  return p ? (MESES[p.mes - 1] ?? periodo) : periodo
-}
-
-export function desplazarPeriodo(periodo: string, deltaMeses: number): string {
-  const p = partirPeriodo(periodo)
-  if (!p) return periodo
-  const total = p.anio * 12 + (p.mes - 1) + deltaMeses
-  const anio = Math.floor(total / 12)
-  return `${String(anio).padStart(4, '0')}-${String(total - anio * 12 + 1).padStart(2, '0')}`
-}
+import { nombreMesPeriodoEs } from '../periodos'
+export { desplazarPeriodo, formatearPeriodoEs, nombreMesPeriodoEs } from '../periodos'
+export { TarjetaRadio }
 
 export function diasEntreFechasCiviles(desdeIso: string, hastaIso: string): number | null {
   const a = /^(\d{4})-(\d{2})-(\d{2})$/.exec(desdeIso)
@@ -73,28 +44,6 @@ export function ListaDesglose({ filas }: { filas: FilaDesglose[] }) {
         </div>
       ))}
     </dl>
-  )
-}
-
-export function TarjetaRadio({
-  id, name, value, checked, disabled = false, onChange, children,
-}: {
-  id: string; name: string; value: string; checked: boolean; disabled?: boolean | undefined; onChange: () => void; children: ReactNode
-}) {
-  return (
-    <label
-      htmlFor={id}
-      className={`relative flex min-h-[46px] min-w-11 items-center gap-2 rounded-xl border-[1.5px] px-3 py-2.5 text-sm font-semibold transition-colors ${
-        disabled
-          ? 'cursor-not-allowed border-hogar-borde bg-hogar-superficie-suave text-hogar-tinta-suave opacity-65'
-          : checked
-            ? 'cursor-pointer border-hogar-primario bg-hogar-primario-suave text-hogar-tinta'
-            : 'cursor-pointer border-hogar-borde-fuerte bg-hogar-superficie text-hogar-tinta hover:bg-hogar-superficie-suave'
-      }`}
-    >
-      <input id={id} type="radio" name={name} value={value} checked={checked} disabled={disabled} onChange={onChange} className="m-0 size-[18px] shrink-0 accent-hogar-primario" />
-      <span className="min-w-0 break-words leading-tight">{children}</span>
-    </label>
   )
 }
 

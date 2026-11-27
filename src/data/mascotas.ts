@@ -32,6 +32,7 @@ const esquemaMascota = z.object({
 const esquemaItemDespensa = z.object({
   id: z.uuid(),
   mascota_id: z.uuid().nullable(),
+  mascota_ids: z.array(z.uuid()).optional(),
   nombre: z.string(),
   tipo: z.enum(['comida', 'higiene', 'salud', 'otro']),
   categoria_id: z.uuid(),
@@ -117,6 +118,22 @@ export function crearRemotoMascotas(cliente: SupabaseClient): RemotoMascotas {
   return {
     async leer(hogarId) {
       // No filtramos por `activa`/`activo` al leer mascotas/items para preservar el histórico (I26).
+      const leerItems = async () => {
+        const res = await cliente
+          .from('item_despensa')
+          .select('id,mascota_id,mascota_ids,nombre,tipo,categoria_id,frecuencia_dias,umbral_alerta_pct,monto_habitual,activo')
+          .eq('hogar_id', hogarId)
+          .is('eliminado_en', null)
+        if (res.error && res.error.message.includes('mascota_ids')) {
+          return cliente
+            .from('item_despensa')
+            .select('id,mascota_id,nombre,tipo,categoria_id,frecuencia_dias,umbral_alerta_pct,monto_habitual,activo')
+            .eq('hogar_id', hogarId)
+            .is('eliminado_en', null)
+        }
+        return res
+      }
+
       const [
         mascotasRes,
         itemsRes,
@@ -130,8 +147,7 @@ export function crearRemotoMascotas(cliente: SupabaseClient): RemotoMascotas {
       ] = await Promise.all([
         cliente.from('mascota').select('id,nombre,especie,fecha_nacimiento,activa')
           .eq('hogar_id', hogarId).is('eliminado_en', null),
-        cliente.from('item_despensa').select('id,mascota_id,nombre,tipo,categoria_id,frecuencia_dias,umbral_alerta_pct,monto_habitual,activo')
-          .eq('hogar_id', hogarId).is('eliminado_en', null),
+        leerItems(),
         cliente.from('nivel_despensa').select('id,item_despensa_id,compra_id,fecha,nivel_pct,origen')
           .eq('hogar_id', hogarId).is('eliminado_en', null),
         cliente.from('compra').select('id,fecha,descripcion,monto_total,categoria_id,ambito,mascota_id,item_despensa_id,financiada_por_pasivo_id')
@@ -209,6 +225,12 @@ export function crearRemotoMascotas(cliente: SupabaseClient): RemotoMascotas {
         items: z.array(esquemaItemDespensa).parse(itemsRes.data).map((i) => ({
           id: i.id,
           mascotaId: i.mascota_id,
+          mascotaIds:
+            i.mascota_ids && i.mascota_ids.length > 0
+              ? i.mascota_ids
+              : i.mascota_id
+                ? [i.mascota_id]
+                : [],
           nombre: i.nombre,
           tipo: i.tipo,
           categoriaId: i.categoria_id,

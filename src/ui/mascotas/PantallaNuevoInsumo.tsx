@@ -5,7 +5,9 @@ import type { TipoInsumo } from '../../domain/mascotas'
 import { formatearPesos } from '../../domain/pesos'
 import {
   Aviso,
+  AyudaInfo,
   Tarjeta,
+  TarjetaSeleccion,
   claseAyudaCampo,
   claseBotonPrimario,
   claseBotonSecundario,
@@ -31,7 +33,7 @@ export function PantallaNuevoInsumo() {
   const categoriaPorDefecto = vista?.categoriaMascotasId ?? vista?.categorias[0]?.id ?? ''
 
   const [nombre, setNombre] = useState('')
-  const [mascotaId, setMascotaId] = useState<string>('')
+  const [mascotaIds, setMascotaIds] = useState<string[]>([])
   const [tipo, setTipo] = useState<TipoInsumo>('comida')
   const [categoriaId, setCategoriaId] = useState('')
   const [frecuenciaTexto, setFrecuenciaTexto] = useState('30')
@@ -67,7 +69,8 @@ export function PantallaNuevoInsumo() {
     try {
       await controlador.crearInsumo({
         nombre,
-        mascotaId: mascotaId === '' ? null : mascotaId,
+        mascotaId: mascotaIds.length === 1 ? mascotaIds[0]! : null,
+        mascotaIds,
         tipo,
         categoriaId: categoriaEfectiva,
         frecuenciaDias,
@@ -122,39 +125,47 @@ export function PantallaNuevoInsumo() {
           </div>
 
           <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-            <legend className={claseEtiquetaCampo}>¿Para qué mascota es?</legend>
-            <div className="flex flex-wrap gap-2">
-              {mascotas.map((m) => (
-                <label
-                  key={m.id}
-                  className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-hogar-borde-fuerte bg-hogar-superficie px-3 py-2 text-sm font-bold text-hogar-tinta"
-                >
-                  <input
-                    type="radio"
-                    name="mascota"
-                    value={m.id}
-                    checked={mascotaId === m.id}
-                    onChange={() => setMascotaId(m.id)}
-                    disabled={guardando}
-                  />
-                  <span>{m.nombre}</span>
-                </label>
-              ))}
-              <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-hogar-borde-fuerte bg-hogar-superficie px-3 py-2 text-sm font-bold text-hogar-tinta">
-                <input
-                  type="radio"
-                  name="mascota"
-                  value=""
-                  checked={mascotaId === ''}
-                  onChange={() => setMascotaId('')}
-                  disabled={guardando}
-                />
-                <span>Todas</span>
-              </label>
+            <div className="flex items-center gap-1.5">
+              <legend className={claseEtiquetaCampo}>¿Para qué mascotas es?</legend>
+              <AyudaInfo
+                etiqueta="Información sobre selección de mascotas"
+                texto="Marca una, varias o elige Todas para compartirlo entre todas las mascotas del hogar."
+              />
             </div>
-            <p className={claseAyudaCampo}>
-              "Todas" marca el insumo como compartido para todas las mascotas del hogar.
-            </p>
+            <div className="flex flex-wrap gap-2">
+              {mascotas.map((m) => {
+                const marcada = mascotaIds.includes(m.id)
+                return (
+                  <TarjetaSeleccion
+                    key={m.id}
+                    id={`insumo-mascota-${m.id}`}
+                    checked={marcada}
+                    disabled={guardando}
+                    onChange={(checked) =>
+                      setMascotaIds((prev) =>
+                        checked
+                          ? prev.includes(m.id)
+                            ? prev
+                            : [...prev, m.id]
+                          : prev.filter((id) => id !== m.id),
+                      )
+                    }
+                  >
+                    {m.nombre}
+                  </TarjetaSeleccion>
+                )
+              })}
+              <TarjetaSeleccion
+                id="insumo-mascota-todas"
+                checked={mascotaIds.length === 0}
+                disabled={guardando}
+                onChange={(checked) => {
+                  if (checked) setMascotaIds([])
+                }}
+              >
+                Todas
+              </TarjetaSeleccion>
+            </div>
           </fieldset>
 
           <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">

@@ -4,7 +4,7 @@ import type { BorradorPago, EvaluacionPago } from '../../app/obligaciones'
 import { hoyCivil } from '../../domain/fechas'
 import { formatearPesos } from '../../domain/pesos'
 import {
-  Aviso, AyudaInfo, Insignia, Tarjeta, claseAyudaCampo, claseBotonPequenoSecundario,
+  Aviso, AyudaInfo, CampoMontoCop, Insignia, Tarjeta, claseAyudaCampo, claseBotonPequenoSecundario,
   claseBotonPrimario, claseBotonSecundario, claseCampoTexto, claseEtiquetaCampo,
 } from '../ComponentesBase'
 import { ShellApp } from '../ShellApp'
@@ -12,16 +12,17 @@ import { formatearFechaCortaEs, parsearDigitosCop } from '../compraRapida/format
 import { useObligaciones } from './ContextoObligaciones'
 import { ListaDesglose, TarjetaRadio, etiquetaAmbitoTitular, nombreMesPeriodoEs, type FilaDesglose } from './PiezasObligaciones'
 
-function PagoCuota({ cuotaId }: { cuotaId: string }) {
+function PagoCuota({ cuotaId, pasivoId }: { cuotaId?: string; pasivoId?: string }) {
   const navigate = useNavigate()
-  const { hogar, controlador, medios, buscarCuota, recargar, mostrarToast } = useObligaciones()
-  const item = buscarCuota(cuotaId)
+  const { hogar, controlador, medios, buscarCuota, buscarPasivo, recargar, mostrarToast } = useObligaciones()
+  const item = cuotaId ? buscarCuota(cuotaId) : null
+  const pasivoInfo = pasivoId ? buscarPasivo(pasivoId) : null
 
   const [borrador, setBorrador] = useState<BorradorPago | null>(null)
-  const [cuotaIdInicial, setCuotaIdInicial] = useState<string | null>(cuotaId)
+  const [cuotaIdInicial, setCuotaIdInicial] = useState<string | null>(cuotaId ?? null)
   const [capitalInicial, setCapitalInicial] = useState(0)
   const [interesInicial, setInteresInicial] = useState<number | null>(null)
-  const [enlazarCuota, setEnlazarCuota] = useState(true)
+  const [enlazarCuota, setEnlazarCuota] = useState(Boolean(cuotaId))
   const [evaluacion, setEvaluacion] = useState<EvaluacionPago | null>(null)
   const [cargando, setCargando] = useState(true)
   const [guardando, setGuardando] = useState(false)
@@ -35,8 +36,10 @@ function PagoCuota({ cuotaId }: { cuotaId: string }) {
     let vigente = true
     setCargando(true)
     setErrorAccion('')
-    void controlador
-      .prepararPagoCuota(cuotaId)
+    const promesa = pasivoId
+      ? controlador.prepararPagoPasivo(pasivoId)
+      : controlador.prepararPagoCuota(cuotaId ?? '')
+    void promesa
       .then((inicial) => {
         if (!vigente) return
         const medioPorDefecto =
@@ -50,11 +53,15 @@ function PagoCuota({ cuotaId }: { cuotaId: string }) {
       })
       .catch(() => {
         if (!vigente) return
-        setErrorAccion('No pudimos preparar el pago de esta cuota.')
+        setErrorAccion(
+          pasivoId
+            ? 'No pudimos preparar el abono de este pasivo.'
+            : 'No pudimos preparar el pago de esta cuota.',
+        )
         setCargando(false)
       })
     return () => { vigente = false }
-  }, [controlador, cuotaId, hogar.miembroActual.id, medios])
+  }, [controlador, cuotaId, pasivoId, hogar.miembroActual.id, medios])
 
   const borradorEfectivo = useMemo<BorradorPago | null>(() => {
     if (!borrador) return null
@@ -172,9 +179,25 @@ function PagoCuota({ cuotaId }: { cuotaId: string }) {
                 <Insignia variante={item.ambito === 'hogar' ? 'primario' : 'neutral'}>{etiquetaAmbitoTitular(item.ambito, item.titular)}</Insignia>
               </div>
             </Tarjeta>
+          ) : pasivoInfo ? (
+            <Tarjeta acento="indigo">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">Abono libre · {pasivoInfo.nombre}</h2>
+                  <AyudaInfo
+                    etiqueta="Información sobre abono libre"
+                    texto="El abono reduce el saldo del pasivo sin volver a sumar al consumo del mes. El interés entra al balde aparte de Costo financiero."
+                  />
+                </div>
+                <Insignia variante={pasivoInfo.ambito === 'hogar' ? 'primario' : 'neutral'}>{etiquetaAmbitoTitular(pasivoInfo.ambito, pasivoInfo.titular)}</Insignia>
+              </div>
+              <p className={`${claseAyudaCampo} mt-1`}>
+                Saldo pendiente actual: <strong className="hogar-cop text-hogar-tinta">{formatearPesos(pasivoInfo.saldoPendiente)}</strong>
+              </p>
+            </Tarjeta>
           ) : null}
 
-          {!enlazarCuota ? (
+          {!enlazarCuota && !pasivoId ? (
             <Aviso variante="indigo" icono="ℹ" role="status">
               <p><strong className="text-hogar-tinta">Modo adelanto sin cuota:</strong> este pago se evaluará sin <code>cuota_id</code>, sujeto al tope del saldo causado a la fecha.</p>
             </Aviso>
@@ -218,10 +241,24 @@ function PagoCuota({ cuotaId }: { cuotaId: string }) {
             <Tarjeta className="flex flex-col gap-3.5">
               <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">Desglose del pago (COP enteros · {fechaCorta})</h2>
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="pago-capital" className={claseEtiquetaCampo}>Capital aplicado a la cuota (no suma al consumo)</label>
-                <input ref={capitalRef} id="pago-capital" className={`${claseCampoTexto} hogar-cop text-xl font-extrabold`} type="text" inputMode="numeric" value={borrador.capital > 0 ? formatearPesos(borrador.capital) : ''} placeholder="$0" aria-describedby="ayuda-capital" onChange={(e) => { setErrorAccion(''); setBorrador((p) => (p ? { ...p, capital: parsearDigitosCop(e.target.value) } : p)) }} />
+                <label htmlFor="pago-capital" className={claseEtiquetaCampo}>Capital aplicado {pasivoId ? 'al pasivo' : 'a la cuota'} (no suma al consumo)</label>
+                <CampoMontoCop
+                  inputRef={capitalRef}
+                  id="pago-capital"
+                  className="text-xl font-extrabold"
+                  valor={borrador.capital}
+                  aria-describedby="ayuda-capital"
+                  onCambiar={(capital) => {
+                    setErrorAccion('')
+                    setBorrador((p) => (p ? { ...p, capital } : p))
+                  }}
+                />
                 <p id="ayuda-capital" className={claseAyudaCampo}>
-                  {borrador.capital > 0 && borrador.capital < capitalInicial ? 'Pago parcial: se registrará sin enlazar la cuota (FIFO).' : `Capital sugerido de la cuota: ${formatearPesos(capitalInicial)}. Editable si haces abono parcial o extraordinario.`}
+                  {pasivoId
+                    ? `Saldo pendiente sugerido: ${formatearPesos(capitalInicial)}. Puedes abonar parcial o totalmente.`
+                    : borrador.capital > 0 && borrador.capital < capitalInicial
+                      ? 'Pago parcial: se registrará sin enlazar la cuota (FIFO).'
+                      : `Capital sugerido de la cuota: ${formatearPesos(capitalInicial)}. Editable si haces abono parcial o extraordinario.`}
                 </p>
               </div>
               <div className="flex flex-col gap-1.5">
@@ -386,7 +423,12 @@ function PagoObligacionRecurrente({ obligacionId }: { obligacionId: string }) {
       <Tarjeta className="flex flex-col gap-3.5">
         <div className="flex flex-col gap-1.5">
           <label htmlFor="pago-obligacion-monto" className={claseEtiquetaCampo}>Monto pagado en COP (enteros)</label>
-          <input id="pago-obligacion-monto" className={`${claseCampoTexto} hogar-cop text-xl font-extrabold`} type="text" inputMode="numeric" value={monto > 0 ? formatearPesos(monto) : ''} placeholder="$0" onChange={(e) => { setError(''); setMonto(parsearDigitosCop(e.target.value)) }} />
+          <CampoMontoCop
+            id="pago-obligacion-monto"
+            className="text-xl font-extrabold"
+            valor={monto}
+            onCambiar={(m) => { setError(''); setMonto(m) }}
+          />
         </div>
         <div className="grid grid-cols-2 gap-2.5">
           <div className="flex min-w-0 flex-col gap-1.5">
@@ -416,5 +458,7 @@ export function PantallaRegistrarPago() {
       </ShellApp>
     )
   }
-  return tipo === 'obligacion' ? <PagoObligacionRecurrente obligacionId={id} /> : <PagoCuota cuotaId={id} />
+  if (tipo === 'obligacion') return <PagoObligacionRecurrente obligacionId={id} />
+  if (tipo === 'pasivo') return <PagoCuota pasivoId={id} />
+  return <PagoCuota cuotaId={id} />
 }

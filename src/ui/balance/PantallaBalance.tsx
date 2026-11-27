@@ -4,10 +4,11 @@ import { formatearPesos } from '../../domain/pesos'
 import {
   Aviso,
   AyudaInfo,
+  FilaSwitchPersonal,
   Insignia,
+  SelectorMes,
   Tarjeta,
   claseAyudaCampo,
-  claseBotonIcono,
   claseBotonPequenoSecundario,
   claseBotonPrimario,
   claseBotonSecundario,
@@ -16,8 +17,6 @@ import { ShellApp } from '../ShellApp'
 import { formatearFechaCortaEs } from '../compraRapida/formatoCop'
 import {
   ListaDesglose,
-  desplazarPeriodo,
-  formatearPeriodoEs,
   nombreMesPeriodoEs,
 } from '../obligaciones/PiezasObligaciones'
 import { useBalance } from './ContextoBalance'
@@ -97,66 +96,30 @@ export function PantallaBalance() {
         </Aviso>
       ) : null}
 
-      <div className="shrink-0 overflow-hidden rounded-2xl border border-hogar-borde bg-hogar-superficie shadow-[var(--hogar-shadow-card)]">
-        <div
-          className="flex items-center justify-between gap-2 p-1.5"
-          role="group"
-          aria-label="Cambiar mes calendario del balance"
-        >
-          <button
-            type="button"
-            className={claseBotonIcono}
-            aria-label="Mes anterior"
-            onClick={() => cambiarPeriodo(desplazarPeriodo(periodo, -1))}
-          >
-            ‹
-          </button>
-          <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-center">
-            <span className="text-[0.9375rem] font-extrabold leading-tight text-hogar-tinta">
-              {formatearPeriodoEs(periodo)}
-            </span>
-            <span className="inline-flex items-center justify-center gap-1">
-              <Insignia variante="primario">Aporte libre</Insignia>
-              <AyudaInfo
-                etiqueta="Información sobre aporte libre"
-                texto="Cada miembro aporta libremente al hogar. Nunca se calculan saldos ni deudas entre ustedes."
-              />
-            </span>
-          </div>
-          <button
-            type="button"
-            className={claseBotonIcono}
-            aria-label="Mes siguiente"
-            onClick={() => cambiarPeriodo(desplazarPeriodo(periodo, 1))}
-          >
-            ›
-          </button>
-        </div>
-
-        <div className="flex items-center justify-between gap-2 border-t border-hogar-borde/80 bg-hogar-fondo/45 px-3 py-2">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <label
-              htmlFor="toggle-personales"
-              className="cursor-pointer text-xs font-bold text-hogar-tinta-suave"
-            >
-              Incluir mis gastos personales
-            </label>
+      <SelectorMes
+        periodo={periodo}
+        onCambiar={cambiarPeriodo}
+        ariaLabel="Cambiar mes calendario del balance"
+        subtitulo={
+          <span className="inline-flex items-center justify-center gap-1">
+            <Insignia variante="primario">Aporte libre</Insignia>
             <AyudaInfo
-              etiqueta="Información sobre gastos personales en balance"
-              texto="Apagado por defecto. Lo personal se excluye del balance y nunca suma como aporte al hogar."
+              etiqueta="Información sobre aporte libre"
+              texto="Cada miembro aporta libremente al hogar. Nunca se calculan saldos ni deudas entre ustedes."
             />
-          </div>
-          <input
+          </span>
+        }
+        pie={
+          <FilaSwitchPersonal
             id="toggle-personales"
-            type="checkbox"
-            role="switch"
             checked={vista?.incluirPersonales ?? false}
             disabled={cargando}
-            onChange={(e) => void alternarIncluirPersonales(e.target.checked)}
-            className="hogar-switch hogar-switch--sm"
+            onChange={(v) => void alternarIncluirPersonales(v)}
+            ayuda="Apagado por defecto. Lo personal se excluye del balance y nunca suma como aporte al hogar."
+            etiquetaAyuda="Información sobre gastos personales en balance"
           />
-        </div>
-      </div>
+        }
+      />
 
       {vista?.incluirPersonales ? (
         <Aviso variante="ambar" icono="ℹ">

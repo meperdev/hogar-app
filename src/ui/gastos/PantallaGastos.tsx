@@ -5,9 +5,9 @@ import {
   Aviso,
   AyudaInfo,
   Insignia,
+  SelectorMes,
   Tarjeta,
   claseAyudaCampo,
-  claseBotonIcono,
   claseBotonPequenoPrimario,
   claseBotonPequenoSecundario,
   claseCampoTexto,
@@ -15,10 +15,9 @@ import {
 import { useNotificacionesOpcional } from '../Notificaciones'
 import { ShellApp } from '../ShellApp'
 import {
-  desplazarPeriodo,
   formatearPeriodoEs,
   nombreMesPeriodoEs,
-} from '../obligaciones/PiezasObligaciones'
+} from '../periodos'
 import { useGastos } from './ContextoGastos'
 import {
   DonaCategorias,
@@ -150,31 +149,7 @@ export function PantallaGastos() {
         </Aviso>
       ) : null}
 
-      <div
-        className="flex items-center justify-between gap-2 rounded-2xl border border-hogar-borde bg-hogar-superficie p-1.5 shadow-[var(--hogar-shadow-card)]"
-        role="region"
-        aria-label="Cambiar mes calendario"
-      >
-        <button
-          type="button"
-          className={claseBotonIcono}
-          aria-label="Mes anterior"
-          onClick={() => cambiarPeriodo(desplazarPeriodo(periodo, -1))}
-        >
-          ‹
-        </button>
-        <span className="text-[0.9375rem] font-extrabold text-hogar-tinta">
-          {formatearPeriodoEs(periodo)}
-        </span>
-        <button
-          type="button"
-          className={claseBotonIcono}
-          aria-label="Mes siguiente"
-          onClick={() => cambiarPeriodo(desplazarPeriodo(periodo, 1))}
-        >
-          ›
-        </button>
-      </div>
+      <SelectorMes periodo={periodo} onCambiar={cambiarPeriodo} />
 
       <SelectorAmbitoGastos ambito={ambito} onCambiar={cambiarAmbito} />
 

@@ -180,6 +180,7 @@ function crearPuertoEnMemoria(estadoInicial = datosIniciales()) {
         estado.items.push({
           id: i.id,
           mascotaId: i.mascota_id,
+          mascotaIds: i.mascota_ids ?? (i.mascota_id ? [i.mascota_id] : []),
           nombre: i.nombre,
           tipo: i.tipo,
           categoriaId: i.categoria_id,
@@ -365,6 +366,44 @@ describe('UI Despensa de mascotas (Núcleo 4)', () => {
 
     expect(contenedor.textContent).toContain('Antipulgas mensual')
     expect(contenedor.textContent).toContain('Sin registros aún')
+  })
+
+  it('permite escoger varias mascotas al agregar un insumo y filtra por cualquiera de ellas', async () => {
+    const { port, estado, lotesEnviados } = crearPuertoEnMemoria()
+    estado.mascotas.push({ id: 'mas-kiroi', nombre: 'Kiroi', especie: 'gato', fechaNacimiento: null, activa: true })
+
+    const { contenedor } = montarApp('/mascotas/nuevo-insumo', port)
+    await esperar()
+
+    escribir(contenedor.querySelector('#nombre-insumo') as HTMLInputElement, 'Gel dental gatos')
+    await act(async () => {
+      contenedor.querySelector<HTMLInputElement>('#insumo-mascota-mas-kiroi')?.click()
+      contenedor.querySelector<HTMLInputElement>('#insumo-mascota-mas-luna')?.click()
+    })
+
+    const form = contenedor.querySelector('form')!
+    await act(async () => {
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+    await esperar()
+
+    expect(lotesEnviados[0]).toMatchObject({
+      tipo: 'item_despensa',
+      filas: {
+        item_despensa: [expect.objectContaining({ nombre: 'Gel dental gatos', mascota_id: null, mascota_ids: ['mas-kiroi', 'mas-luna'] })],
+      },
+    })
+    expect(contenedor.textContent).toContain('Kiroi, Luna')
+
+    await act(async () => {
+      Array.from(contenedor.querySelectorAll('button')).find((b) => b.textContent?.includes('Luna'))?.click()
+    })
+    expect(contenedor.textContent).toContain('Gel dental gatos')
+
+    await act(async () => {
+      Array.from(contenedor.querySelectorAll('button')).find((b) => b.textContent?.includes('Milo'))?.click()
+    })
+    expect(contenedor.textContent).not.toContain('Gel dental gatos')
   })
 
   it('recompra 1-tap en /mascotas/recomprar/:itemId sube nivel a 100 % y suma gasto solo si hogar (I23)', async () => {

@@ -237,7 +237,7 @@ describe('alta de pasivo', () => {
     plan: { origen: 'desembolso', capital: 2000000, fechaInicio: '2026-11-10', calendario: null },
   }
 
-  it('deuda del hogar sin tasa con desembolso sin calendario', async () => {
+  it('deuda del hogar sin tasa con desembolso sin calendario aparece en pasivos y prepara abono libre', async () => {
     const { controlador, port } = montar()
     expect(controlador.validarPasivo(base)).toBeNull()
     await controlador.crearPasivo(base)
@@ -246,6 +246,18 @@ describe('alta de pasivo', () => {
     expect(f?.deuda?.[0]).toMatchObject({ acreedor: 'Almacén El Hogar' })
     expect(f?.plan_de_cuotas?.[0]).toMatchObject({ origen: 'desembolso', sistema: 'sin_calendario', n_cuotas: null, fecha_primera_cuota: null })
     expect(f?.cuota).toBeUndefined()
+
+    const pasivoId = String(f!.pasivo![0]!.id)
+    const planId = String(f!.plan_de_cuotas![0]!.id)
+    port.datos.pasivos.push({ id: pasivoId, tipo: 'deuda', nombre: 'Cuenta pendiente Kiroi', ambito: 'hogar', owner_miembro_id: null, ultimos_4: null })
+    port.datos.planes.push({ id: planId, pasivo_id: pasivoId, compra_id: null, fecha_inicio: '2026-11-10', capital: 1_426_000, sistema: 'sin_calendario', n_cuotas: null })
+
+    const agenda = await controlador.cargarMes('2026-11')
+    expect(agenda.pasivos).toContainEqual(expect.objectContaining({
+      pasivoId, nombre: 'Cuenta pendiente Kiroi', saldoPendiente: 1_426_000, tieneSinCalendario: true,
+    }))
+    const borradorAbono = await controlador.prepararPagoPasivo(pasivoId)
+    expect(borradorAbono).toMatchObject({ pasivoId, cuotaId: null, capital: 1_426_000, interes: null })
   })
 
   it('crédito con saldo inicial, tasa E.A. exacta y calendario conocido', async () => {

@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { ErrorMascotas } from '../../app/controladorMascotas'
-import type { CategoriaEstadoDespensa, EstadoItemDespensa, Mascota, TipoInsumo } from '../../domain/mascotas'
+import { mascotasDeItem, type CategoriaEstadoDespensa, type EstadoItemDespensa, type ItemDespensa, type Mascota, type TipoInsumo } from '../../domain/mascotas'
 import { formatearPesos } from '../../domain/pesos'
 import {
   Aviso,
@@ -40,9 +40,23 @@ const COLOR_BARRA: Record<CategoriaEstadoDespensa, string> = {
   desconocido: 'bg-hogar-borde-fuerte',
 }
 
-export function nombreMascotaOCompartido(mascotaId: string | null, mascotas: Mascota[]): string {
-  if (mascotaId === null) return 'Todas (compartido)'
-  return mascotas.find((m) => m.id === mascotaId)?.nombre ?? 'Mascota'
+export function nombreMascotaOCompartido(
+  itemOrId: string | null | Pick<ItemDespensa, 'mascotaId' | 'mascotaIds'>,
+  mascotas: Mascota[],
+): string {
+  const ids =
+    typeof itemOrId === 'string' || itemOrId === null
+      ? itemOrId
+        ? [itemOrId]
+        : []
+      : mascotasDeItem(itemOrId)
+  if (ids.length === 0) return 'Todas (compartido)'
+  const nombres = ids
+    .map((id) => mascotas.find((m) => m.id === id)?.nombre)
+    .filter((n): n is string => Boolean(n))
+  if (nombres.length === 0) return 'Mascota'
+  if (nombres.length <= 3) return nombres.join(', ')
+  return `${nombres.slice(0, 2).join(', ')} +${nombres.length - 2}`
 }
 
 export function BarraNivel({
@@ -94,7 +108,7 @@ export function TarjetaInsumo({
   const [guardando, setGuardando] = useState(false)
   const [errorAjuste, setErrorAjuste] = useState('')
 
-  const mascotaLabel = nombreMascotaOCompartido(item.mascotaId, mascotas)
+  const mascotaLabel = nombreMascotaOCompartido(item, mascotas)
   const tipoLabel = ETIQUETA_TIPO[item.tipo]
   const precioLabel = item.montoHabitual !== null ? ` · Ref. ${formatearPesos(item.montoHabitual)}` : ''
   const diasUi = diasRestantes === null ? null : Math.max(0, diasRestantes)
