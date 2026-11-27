@@ -35,7 +35,7 @@ function errorRpcMedio(error: { code?: string }, porDefecto: string): never {
     throw new ErrorMedioDePago('Ya existe un medio de pago activo con ese nombre.')
   }
   if (error.code === '22023') {
-    throw new ErrorMedioDePago('Revisá el nombre o los datos del medio de pago.')
+    throw new ErrorMedioDePago('Revisa el nombre o los datos del medio de pago.')
   }
   throw new ErrorMedioDePago(porDefecto)
 }

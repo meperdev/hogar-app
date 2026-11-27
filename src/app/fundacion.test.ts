@@ -23,7 +23,7 @@ describe('ingreso por correo', () => {
   it('pide el código solo para un correo válido', async () => {
     const auth = puertos()
     await expect(pedirCodigo(auth, 'sin-arroba')).rejects.toThrow(
-      'Ingresá un correo válido.',
+      'Ingresa un correo válido.',
     )
     expect(auth.pedirCodigo).not.toHaveBeenCalled()
     await pedirCodigo(auth, '  ana@example.test  ')
@@ -33,7 +33,7 @@ describe('ingreso por correo', () => {
   it('verifica seis dígitos y conserva el cero inicial', async () => {
     const auth = puertos()
     await expect(verificarCodigo(auth, 'ana@example.test', '12345'))
-      .rejects.toThrow('Ingresá el código de seis dígitos.')
+      .rejects.toThrow('Ingresa el código de seis dígitos.')
     expect(auth.verificarCodigo).not.toHaveBeenCalled()
     await verificarCodigo(auth, 'ana@example.test', ' 012345 ')
     expect(auth.verificarCodigo).toHaveBeenCalledExactlyOnceWith(
@@ -46,9 +46,9 @@ describe('crear hogar', () => {
   it('no llama al servidor si falta algún nombre', async () => {
     const hogares = puertos()
     await expect(crearHogar(hogares, { nombre: ' ', nombreMiembro: 'Ana' }))
-      .rejects.toThrow('Ingresá el nombre del hogar y tu nombre.')
+      .rejects.toThrow('Ingresa el nombre del hogar y tu nombre.')
     await expect(crearHogar(hogares, { nombre: 'Casa', nombreMiembro: '' }))
-      .rejects.toThrow('Ingresá el nombre del hogar y tu nombre.')
+      .rejects.toThrow('Ingresa el nombre del hogar y tu nombre.')
     expect(hogares.crear).not.toHaveBeenCalled()
   })
 

@@ -54,7 +54,7 @@ describe('Seam de la App', () => {
     window.history.replaceState({}, '', '/crear-hogar');
     const { contenedor } = await montar(createElement(App));
 
-    expect(contenedor.querySelector('h1')?.textContent).toBe('Configurá Supabase');
+    expect(contenedor.querySelector('h1')?.textContent).toBe('Configura Supabase');
     expect(contenedor.textContent).toContain('VITE_SUPABASE_ANON_KEY');
     expect(contenedor.querySelector('form')).toBeNull();
     expect(contenedor.querySelector('footer')?.textContent).toContain(
@@ -70,7 +70,7 @@ describe('Seam de la App', () => {
     });
 
     const raiz = document.getElementById('root');
-    expect(raiz?.querySelector('h1')?.textContent).toBe('Configurá Supabase');
+    expect(raiz?.querySelector('h1')?.textContent).toBe('Configura Supabase');
     expect(raiz?.textContent).toContain('Fundación');
 
     const gesto = new Event('gesturestart', { cancelable: true });

@@ -130,7 +130,7 @@ export function PantallaEscanearFactura() {
       .catch(() => {
         if (!cancelado) {
           setCamaraActiva(false)
-          setErrorCamara('No pudimos abrir la cámara. Revisá los permisos del navegador o pegá el QR abajo.')
+          setErrorCamara('No pudimos abrir la cámara. Revisa los permisos del navegador o pega el QR abajo.')
         }
       })
 
@@ -234,7 +234,7 @@ export function PantallaEscanearFactura() {
                 </div>
               ) : null}
             </div>
-            <p className="m-0 text-[0.8125rem] text-[#d6e2dd]">Lectura 100 % local en tu dispositivo sin consultar la DIAN. Si preferís, pegá el QR abajo.</p>
+            <p className="m-0 text-[0.8125rem] text-[#d6e2dd]">Lectura 100 % local en tu dispositivo sin consultar la DIAN. Si prefieres, pega el QR abajo.</p>
           </div>
           {errorCamara ? <Aviso variante="ambar" icono="▲" role="status"><p>{errorCamara}</p></Aviso> : null}
           {visor.errorQr ? <Aviso variante="ambar" icono="▲" role="alert"><p>{visor.errorQr}</p></Aviso> : null}
@@ -299,7 +299,7 @@ export function PantallaEscanearFactura() {
           </div>
           <Aviso variante="ambar" icono="▲">
             <p><strong>CUFE capturado:</strong> <span className="font-mono text-[0.8125rem]">{truncarCufe(visor.factura.cufe)}</span></p>
-            <p>Este QR no trae total ni fecha y la app no consulta la DIAN. Completá los datos a mano (OCR del tiquete llega en una próxima versión).</p>
+            <p>Este QR no trae total ni fecha y la app no consulta la DIAN. Completa los datos a mano (OCR del tiquete llega en una próxima versión).</p>
           </Aviso>
           <SelectorAmbito ambito={ambitoLocal} ariaLabel="Ámbito de la factura: Hogar o Personal" onCambiar={setAmbitoLocal} />
           <div className="flex flex-col gap-1.5">

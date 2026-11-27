@@ -222,7 +222,7 @@ export function ProveedorCompraRapida({
       }
       if (!opts?.ignorarDuplicadoInmediato && (await controlador.posibleDuplicado(obj))) {
         setConfirmacionDuplicado(true)
-        setAvisoEstado('Posible compra duplicada. Confirmá si querés guardarla de nuevo.')
+        setAvisoEstado('Posible compra duplicada. Confirma si quieres guardarla de nuevo.')
         return { estado: 'confirmar_duplicado' }
       }
       setGuardando(true)

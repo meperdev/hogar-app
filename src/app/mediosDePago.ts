@@ -35,7 +35,7 @@ const esquemaNuevoMedio = z.object({
 export function validarNuevoMedio(entrada: NuevoMedioEntrada): NuevoMedioEntrada {
   const res = esquemaNuevoMedio.safeParse(entrada)
   if (!res.success) {
-    throw new ErrorMedioDePago('Ingresá un nombre entre 1 y 80 caracteres.')
+    throw new ErrorMedioDePago('Ingresa un nombre entre 1 y 80 caracteres.')
   }
   return res.data
 }

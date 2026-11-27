@@ -255,7 +255,7 @@ export function TarjetaMediosDePago({
       ) : activos.length === 0 ? (
         <Tarjeta suave>
           <p className="m-0 text-sm text-hogar-tinta-suave">
-            Todavía no hay medios activos. Tocá «+ Agregar medio» para crear tu primero.
+            Todavía no hay medios activos. Toca «+ Agregar medio» para crear el primero.
           </p>
         </Tarjeta>
       ) : (

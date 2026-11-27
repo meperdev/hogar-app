@@ -135,7 +135,7 @@ it('espera la sesión antes de mostrar contenido y limpia el hogar al salir', as
       await act(async () => salir?.click())
       expect(servicios.auth.salir).toHaveBeenCalledOnce()
       expect(contenedor.textContent).not.toContain('Casa de Ana')
-      expect(contenedor.querySelector('h1')?.textContent).toBe('Ingresá a hogar-app')
+      expect(contenedor.querySelector('h1')?.textContent).toBe('Ingresa a hogar-app')
     } finally {
       await act(async () => raiz.unmount())
       contenedor.remove()
@@ -150,7 +150,7 @@ describe('Flujo de ingreso OTP', () => {
     const { contenedor } = await montar(servicios)
     await act(async () => notificar(null))
 
-    expect(contenedor.querySelector('h1')?.textContent).toBe('Ingresá a hogar-app')
+    expect(contenedor.querySelector('h1')?.textContent).toBe('Ingresa a hogar-app')
     expect(contenedor.querySelector('main#contenido')?.getAttribute('tabindex')).toBe('-1')
     const inputCorreo = contenedor.querySelector<HTMLInputElement>('#ingreso-correo')
     expect(inputCorreo).not.toBeNull()
@@ -163,7 +163,7 @@ describe('Flujo de ingreso OTP', () => {
       contenedor.querySelector('form')?.requestSubmit()
     })
     expect(contenedor.querySelector('[role="alert"]')?.textContent).toContain(
-      'Ingresá un correo válido.',
+      'Ingresa un correo válido.',
     )
     expect(servicios.auth.pedirCodigo).not.toHaveBeenCalled()
 
@@ -174,7 +174,7 @@ describe('Flujo de ingreso OTP', () => {
       contenedor.querySelector('form')?.requestSubmit()
     })
     expect(servicios.auth.pedirCodigo).toHaveBeenCalledExactlyOnceWith('ana@example.test')
-    expect(contenedor.textContent).toContain('Ingresá el código que enviamos a ana@example.test.')
+    expect(contenedor.textContent).toContain('Ingresa el código que enviamos a ana@example.test.')
 
     const inputCodigo = contenedor.querySelector<HTMLInputElement>('#ingreso-codigo')
     expect(inputCodigo).not.toBeNull()
@@ -210,7 +210,7 @@ describe('Alta de hogar y recuperación de errores', () => {
     const { contenedor } = await montar(servicios)
     await act(async () => notificar({ usuarioId: 'ana' }))
 
-    expect(contenedor.querySelector('h1')?.textContent).toBe('Creá tu hogar')
+    expect(contenedor.querySelector('h1')?.textContent).toBe('Crea tu hogar')
     expect(contenedor.querySelector('label[for="hogar-nombre"]')).not.toBeNull()
     expect(contenedor.querySelector('label[for="hogar-miembro"]')).not.toBeNull()
 
@@ -218,7 +218,7 @@ describe('Alta de hogar y recuperación de errores', () => {
       contenedor.querySelector('form')?.requestSubmit()
     })
     expect(contenedor.querySelector('[role="alert"]')?.textContent).toContain(
-      'Ingresá el nombre del hogar y tu nombre.',
+      'Ingresa el nombre del hogar y tu nombre.',
     )
     expect(servicios.hogares.crear).not.toHaveBeenCalled()
 
@@ -323,7 +323,7 @@ describe('Shell autenticado, navegación e invitaciones', () => {
       linkVolver?.click()
     })
     expect(contenedor.querySelector('h1')?.textContent).toBe('Casa de Ana')
-    expect(contenedor.textContent).toContain('Ana — Administrador (vos)')
+    expect(contenedor.textContent).toContain('Ana — Administrador (tú)')
     expect(contenedor.textContent).toContain('Beto — Miembro · Inactivo')
     expect(contenedor.textContent).toContain(
       'La invitación a nuevos miembros todavía no está disponible.',

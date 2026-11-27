@@ -91,7 +91,7 @@ export function PantallaCompraCuotas() {
       {!tarjeta ? (
         <Aviso variante="ambar" icono="▲">
           <p className="font-bold">No hay una tarjeta disponible en este ámbito.</p>
-          <p>Cambiá a <strong>Hogar</strong> o elegí un medio de contado en Compra rápida.</p>
+          <p>Cambia a <strong>Hogar</strong> o elige un medio de contado en Compra rápida.</p>
         </Aviso>
       ) : (
         <>
@@ -116,7 +116,7 @@ export function PantallaCompraCuotas() {
 
           {!borrador.categoriaId ? (
             <section aria-labelledby="categoria-cuotas-heading">
-              <h2 id="categoria-cuotas-heading" className="mb-1.5 text-[0.9375rem] font-extrabold text-hogar-tinta">Elegí una categoría</h2>
+              <h2 id="categoria-cuotas-heading" className="mb-1.5 text-[0.9375rem] font-extrabold text-hogar-tinta">Elige una categoría</h2>
               <GrillaCategorias categorias={categorias.slice(0, 6)} seleccionadaId={borrador.categoriaId} ariaLabel="Categorías" onElegir={(categoriaId) => { setErrorValidacion(null); setBorrador((p) => ({ ...p, categoriaId })) }} />
             </section>
           ) : null}
@@ -202,7 +202,7 @@ export function PantallaCompraCuotas() {
               </dl>
             </Tarjeta>
           ) : (
-            <p className={claseAyudaCampo}>Ingresá un monto mayor o igual a {cuotas} COP para ver el calendario de cuotas.</p>
+            <p className={claseAyudaCampo}>Ingresa un monto mayor o igual a {cuotas} COP para ver el calendario de cuotas.</p>
           )}
 
           <div className="flex flex-col gap-1.5">
