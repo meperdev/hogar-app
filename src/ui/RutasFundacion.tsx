@@ -36,7 +36,7 @@ import {
   PantallaObligacionesVacia,
 } from './PantallasNucleos'
 import { ShellApp } from './ShellApp'
-import { ProveedorCompraRapida } from './compraRapida/ContextoCompraRapida'
+import { ProveedorCompraRapida, useRecargarCatalogoCompraOpcional } from './compraRapida/ContextoCompraRapida'
 import { PantallaCompraCuotas } from './compraRapida/PantallaCompraCuotas'
 import { PantallaCompraRapida } from './compraRapida/PantallaCompraRapida'
 import { PantallaEscanearFactura } from './compraRapida/PantallaEscanearFactura'
@@ -55,6 +55,7 @@ import { PantallaNuevoInsumo } from './mascotas/PantallaNuevoInsumo'
 import { PantallaRecomprarInsumo } from './mascotas/PantallaRecomprarInsumo'
 import { PantallaUnirmeHogar } from './invitaciones/PantallaUnirmeHogar'
 import { TarjetaInvitacionHogar } from './invitaciones/TarjetaInvitacionHogar'
+import { TarjetaMediosDePago } from './hogar/TarjetaMediosDePago'
 
 function mensaje(error: unknown, porDefecto: string) {
   return error instanceof ErrorFundacion ? error.message : porDefecto
@@ -379,17 +380,20 @@ const enlacesNucleos = [
 function ResumenHogar({
   hogar,
   invitaciones,
+  mediosDePago,
   onSalir,
   saliendo,
   errorSalir,
 }: {
   hogar: Hogar
   invitaciones?: Servicios['invitaciones']
+  mediosDePago?: Servicios['mediosDePago']
   onSalir: () => void
   saliendo: boolean
   errorSalir: string
 }) {
   const rolActual = hogar.miembroActual.rol === 'admin' ? 'Administrador' : 'Miembro'
+  const recargarCompra = useRecargarCatalogoCompraOpcional()
 
   return (
     <ShellApp
@@ -468,6 +472,14 @@ function ResumenHogar({
           })}
         </ul>
       </section>
+
+      {mediosDePago ? (
+        <TarjetaMediosDePago
+          hogar={hogar}
+          mediosDePago={mediosDePago}
+          {...(recargarCompra ? { onCambio: recargarCompra } : {})}
+        />
+      ) : null}
 
       {hogar.miembroActual.rol === 'admin' ? (
         invitaciones ? (
@@ -647,6 +659,7 @@ function HogarConSesion({ servicios, sesion }: { servicios: Servicios; sesion: S
           <ResumenHogar
             hogar={carga}
             invitaciones={servicios.invitaciones}
+            mediosDePago={servicios.mediosDePago}
             onSalir={salir}
             saliendo={ocupado}
             errorSalir={error}

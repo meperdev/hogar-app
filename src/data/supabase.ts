@@ -10,6 +10,7 @@ import { crearPuertoCompraRapida, crearRemotoSupabase } from './compraRapida'
 import { AdministradorBaseActor } from './db'
 import { crearPuertoInvitaciones } from './invitaciones'
 import { crearPuertoMascotas, crearRemotoMascotas } from './mascotas'
+import { crearMediosDePagoSupabase } from './mediosDePago'
 import { crearPuertoObligaciones, crearRemotoObligaciones } from './obligaciones'
 import { uuidV7 } from './uuid'
 
@@ -103,6 +104,7 @@ export function conectarSupabase(url: unknown, clavePublica: unknown): Servicios
       },
     },
     invitaciones: crearPuertoInvitaciones(cliente),
+    mediosDePago: crearMediosDePagoSupabase(cliente),
     compras: (alcance) =>
       crearControladorCompraRapida({
         port: crearPuertoCompraRapida({

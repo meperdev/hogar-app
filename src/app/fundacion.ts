@@ -3,6 +3,7 @@ import type { AlcanceCompra, ControladorCompraRapida } from './compraRapida'
 import type { ControladorBalance } from './balance'
 import type { InvitacionesPort } from './invitaciones'
 import type { ControladorMascotas } from './mascotas'
+import type { MediosDePagoPort } from './mediosDePago'
 import type { ControladorObligaciones } from './obligaciones'
 
 export type Sesion = { usuarioId: string }
@@ -39,6 +40,7 @@ export type Servicios = {
   auth: AuthPort
   hogares: HogarPort
   invitaciones?: InvitacionesPort
+  mediosDePago?: MediosDePagoPort
   /** Núcleo 1: controlador de compra rápida por actor (ver `compraRapida.ts`). */
   compras?: (alcance: AlcanceCompra) => ControladorCompraRapida
   /** Núcleo 2: controlador de Obligaciones del mes (ver `obligaciones.ts`). */

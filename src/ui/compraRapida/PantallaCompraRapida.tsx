@@ -303,6 +303,9 @@ export function PantallaCompraRapida() {
               </select>
               <p id="ayuda-prestamo" className={claseAyudaCampo}>Vincula la compra al desembolso del préstamo sin crear otro plan. No suma aporte hoy.</p>
             </div>
+            <Link to="/hogar#medios-de-pago" className={`${claseBotonPequenoSecundario} w-full no-underline`}>
+              Gestionar o agregar medio de pago
+            </Link>
           </div>
         </details>
 
@@ -361,7 +364,7 @@ export function PantallaCompraRapida() {
             <label htmlFor="nota-compra" className={claseEtiquetaCampo}>Descripción o comercio</label>
             <input ref={notaRef} id="nota-compra" className={claseCampoTexto} type="text" placeholder="Ej. Almacenes Éxito" value={borrador.descripcion} onChange={(e) => setBorrador((p) => ({ ...p, descripcion: e.target.value }))} />
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className="min-w-0 max-w-full overflow-hidden flex flex-col gap-1.5">
             <label htmlFor="fecha-compra" className={claseEtiquetaCampo}>Fecha civil del consumo</label>
             <input ref={fechaRef} id="fecha-compra" className={claseCampoTexto} type="date" value={borrador.fecha} onChange={(e) => setBorrador((p) => ({ ...p, fecha: e.target.value }))} />
           </div>
@@ -369,7 +372,12 @@ export function PantallaCompraRapida() {
       </details>
 
       {!medioSeleccionado && mediosDisponibles.length === 0 && !cargando ? (
-        <Tarjeta suave><p className="m-0 text-sm text-hogar-tinta-suave">No encontramos medios de pago configurados para este ámbito.</p></Tarjeta>
+        <Tarjeta suave className="flex flex-col gap-2">
+          <p className="m-0 text-sm text-hogar-tinta-suave">No encontramos medios de pago configurados para este ámbito.</p>
+          <Link to="/hogar#medios-de-pago" className={`${claseBotonPequenoSecundario} w-full no-underline`}>
+            Crear medio de pago
+          </Link>
+        </Tarjeta>
       ) : null}
     </ShellApp>
   )

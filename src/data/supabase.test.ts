@@ -53,4 +53,10 @@ describe('conectarSupabase', () => {
 
     expect(servicios?.invitaciones).toBeDefined()
   })
+
+  it('conecta el puerto de medios de pago', () => {
+    const servicios = conectarSupabase('http://127.0.0.1:54321', CLAVE_PUBLICA)
+
+    expect(servicios?.mediosDePago).toBeDefined()
+  })
 })
