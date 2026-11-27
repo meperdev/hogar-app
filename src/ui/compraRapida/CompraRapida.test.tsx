@@ -228,7 +228,8 @@ describe('Compra rápida UI (controlador real)', () => {
   it('abre la cámara y decodifica el QR con jsqr cuando falta BarcodeDetector (iOS Safari)', async () => {
     const { controlador } = crearControladorReal(hogarDePrueba())
     const stopTrack = vi.fn()
-    const getUserMedia = vi.fn(async () => ({ getTracks: () => [{ stop: stopTrack }] }))
+    const mediaStream = { getTracks: () => [{ stop: stopTrack }] }
+    const getUserMedia = vi.fn(async () => mediaStream)
     vi.stubGlobal('BarcodeDetector', undefined)
     Object.defineProperty(navigator, 'mediaDevices', {
       configurable: true,
@@ -253,6 +254,7 @@ describe('Compra rápida UI (controlador real)', () => {
       expect(getUserMedia).toHaveBeenCalledTimes(1)
       const video = contenedor.querySelector('video')
       expect(video).not.toBeNull()
+      expect(video?.srcObject).toBe(mediaStream)
       if (video) {
         Object.defineProperty(video, 'readyState', { configurable: true, value: 4 })
         Object.defineProperty(video, 'videoWidth', { configurable: true, value: 640 })

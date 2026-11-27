@@ -36,6 +36,7 @@ export function PantallaEscanearFactura() {
   const [comercioLocal, setComercioLocal] = useState('')
   const [errorGuardar, setErrorGuardar] = useState('')
   const videoRef = useRef<HTMLVideoElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
   const categorias = catalogo ? [...catalogo.categorias].sort((a, b) => a.orden - b.orden).slice(0, 6) : []
 
   async function procesarQr(texto: string) {
@@ -69,9 +70,12 @@ export function PantallaEscanearFactura() {
           return
         }
         stream = media
+        streamRef.current = media
         setCamaraActiva(true)
         if (videoRef.current) {
           videoRef.current.srcObject = media
+          videoRef.current.muted = true
+          videoRef.current.setAttribute('playsinline', 'true')
           void videoRef.current.play().catch(() => {})
         }
         const Detector = window.BarcodeDetector
@@ -111,7 +115,7 @@ export function PantallaEscanearFactura() {
               contexto.drawImage(video, 0, 0, ancho, alto)
               const imagen = contexto.getImageData(0, 0, ancho, alto)
               const resultado = jsQR(imagen.data, ancho, alto, {
-                inversionAttempts: 'dontInvert',
+                inversionAttempts: 'attemptBoth',
               })
               if (resultado?.data && !cancelado) {
                 if (timer) clearInterval(timer)
@@ -134,10 +138,24 @@ export function PantallaEscanearFactura() {
       cancelado = true
       setCamaraActiva(false)
       if (timer) clearInterval(timer)
+      streamRef.current = null
+      if (videoRef.current) videoRef.current.srcObject = null
       stream?.getTracks().forEach((t) => t.stop())
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visor.paso])
+
+  useEffect(() => {
+    const video = videoRef.current
+    const media = streamRef.current
+    if (!camaraActiva || !video || !media) return
+    if (video.srcObject !== media) {
+      video.srcObject = media
+      video.muted = true
+      video.setAttribute('playsinline', 'true')
+      void video.play().catch(() => {})
+    }
+  }, [camaraActiva])
 
   function transferirABorrador(factura: DatosFactura) {
     aplicarDatosFactura({
@@ -208,13 +226,14 @@ export function PantallaEscanearFactura() {
             <span className="inline-flex items-center gap-1.5 rounded-full border border-[#7ae5c3] bg-[#1f332b] px-2.5 py-1 text-[0.8125rem] font-bold text-[#b7f5e1]" role="status" aria-live="polite">
               ● Buscando código QR DIAN…
             </span>
-            {camaraActiva ? (
-              <video ref={videoRef} autoPlay playsInline muted className="h-40 w-40 rounded-xl border-2 border-dashed border-[#7ae5c3] object-cover" />
-            ) : (
-              <div className="flex size-[156px] flex-col items-center justify-center rounded-xl border-[3px] border-dashed border-[#7ae5c3] bg-white/5 p-3">
-                <span className="text-[0.8125rem] font-bold">Apunta al QR de la factura</span>
-              </div>
-            )}
+            <div className="relative aspect-square w-full max-w-[260px] overflow-hidden rounded-xl border-2 border-dashed border-[#7ae5c3] bg-black/40">
+              <video ref={videoRef} autoPlay playsInline muted className="h-full w-full object-cover" />
+              {!camaraActiva ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#121c18]/80 p-3">
+                  <span className="text-[0.8125rem] font-bold">Apunta al QR de la factura</span>
+                </div>
+              ) : null}
+            </div>
             <p className="m-0 text-[0.8125rem] text-[#d6e2dd]">Lectura 100 % local en tu dispositivo sin consultar la DIAN. Si preferís, pegá el QR abajo.</p>
           </div>
           {errorCamara ? <Aviso variante="ambar" icono="▲" role="status"><p>{errorCamara}</p></Aviso> : null}
