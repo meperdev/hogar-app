@@ -4,7 +4,7 @@ import { hoyCivil } from '../../domain/fechas'
 import { formatearPesos } from '../../domain/pesos'
 import {
   Aviso, Tarjeta, claseAyudaCampo, claseBotonIcono,
-  claseBotonPequenoSecundario, claseBotonPrimario, claseBotonSecundario,
+  claseBotonPequenoSecundario, claseBotonPrimario,
 } from '../ComponentesBase'
 import { ShellApp } from '../ShellApp'
 import { useObligaciones } from './ContextoObligaciones'
@@ -59,10 +59,24 @@ export function PantallaObligaciones() {
     <ShellApp
       titulo="Obligaciones del mes"
       subtitulo={subtituloMes}
-      accionDerecha={<Link to="/obligaciones/nuevo-pasivo" className={`${claseBotonPequenoSecundario} no-underline`}>+ Pasivo</Link>}
       mostrarNavegacion
       etiquetaBarraAccion="Acción principal de obligaciones"
-      barraAccion={<Link to={ctaPrincipal.destino} className={`${claseBotonPrimario} w-full no-underline`} data-sin-scroll>{ctaPrincipal.etiqueta}</Link>}
+      barraAccion={
+        primerPendiente ? (
+          <div className="flex items-center gap-2">
+            <Link to={ctaPrincipal.destino} className={`${claseBotonPrimario} flex-1 no-underline`} data-sin-scroll>
+              {ctaPrincipal.etiqueta}
+            </Link>
+            <Link to="/obligaciones/nuevo-pasivo" className={`${claseBotonPequenoSecundario} shrink-0 no-underline`}>
+              + Pasivo
+            </Link>
+          </div>
+        ) : (
+          <Link to="/obligaciones/nuevo-pasivo" className={`${claseBotonPrimario} w-full no-underline`} data-sin-scroll>
+            + Agregar tarjeta, crédito o deuda
+          </Link>
+        )
+      }
     >
       {toast ? (
         <div className="hogar-toast flex items-center justify-between gap-2 rounded-2xl bg-hogar-tinta px-3.5 py-2.5 text-sm text-white shadow-[var(--hogar-shadow-elevated)]" role="status" aria-live="polite">
@@ -168,8 +182,6 @@ export function PantallaObligaciones() {
           <p className={claseAyudaCampo}>Todavía no hay obligaciones pagadas en {mesTexto}.</p>
         ) : null}
       </section>
-
-      <Link to="/obligaciones/nuevo-pasivo" className={`${claseBotonSecundario} w-full no-underline`}>+ Agregar tarjeta, crédito o deuda</Link>
     </ShellApp>
   )
 }

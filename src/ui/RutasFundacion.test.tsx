@@ -306,6 +306,17 @@ describe('Shell autenticado, navegación e invitaciones', () => {
     await act(async () => {
       linkBalance?.click()
     })
+    const linkAjustesEnBalance = [...contenedor.querySelectorAll<HTMLAnchorElement>('a')].find(
+      (enlace) => enlace.textContent?.trim() === 'Ajustes',
+    )
+    expect(linkAjustesEnBalance).toBeUndefined()
+
+    const linkHogar = contenedor.querySelector<HTMLAnchorElement>(
+      'a[aria-label="Mi perfil, hogar y cerrar sesión"]',
+    )
+    await act(async () => {
+      linkHogar?.click()
+    })
     const linkAjustes = [...contenedor.querySelectorAll<HTMLAnchorElement>('a')].find(
       (enlace) => enlace.textContent?.trim() === 'Ajustes',
     )
@@ -423,5 +434,83 @@ describe('Shell autenticado, navegación e invitaciones', () => {
       (el) => el.dataset.medioId,
     )
     expect(idsEnDom).toEqual(['mp-2', 'mp-1'])
+  })
+
+  it('permite crear, editar y reordenar comercios frecuentes dentro de Hogar', async () => {
+    const listar = vi.fn(async () => ({
+      comercios: [
+        {
+          id: 'cf-1',
+          nombre: 'D1',
+          categoriaSugeridaId: 'cat-m',
+          activo: true,
+          orden: 0,
+        },
+      ],
+      categorias: [{ id: 'cat-m', nombre: 'Mercado', icono: 'mercado', orden: 1 }],
+    }))
+    const crear = vi.fn(async (entrada: { nombre: string; categoriaSugeridaId: string | null }) => ({
+      id: 'cf-2',
+      nombre: entrada.nombre.trim(),
+      categoriaSugeridaId: entrada.categoriaSugeridaId,
+      activo: true,
+      orden: 1,
+    }))
+    const editar = vi.fn(async (entrada: { comercioId: string; nombre: string; categoriaSugeridaId: string | null }) => ({
+      id: entrada.comercioId,
+      nombre: entrada.nombre.trim(),
+      categoriaSugeridaId: entrada.categoriaSugeridaId,
+      activo: true,
+      orden: 1,
+    }))
+    const reordenar = vi.fn(async () => {})
+    const { servicios, notificar } = crearServiciosBase({
+      cargar: vi.fn(async () => hogarEjemplo('admin')),
+    })
+    servicios.comercios = {
+      listar,
+      crear,
+      editar,
+      cambiarActivo: vi.fn(async (id, activo) => ({ id, activo })),
+      reordenar,
+    }
+
+    const { contenedor } = await montar(servicios)
+    await act(async () => notificar({ usuarioId: 'ana' }))
+
+    await act(async () => {
+      contenedor
+        .querySelector<HTMLAnchorElement>('a[aria-label="Mi perfil, hogar y cerrar sesión"]')
+        ?.click()
+    })
+    expect(contenedor.textContent).toContain('Comercios frecuentes')
+
+    const btnAgregar = [...contenedor.querySelectorAll('button')].find(
+      (b) => b.textContent === '+ Agregar comercio',
+    )
+    await act(async () => {
+      btnAgregar?.click()
+    })
+
+    const inputNombre = contenedor.querySelector<HTMLInputElement>('#comercio-nuevo-nombre')
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
+      setter?.call(inputNombre, 'Dollarcity')
+      inputNombre?.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await act(async () => {
+      inputNombre?.closest('form')?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(crear).toHaveBeenCalledWith({ nombre: 'Dollarcity', categoriaSugeridaId: null })
+    expect(contenedor.textContent).toContain('Dollarcity')
+
+    const asaDollar = contenedor.querySelector<HTMLButtonElement>(
+      'button[aria-label="Reordenar Dollarcity"]',
+    )
+    await act(async () => {
+      asaDollar?.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }))
+    })
+    expect(reordenar).toHaveBeenCalledWith(['cf-2', 'cf-1'])
   })
 })

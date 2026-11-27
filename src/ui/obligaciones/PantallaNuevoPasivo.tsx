@@ -10,6 +10,7 @@ import {
 import { ShellApp } from '../ShellApp'
 import { formatearPorcentajeEs, parsearDigitosCop } from '../compraRapida/formatoCop'
 import { useObligaciones } from './ContextoObligaciones'
+import { ATAJOS_ENTIDADES_FINANCIERAS, identidadMedio } from '../marcas'
 import { TarjetaRadio, parsearPorcentajeEs } from './PiezasObligaciones'
 
 type TipoPasivo = BorradorPasivo['tipo']
@@ -205,6 +206,40 @@ export function PantallaNuevoPasivo() {
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
               <label htmlFor="entidad-credito" className={claseEtiquetaCampo}>Entidad financiera</label>
+              <div
+                className="hogar-carrusel"
+                role="group"
+                aria-label="Entidades financieras frecuentes"
+              >
+                {ATAJOS_ENTIDADES_FINANCIERAS.map((banco) => {
+                  const activo = entidad.trim().toLowerCase() === banco.toLowerCase()
+                  const idVisual = identidadMedio(banco, 'cuenta')
+                  const { Logo } = idVisual
+                  return (
+                    <button
+                      key={banco}
+                      type="button"
+                      className={`inline-flex min-h-11 shrink-0 snap-start cursor-pointer items-center gap-2 rounded-full border-2 px-3.5 py-2 text-xs font-bold transition-transform duration-150 active:scale-[0.95] ${
+                        activo ? '-translate-y-0.5 ring-2 ring-hogar-primario ring-offset-1' : 'opacity-95 hover:opacity-100'
+                      }`}
+                      style={{
+                        background: idVisual.gradiente,
+                        color: idVisual.texto,
+                        borderColor: activo ? idVisual.acento : 'transparent',
+                        boxShadow: activo ? idVisual.sombra : '0 2px 6px -2px rgba(16, 24, 20, 0.16)',
+                      }}
+                      aria-pressed={activo}
+                      onClick={() => {
+                        setErrorForm(null)
+                        setEntidad(activo ? '' : banco)
+                      }}
+                    >
+                      <Logo className="size-4 shrink-0" />
+                      <span>{banco}</span>
+                    </button>
+                  )
+                })}
+              </div>
               <input ref={entidadRef} id="entidad-credito" className={claseCampoTexto} type="text" placeholder="Ej. Bancolombia, Davivienda" value={entidad} aria-invalid={errorForm?.campo === 'entidad' ? 'true' : undefined} onChange={(e) => { setErrorForm(null); setEntidad(e.target.value) }} />
             </div>
             <div className="flex flex-col gap-1.5">

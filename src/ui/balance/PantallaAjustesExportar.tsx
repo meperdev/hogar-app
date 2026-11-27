@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import type { EstadoAjustes, ResultadoExportacion } from '../../app/balance'
 import type { ZipExportado } from '../../domain/exportacion'
 import {
@@ -101,8 +100,8 @@ export function PantallaAjustesExportar({
     <ShellApp
       titulo="Ajustes y exportación"
       subtitulo={hogar.nombre}
-      volverA="/balance"
-      etiquetaVolver="Volver a Balance de pareja"
+      volverA="/hogar"
+      etiquetaVolver={`Volver a ${hogar.nombre}`}
       accionDerecha={<Insignia variante="primario">Respaldo activo</Insignia>}
       mostrarNavegacion
       etiquetaBarraAccion="Acción principal de exportación"
@@ -297,9 +296,6 @@ export function PantallaAjustesExportar({
         >
           Cerrar sesión
         </button>
-        <Link to="/hogar" className={`${claseBotonSecundario} w-full no-underline`}>
-          Volver a {hogar.nombre}
-        </Link>
       </Tarjeta>
     </ShellApp>
   )

@@ -21,6 +21,12 @@ export type CategoriaOpcion = {
   orden: number
 }
 
+export type ComercioOpcion = {
+  id: string
+  nombre: string
+  categoriaSugeridaId: string | null
+}
+
 export type TasaPasivo = { tipo: 'EA' | 'MV'; ppm: number }
 
 /**
@@ -61,6 +67,7 @@ export type MedioOpcion =
 export type CatalogoCompra = {
   categorias: CategoriaOpcion[]
   medios: MedioOpcion[]
+  comercios?: ComercioOpcion[] | undefined
 }
 
 /** Datos leídos de una factura electrónica (QR DIAN, OCR o manual). */
