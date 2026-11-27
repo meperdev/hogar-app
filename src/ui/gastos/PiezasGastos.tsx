@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type {
   CategoriaResumenGasto,
   FiltroAmbitoGastos,
@@ -253,10 +254,14 @@ export { ModalEditarGasto } from './ModalEditarGasto'
 
 export function ListaMovimientosGasto({
   movimientos,
+  seleccionadoId,
   onSeleccionar,
+  renderDetalle,
 }: {
   movimientos: MovimientoGasto[]
+  seleccionadoId?: string | null | undefined
   onSeleccionar?: ((mov: MovimientoGasto) => void) | undefined
+  renderDetalle?: ((mov: MovimientoGasto) => ReactNode) | undefined
 }) {
   return (
     <ul className="m-0 flex list-none flex-col gap-2 p-0">
@@ -272,63 +277,76 @@ export function ListaMovimientosGasto({
         const identidad = identidadMedio(mov.medioNombre, tipoVisual)
         const { Logo } = identidad
         const titulo = mov.descripcion.trim() || mov.categoriaNombre
+        const abierto = seleccionadoId === mov.id
 
-        const tarjeta = (
-          <Tarjeta className="flex items-center justify-between gap-3 p-3 transition hover:border-hogar-borde-fuerte">
-              <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                <span
-                  className="grid size-10 shrink-0 place-items-center rounded-2xl shadow-[0_3px_8px_-2px_rgba(16,24,20,0.22)]"
-                  style={{ background: identidad.gradiente, color: identidad.texto }}
-                  aria-hidden="true"
-                >
-                  <Logo className="size-5" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="m-0 truncate text-sm font-extrabold text-hogar-tinta">
-                    {titulo}
-                  </p>
-                  <p className="m-0 mt-0.5 truncate text-xs text-hogar-tinta-suave">
-                    {formatearFechaCortaEs(mov.fecha)} · {mov.categoriaNombre} · {mov.medioNombre}
-                    {mov.ambito === 'hogar' ? ` · ${mov.registradoPorNombre}` : ''}
-                  </p>
-                  {mov.ambito === 'personal' || (mov.cuotas !== null && mov.cuotas > 1) ? (
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {mov.ambito === 'personal' ? (
-                        <Insignia variante="indigo">Personal</Insignia>
-                      ) : null}
-                      {mov.cuotas !== null && mov.cuotas > 1 ? (
-                        <Insignia variante="neutral">{mov.cuotas} cuotas</Insignia>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-              <div className="flex shrink-0 items-center gap-1.5">
-                <span className="hogar-cop text-sm font-extrabold text-hogar-tinta">
-                  {formatearPesos(mov.montoTotal)}
-                </span>
-                {onSeleccionar ? (
-                  <span aria-hidden="true" className="text-base font-bold text-hogar-tinta-tenue">
-                    ›
-                  </span>
+        const cabecera = (
+          <div className="flex items-center justify-between gap-3 p-3">
+            <div className="flex min-w-0 flex-1 items-center gap-2.5">
+              <span
+                className="grid size-10 shrink-0 place-items-center rounded-2xl shadow-[0_3px_8px_-2px_rgba(16,24,20,0.22)]"
+                style={{ background: identidad.gradiente, color: identidad.texto }}
+                aria-hidden="true"
+              >
+                <Logo className="size-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="m-0 truncate text-sm font-extrabold text-hogar-tinta">
+                  {titulo}
+                </p>
+                <p className="m-0 mt-0.5 truncate text-xs text-hogar-tinta-suave">
+                  {formatearFechaCortaEs(mov.fecha)} · {mov.categoriaNombre} · {mov.medioNombre}
+                  {mov.ambito === 'hogar' ? ` · ${mov.registradoPorNombre}` : ''}
+                </p>
+                {mov.ambito === 'personal' || (mov.cuotas !== null && mov.cuotas > 1) ? (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {mov.ambito === 'personal' ? (
+                      <Insignia variante="indigo">Personal</Insignia>
+                    ) : null}
+                    {mov.cuotas !== null && mov.cuotas > 1 ? (
+                      <Insignia variante="neutral">{mov.cuotas} cuotas</Insignia>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
-            </Tarjeta>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <span className="hogar-cop text-sm font-extrabold text-hogar-tinta">
+                {formatearPesos(mov.montoTotal)}
+              </span>
+              {onSeleccionar ? (
+                <span
+                  aria-hidden="true"
+                  className={`inline-block text-base font-bold text-hogar-tinta-tenue transition-transform duration-150 ${
+                    abierto ? 'rotate-90' : ''
+                  }`}
+                >
+                  ›
+                </span>
+              ) : null}
+            </div>
+          </div>
         )
 
         return (
           <li key={mov.id}>
-            {onSeleccionar ? (
-              <button
-                type="button"
-                onClick={() => onSeleccionar(mov)}
-                className="block w-full cursor-pointer rounded-2xl border-0 bg-transparent p-0 text-left focus-visible:outline-2 focus-visible:outline-hogar-primario"
-              >
-                {tarjeta}
-              </button>
-            ) : (
-              tarjeta
-            )}
+            <Tarjeta
+              acento={abierto ? 'primario' : 'ninguno'}
+              className="overflow-hidden p-0 transition hover:border-hogar-borde-fuerte"
+            >
+              {onSeleccionar ? (
+                <button
+                  type="button"
+                  aria-expanded={abierto}
+                  onClick={() => onSeleccionar(mov)}
+                  className="block w-full cursor-pointer border-0 bg-transparent p-0 text-left focus-visible:outline-2 focus-visible:outline-hogar-primario"
+                >
+                  {cabecera}
+                </button>
+              ) : (
+                cabecera
+              )}
+              {abierto ? renderDetalle?.(mov) : null}
+            </Tarjeta>
           </li>
         )
       })}

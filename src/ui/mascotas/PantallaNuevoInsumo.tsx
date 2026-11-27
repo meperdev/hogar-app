@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ErrorMascotas } from '../../app/controladorMascotas'
 import type { TipoInsumo } from '../../domain/mascotas'
+import { formatearPesos } from '../../domain/pesos'
 import {
   Aviso,
   Tarjeta,
@@ -243,13 +244,16 @@ export function PantallaNuevoInsumo() {
             </label>
             <input
               id="precio-insumo"
-              className={claseCampoTexto}
+              className={`${claseCampoTexto} hogar-cop font-bold`}
               type="text"
               inputMode="numeric"
-              placeholder="Ej. 165000"
+              placeholder="Ej. $165.000"
               value={montoTexto}
               aria-describedby="ayuda-precio-insumo"
-              onChange={(e) => setMontoTexto(e.target.value)}
+              onChange={(e) => {
+                const n = parsearDigitosCop(e.target.value)
+                setMontoTexto(n > 0 ? formatearPesos(n) : '')
+              }}
               disabled={guardando}
             />
             <p id="ayuda-precio-insumo" className={claseAyudaCampo}>

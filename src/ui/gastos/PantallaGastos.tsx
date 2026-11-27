@@ -45,9 +45,7 @@ export function PantallaGastos() {
 
   const [categoriaActivaId, setCategoriaActivaId] = useState<string | null>(null)
   const [busqueda, setBusqueda] = useState('')
-  const [movSeleccionado, setMovSeleccionado] = useState<
-    NonNullable<typeof vista>['movimientos'][number] | null
-  >(null)
+  const [movSeleccionadoId, setMovSeleccionadoId] = useState<string | null>(null)
   const primeraCargaRef = useRef(true)
 
   useEffect(() => {
@@ -298,7 +296,20 @@ export function PantallaGastos() {
           {movimientosFiltrados.length > 0 ? (
             <ListaMovimientosGasto
               movimientos={movimientosFiltrados}
-              onSeleccionar={setMovSeleccionado}
+              seleccionadoId={movSeleccionadoId}
+              onSeleccionar={(mov) =>
+                setMovSeleccionadoId((actual) => (actual === mov.id ? null : mov.id))
+              }
+              renderDetalle={(mov) => (
+                <ModalEditarGasto
+                  movimiento={mov}
+                  categorias={vista?.categoriasDisponibles ?? []}
+                  medios={vista?.mediosDisponibles ?? []}
+                  onCerrar={() => setMovSeleccionadoId(null)}
+                  onGuardar={editarCompra}
+                  onAnular={anularCompra}
+                />
+              )}
             />
           ) : (
             <p className={claseAyudaCampo}>
@@ -307,15 +318,6 @@ export function PantallaGastos() {
           )}
         </section>
       ) : null}
-
-      <ModalEditarGasto
-        movimiento={movSeleccionado}
-        categorias={vista?.categoriasDisponibles ?? []}
-        medios={vista?.mediosDisponibles ?? []}
-        onCerrar={() => setMovSeleccionado(null)}
-        onGuardar={editarCompra}
-        onAnular={anularCompra}
-      />
     </ShellApp>
   )
 }

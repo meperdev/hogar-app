@@ -34,6 +34,7 @@ export type MedioGasto = {
   nombre: string
   tipo: 'efectivo' | 'cuenta'
   activo?: boolean | undefined
+  orden?: number | undefined
 }
 
 export type PasivoGasto = {
@@ -295,7 +296,7 @@ export function calcularResumenGastos(entrada: EntradaResumenGastos): ResumenGas
   const mediosDisponibles = entrada.medios
     .filter((m) => m.activo !== false)
     .slice()
-    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+    .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0) || a.nombre.localeCompare(b.nombre, 'es'))
 
   return {
     periodo: entrada.periodo,

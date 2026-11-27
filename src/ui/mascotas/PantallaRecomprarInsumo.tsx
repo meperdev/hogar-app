@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ErrorMascotas } from '../../app/controladorMascotas'
 import type { Ambito } from '../../app/mascotas'
 import { hoyCivil } from '../../domain/fechas'
+import { formatearPesos } from '../../domain/pesos'
 import {
   Aviso,
   Tarjeta,
@@ -42,7 +43,11 @@ export function PantallaRecomprarInsumo() {
 
   useEffect(() => {
     if (!item || !vista) return
-    setMontoTexto((actual) => (actual === '' && item.montoHabitual !== null ? String(item.montoHabitual) : actual))
+    setMontoTexto((actual) =>
+      actual === '' && item.montoHabitual !== null && item.montoHabitual > 0
+        ? formatearPesos(item.montoHabitual)
+        : actual,
+    )
     if (!fechaTocado) setFecha(vista.hoy)
     setDescripcion((actual) => {
       if (actual !== '') return actual
@@ -166,10 +171,13 @@ export function PantallaRecomprarInsumo() {
               id="recompra-monto"
               type="text"
               inputMode="numeric"
-              className={claseCampoTexto}
-              placeholder="Ej. 165000"
+              className={`${claseCampoTexto} hogar-cop font-bold`}
+              placeholder="Ej. $165.000"
               value={montoTexto}
-              onChange={(e) => setMontoTexto(e.target.value)}
+              onChange={(e) => {
+                const n = parsearDigitosCop(e.target.value)
+                setMontoTexto(n > 0 ? formatearPesos(n) : '')
+              }}
               disabled={guardando}
               required
             />

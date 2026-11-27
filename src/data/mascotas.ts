@@ -75,6 +75,7 @@ const esquemaMedio = z.object({
   nombre: z.string(),
   tipo: z.enum(['efectivo', 'cuenta']),
   activo: z.boolean(),
+  orden: z.number().int().optional(),
 })
 
 const esquemaPasivo = z.object({
@@ -137,7 +138,7 @@ export function crearRemotoMascotas(cliente: SupabaseClient): RemotoMascotas {
           .eq('hogar_id', hogarId).is('eliminado_en', null),
         cliente.from('categoria').select('id,nombre,icono,orden,activa')
           .eq('hogar_id', hogarId).is('eliminado_en', null),
-        cliente.from('medio_de_pago').select('id,nombre,tipo,activo')
+        cliente.from('medio_de_pago').select('id,nombre,tipo,activo,orden')
           .eq('hogar_id', hogarId).is('eliminado_en', null),
         cliente.from('pasivo').select('id,tipo,nombre,ambito,tasa_tipo,tasa_ppm,activo')
           .eq('hogar_id', hogarId).is('eliminado_en', null),

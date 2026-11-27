@@ -353,7 +353,9 @@ describe('UI Despensa de mascotas (Núcleo 4)', () => {
     escribir(contenedor.querySelector('#nombre-insumo') as HTMLInputElement, 'Antipulgas mensual')
     escribir(contenedor.querySelector('#duracion-dias') as HTMLInputElement, '30')
     escribir(contenedor.querySelector('#umbral-alerta') as HTMLInputElement, '20')
-    escribir(contenedor.querySelector('#precio-insumo') as HTMLInputElement, '95000')
+    const inputPrecio = contenedor.querySelector('#precio-insumo') as HTMLInputElement
+    escribir(inputPrecio, '95000')
+    expect(inputPrecio.value).toBe('$95.000')
 
     const form = contenedor.querySelector('form')!
     await act(async () => {
@@ -372,10 +374,11 @@ describe('UI Despensa de mascotas (Núcleo 4)', () => {
 
     expect(contenedor.textContent).toContain('Recomprar insumo')
     const inputMonto = contenedor.querySelector('#recompra-monto') as HTMLInputElement
-    expect(inputMonto.value).toBe('165000')
+    expect(inputMonto.value).toBe('$165.000')
 
     // Cambia precio a 170.000 y guarda como hogar actualizando monto habitual
     escribir(inputMonto, '170000')
+    expect(inputMonto.value).toBe('$170.000')
     const form = contenedor.querySelector('form')!
     await act(async () => {
       form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
