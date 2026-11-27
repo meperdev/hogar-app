@@ -47,6 +47,19 @@ const esquemaPasivo = z.object({
   id: z.uuid(),
   nombre: z.string(),
   tipo: z.enum(['tarjeta', 'credito', 'deuda']),
+  ambito: z.enum(['hogar', 'personal']).optional(),
+  owner_miembro_id: z.uuid().nullable().optional(),
+})
+
+const esquemaPagoDeuda = z.object({
+  id: z.uuid(),
+  pasivo_id: z.uuid(),
+  tipo: z.enum(['abono', 'saldo_a_favor']),
+  monto: z.number().int(),
+  fecha: z.string(),
+  medio_de_pago_id: z.uuid().nullable(),
+  registrado_por: z.uuid(),
+  nota: z.string().nullable(),
 })
 
 const esquemaPlan = z.object({
@@ -83,7 +96,7 @@ function mapearErrorRpc(error: { code?: string; message?: string }, porDefecto: 
 export function crearRemotoGastos(cliente: SupabaseClient): RemotoGastos {
   return {
     async leer(hogarId) {
-      const [compras, categorias, medios, pasivos, planes, miembros] = await Promise.all([
+      const [compras, categorias, medios, pasivos, planes, pagosDeuda, miembros] = await Promise.all([
         cliente
           .from('compra')
           .select(
@@ -103,7 +116,7 @@ export function crearRemotoGastos(cliente: SupabaseClient): RemotoGastos {
           .is('eliminado_en', null),
         cliente
           .from('pasivo')
-          .select('id,nombre,tipo')
+          .select('id,nombre,tipo,ambito,owner_miembro_id')
           .eq('hogar_id', hogarId)
           .is('eliminado_en', null),
         cliente
@@ -113,13 +126,18 @@ export function crearRemotoGastos(cliente: SupabaseClient): RemotoGastos {
           .eq('origen', 'compra')
           .is('eliminado_en', null),
         cliente
+          .from('pago_de_deuda')
+          .select('id,pasivo_id,tipo,monto,fecha,medio_de_pago_id,registrado_por,nota')
+          .eq('hogar_id', hogarId)
+          .is('eliminado_en', null),
+        cliente
           .from('miembro')
           .select('id,nombre')
           .eq('hogar_id', hogarId)
           .is('eliminado_en', null),
       ])
 
-      for (const r of [compras, categorias, medios, pasivos, planes, miembros]) {
+      for (const r of [compras, categorias, medios, pasivos, planes, pagosDeuda, miembros]) {
         if (r.error) throw r.error
       }
 
@@ -129,6 +147,7 @@ export function crearRemotoGastos(cliente: SupabaseClient): RemotoGastos {
         medios: z.array(esquemaMedio).parse(medios.data),
         pasivos: z.array(esquemaPasivo).parse(pasivos.data),
         planes: z.array(esquemaPlan).parse(planes.data),
+        pagosDeuda: z.array(esquemaPagoDeuda).parse(pagosDeuda.data),
         miembros: z.array(esquemaMiembro).parse(miembros.data),
       }
     },

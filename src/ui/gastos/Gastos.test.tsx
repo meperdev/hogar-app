@@ -389,4 +389,31 @@ describe('UI Gastos generales', () => {
     expect(contenedor.querySelector('[role="status"]')?.textContent).toContain('Compra anulada')
     expect(cargarMes).toHaveBeenCalledTimes(2)
   })
+
+  it('muestra la sección Abonos a obligaciones aparte del consumo del mes', async () => {
+    const cargarMes = vi.fn(async (p: string, a: FiltroAmbitoGastos) => ({
+      ...vistaDemo(p, a),
+      totalAbonosDeuda: 200_000,
+      abonosDeuda: [
+        {
+          id: 'ab-1',
+          fecha: `${p}-27`,
+          pasivoNombre: 'Préstamo cocina',
+          pasivoTipo: 'deuda' as const,
+          ambito: 'hogar' as const,
+          monto: 200_000,
+          medioNombre: 'Nequi',
+          medioTipo: 'cuenta' as const,
+          registradoPorNombre: 'Santiago',
+          nota: 'Cuota noviembre',
+        },
+      ],
+    }))
+    const { contenedor } = await montar({ cargarMes })
+
+    expect(contenedor.textContent).toContain('Abonos a obligaciones')
+    expect(contenedor.textContent).toContain('Abono · Préstamo cocina')
+    expect(contenedor.textContent).toContain('$200.000')
+    expect(contenedor.textContent).toContain('$420.000')
+  })
 })

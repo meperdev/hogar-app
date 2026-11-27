@@ -1,10 +1,10 @@
 import { useMemo, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import type { Ambito, BorradorPasivo, ErrorFormulario } from '../../app/obligaciones'
 import { hoyCivil } from '../../domain/fechas'
 import {
   Aviso, AyudaInfo, CampoMontoCop, Insignia, Tarjeta, claseAyudaCampo, claseBotonPrimario,
-  claseBotonSecundario, claseCampoTexto, claseEtiquetaCampo,
+  claseCampoTexto, claseEtiquetaCampo,
 } from '../ComponentesBase'
 import { ShellApp } from '../ShellApp'
 import { formatearPorcentajeEs } from '../compraRapida/formatoCop'
@@ -95,13 +95,13 @@ export function PantallaNuevoPasivo() {
   async function manejarGuardar() {
     if (guardando) return
     if (modalidadTasa !== 'ninguna' && porcentajeParseado === null) {
-      setErrorForm({ campo: 'tasa', mensaje: 'Ingresa un valor de tasa válido (ej. 28,32) o elige Sin tasa.' })
+      setErrorForm({ campo: 'tasa', mensaje: 'Ingresa una tasa válida (ej. 28,32) o elige Sin tasa.' })
       return tasaRef.current?.focus()
     }
     if (capitalPlan > 0 && sistemaPlan === 'capital_fijo') {
       const n = Number.parseInt(nCuotasPlan, 10)
       if (!Number.isFinite(n) || n < 1 || !fechaPrimeraCuota) {
-        return setErrorForm({ campo: 'plan', mensaje: 'Completa el número de cuotas y la fecha de la primera cuota, o elige Sin calendario.' })
+        return setErrorForm({ campo: 'plan', mensaje: 'Completa el número de cuotas y la primera fecha, o elige Abonos libres.' })
       }
     }
     const borrador = construirBorrador()
@@ -109,8 +109,8 @@ export function PantallaNuevoPasivo() {
     if (errorValidacion) {
       setErrorForm(errorValidacion)
       if (errorValidacion.campo === 'nombre') nombreRef.current?.focus()
-      else if (errorValidacion.campo === 'entidad') entidadRef.current?.focus()
-      else if (errorValidacion.campo === 'acreedor') acreedorRef.current?.focus()
+      else if (errorValidacion.campo === 'entidad' || errorValidacion.campo === 'credito') entidadRef.current?.focus()
+      else if (errorValidacion.campo === 'acreedor' || errorValidacion.campo === 'deuda') acreedorRef.current?.focus()
       else if (errorValidacion.campo === 'tasa') tasaRef.current?.focus()
       return
     }
@@ -122,45 +122,52 @@ export function PantallaNuevoPasivo() {
       recargar()
       navigate('/obligaciones')
     } catch (causa) {
-      setErrorForm({ campo: 'general', mensaje: causa instanceof Error && causa.message ? causa.message : 'No pudimos guardar el pasivo.' })
+      setErrorForm({ campo: 'general', mensaje: causa instanceof Error && causa.message ? causa.message : 'No pudimos guardar la obligación.' })
     } finally {
       setGuardando(false)
     }
   }
 
+  const placeholderNombre =
+    tipo === 'tarjeta'
+      ? 'Ej. Visa ••4521'
+      : tipo === 'credito'
+        ? 'Ej. Crédito libre inversión'
+        : 'Ej. Préstamo remodelación'
+
   return (
     <ShellApp
-      titulo="Nuevo pasivo"
-      subtitulo="Tarjeta, crédito o deuda en COP"
+      titulo="Nueva obligación"
+      subtitulo="Tarjeta de crédito, crédito libre o deuda externa"
       volverA="/obligaciones"
       etiquetaVolver="Volver a Obligaciones del mes"
-      etiquetaBarraAccion="Guardar pasivo"
-      barraAccion={<button type="button" className={`${claseBotonPrimario} w-full`} disabled={guardando} onClick={() => void manejarGuardar()} data-sin-scroll>{guardando ? 'Guardando…' : 'Guardar pasivo'}</button>}
+      etiquetaBarraAccion="Guardar obligación"
+      barraAccion={<button type="button" className={`${claseBotonPrimario} w-full`} disabled={guardando} onClick={() => void manejarGuardar()} data-sin-scroll>{guardando ? 'Guardando…' : 'Guardar obligación'}</button>}
     >
       {errorForm ? <Aviso variante="peligro" icono="▲" role="alert"><p>{errorForm.mensaje}</p></Aviso> : null}
 
       <form className="flex flex-col gap-3.5" onSubmit={(e) => { e.preventDefault(); void manejarGuardar() }} noValidate>
         <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
           <div className="flex items-center gap-1.5">
-            <legend className={claseEtiquetaCampo}>Tipo de pasivo</legend>
+            <legend className={claseEtiquetaCampo}>Tipo de deuda</legend>
             <AyudaInfo
-              etiqueta="Información sobre tipo de pasivo"
-              texto="Fase 1: Tarjeta y Crédito tienen como titular a un solo miembro. Deuda (informal o no bancaria) admite titular miembro u Hogar."
+              etiqueta="Información sobre tipo de deuda"
+              texto="Deuda externa puede quedar a nombre del Hogar o de un miembro. Tarjeta y Crédito libre van a nombre de un miembro."
             />
           </div>
           <div className="grid grid-cols-3 gap-2">
-            <TarjetaRadio id="tipo-tc" name="tipo-instrumento" value="tarjeta" checked={tipo === 'tarjeta'} onChange={() => cambiarTipo('tarjeta')}>Tarjeta</TarjetaRadio>
-            <TarjetaRadio id="tipo-credito" name="tipo-instrumento" value="credito" checked={tipo === 'credito'} onChange={() => cambiarTipo('credito')}>Crédito</TarjetaRadio>
-            <TarjetaRadio id="tipo-deuda" name="tipo-instrumento" value="deuda" checked={tipo === 'deuda'} onChange={() => cambiarTipo('deuda')}>Deuda</TarjetaRadio>
+            <TarjetaRadio id="tipo-tc" name="tipo-instrumento" value="tarjeta" checked={tipo === 'tarjeta'} onChange={() => cambiarTipo('tarjeta')}>Tarjeta de crédito</TarjetaRadio>
+            <TarjetaRadio id="tipo-credito" name="tipo-instrumento" value="credito" checked={tipo === 'credito'} onChange={() => cambiarTipo('credito')}>Crédito libre</TarjetaRadio>
+            <TarjetaRadio id="tipo-deuda" name="tipo-instrumento" value="deuda" checked={tipo === 'deuda'} onChange={() => cambiarTipo('deuda')}>Deuda externa</TarjetaRadio>
           </div>
         </fieldset>
 
         <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
           <div className="flex items-center gap-1.5">
-            <legend className={claseEtiquetaCampo}>Ámbito del pasivo</legend>
+            <legend className={claseEtiquetaCampo}>Ámbito</legend>
             <AyudaInfo
-              etiqueta="Información sobre ámbito del pasivo"
-              texto="Cada pasivo es un libro de un solo ámbito (inmutable con movimientos). Si usas una tarjeta para ambos ámbitos, lleva dos libros aparte con los mismos últimos 4 dígitos."
+              etiqueta="Información sobre ámbito"
+              texto="Hogar es visible y pagable entre ambos; Personal solo la ves tú."
             />
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -171,22 +178,22 @@ export function PantallaNuevoPasivo() {
 
         <div className="flex flex-col gap-1.5">
           <label htmlFor="nombre-tarjeta" className={claseEtiquetaCampo}>Nombre o alias</label>
-          <input ref={nombreRef} id="nombre-tarjeta" className={claseCampoTexto} type="text" value={nombre} placeholder="Ej. Visa ••4521, Crédito vehículo o Préstamo cocina" aria-invalid={errorForm?.campo === 'nombre' ? 'true' : undefined} onChange={(e) => { setErrorForm(null); setNombre(e.target.value) }} />
+          <input ref={nombreRef} id="nombre-tarjeta" className={claseCampoTexto} type="text" value={nombre} placeholder={placeholderNombre} aria-invalid={errorForm?.campo === 'nombre' ? 'true' : undefined} onChange={(e) => { setErrorForm(null); setNombre(e.target.value) }} />
         </div>
 
         <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
           <div className="flex items-center gap-1.5">
-            <legend className={claseEtiquetaCampo}>Titular del pasivo</legend>
+            <legend className={claseEtiquetaCampo}>Titular</legend>
             <AyudaInfo
-              etiqueta="Información sobre titular del pasivo"
-              texto="Titular Hogar disponible solo para Deuda en fase 1 (ámbito Hogar). Cualquier miembro puede pagar cualquier pasivo sin crear deuda entre ustedes."
+              etiqueta="Información sobre titular"
+              texto="Titular Hogar aplica para Deuda externa compartida. Cualquiera de los dos puede abonar a obligaciones del hogar."
             />
           </div>
           <div className={`grid gap-2 ${miembrosActivos.length === 1 ? 'grid-cols-2' : 'grid-cols-3'}`}>
             {miembrosActivos.map((miembro) => (
               <TarjetaRadio key={miembro.id} id={`titular-${miembro.id}`} name="titular" value={miembro.id} checked={titularMiembroId === miembro.id} onChange={() => setTitularMiembroId(miembro.id)}>{miembro.nombre}</TarjetaRadio>
             ))}
-            <TarjetaRadio id="titular-hogar" name="titular" value="hogar" checked={titularMiembroId === null} disabled={!permiteTitularHogar} onChange={() => setTitularMiembroId(null)}>Hogar*</TarjetaRadio>
+            <TarjetaRadio id="titular-hogar" name="titular" value="hogar" checked={titularMiembroId === null} disabled={!permiteTitularHogar} onChange={() => setTitularMiembroId(null)}>Hogar</TarjetaRadio>
           </div>
         </fieldset>
 
@@ -194,7 +201,7 @@ export function PantallaNuevoPasivo() {
           <>
             <div className="grid grid-cols-2 items-end gap-2.5">
               <div className="flex min-w-0 flex-col gap-1.5">
-                <label htmlFor="dia-corte" className={claseEtiquetaCampo}>Día de corte (tarjeta)</label>
+                <label htmlFor="dia-corte" className={claseEtiquetaCampo}>Día de corte</label>
                 <input id="dia-corte" className={claseCampoTexto} type="number" min={1} max={31} value={diaCorte} onChange={(e) => setDiaCorte(e.target.value)} />
               </div>
               <div className="flex min-w-0 flex-col gap-1.5">
@@ -204,11 +211,11 @@ export function PantallaNuevoPasivo() {
             </div>
             <div className="grid grid-cols-2 items-end gap-2.5">
               <div className="flex min-w-0 flex-col gap-1.5">
-                <label htmlFor="ultimos-4" className={claseEtiquetaCampo}>Últimos 4 dígitos (opcional)</label>
+                <label htmlFor="ultimos-4" className={claseEtiquetaCampo}>Últimos 4 (opcional)</label>
                 <input id="ultimos-4" className={claseCampoTexto} type="text" inputMode="numeric" maxLength={4} placeholder="Ej. 4521" value={ultimos4} onChange={(e) => setUltimos4(e.target.value.replace(/\D+/g, '').slice(0, 4))} />
               </div>
               <div className="flex min-w-0 flex-col gap-1.5">
-                <label htmlFor="cupo-cop" className={claseEtiquetaCampo}>Cupo en COP (opcional)</label>
+                <label htmlFor="cupo-cop" className={claseEtiquetaCampo}>Cupo (opcional)</label>
                 <CampoMontoCop id="cupo-cop" className="font-bold" placeholder="Ej. $6.000.000" valor={cupo} onCambiar={setCupo} />
               </div>
             </div>
@@ -254,14 +261,14 @@ export function PantallaNuevoPasivo() {
               <input ref={entidadRef} id="entidad-credito" className={claseCampoTexto} type="text" placeholder="Ej. Bancolombia, Davivienda" value={entidad} aria-invalid={errorForm?.campo === 'entidad' ? 'true' : undefined} onChange={(e) => { setErrorForm(null); setEntidad(e.target.value) }} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="referencia-credito" className={claseEtiquetaCampo}>Referencia u obligación (opcional)</label>
+              <label htmlFor="referencia-credito" className={claseEtiquetaCampo}>Referencia (opcional)</label>
               <input id="referencia-credito" className={claseCampoTexto} type="text" placeholder="Ej. Obligación 004192" value={referencia} onChange={(e) => setReferencia(e.target.value)} />
             </div>
           </div>
         ) : (
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="acreedor-deuda" className={claseEtiquetaCampo}>Acreedor externo</label>
-            <input ref={acreedorRef} id="acreedor-deuda" className={claseCampoTexto} type="text" placeholder="Ej. Obras & Diseño o familiar externo" value={acreedor} aria-invalid={errorForm?.campo === 'acreedor' ? 'true' : undefined} onChange={(e) => { setErrorForm(null); setAcreedor(e.target.value) }} />
+            <label htmlFor="acreedor-deuda" className={claseEtiquetaCampo}>¿A quién se le debe?</label>
+            <input ref={acreedorRef} id="acreedor-deuda" className={claseCampoTexto} type="text" placeholder="Ej. Familiar, amigo o empresa" value={acreedor} aria-invalid={errorForm?.campo === 'acreedor' ? 'true' : undefined} onChange={(e) => { setErrorForm(null); setAcreedor(e.target.value) }} />
           </div>
         )}
 
@@ -271,10 +278,10 @@ export function PantallaNuevoPasivo() {
               <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">Tasa de interés (opcional)</h2>
               <AyudaInfo
                 etiqueta="Información sobre tasa de interés"
-                texto="Con Sin tasa activo, la app no calcula intereses automáticamente y podrás registrarlos a mano como Costo financiero al pagar tu extracto."
+                texto="En Sin tasa puedes ingresar intereses manualmente si aparecen en tu extracto."
               />
             </div>
-            <Insignia variante="primario">Sin tasa por defecto</Insignia>
+            <Insignia variante="primario">Opcional</Insignia>
           </div>
           <fieldset className="m-0 border-0 p-0">
             <legend className="sr-only">Modalidad de tasa de interés</legend>
@@ -286,13 +293,13 @@ export function PantallaNuevoPasivo() {
           </fieldset>
           {modalidadTasa !== 'ninguna' ? (
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="valor-tasa" className={claseEtiquetaCampo}>Valor de tasa ({modalidadTasa === 'EA' ? '% E.A.' : '% M.V.'})</label>
+              <label htmlFor="valor-tasa" className={claseEtiquetaCampo}>Valor ({modalidadTasa === 'EA' ? '% E.A.' : '% M.V.'})</label>
               <input ref={tasaRef} id="valor-tasa" className={claseCampoTexto} type="text" inputMode="decimal" placeholder={modalidadTasa === 'EA' ? 'Ej. 28,32' : 'Ej. 2,10'} value={valorTasaTexto} aria-describedby="conversion-tasa" aria-invalid={errorForm?.campo === 'tasa' ? 'true' : undefined} onChange={(e) => { setErrorForm(null); setValorTasaTexto(e.target.value) }} />
-              <p id="conversion-tasa" className={claseAyudaCampo}>
-                {equivalencia
-                  ? <>Conversión exacta: <strong className="hogar-cop text-hogar-tinta">{formatearPorcentajeEs(equivalencia.ea, 2)} E.A. ⇄ {formatearPorcentajeEs(equivalencia.mv, 4)} M.V.</strong> (se redondea solo el interés al peso).</>
-                  : <>Ejemplo de conversión exacta: <strong>28,32 % E.A. ⇄ 2,0997 % M.V.</strong> (MV = (1 + EA)^(1/12) − 1).</>}
-              </p>
+              {equivalencia ? (
+                <p id="conversion-tasa" className={claseAyudaCampo}>
+                  Equivale a <strong className="hogar-cop text-hogar-tinta">{formatearPorcentajeEs(equivalencia.ea, 2)} E.A. ⇄ {formatearPorcentajeEs(equivalencia.mv, 4)} M.V.</strong>
+                </p>
+              ) : null}
             </div>
           ) : null}
         </Tarjeta>
@@ -300,46 +307,36 @@ export function PantallaNuevoPasivo() {
         <Tarjeta acento="indigo" className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-1.5">
-              <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">Capital inicial o desembolso</h2>
+              <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">Saldo o monto actual</h2>
               <AyudaInfo
-                etiqueta="Información sobre capital inicial o desembolso"
-                texto="Para deuda previa elige Saldo inicial. Para préstamo en efectivo (Crédito o Deuda, nunca Tarjeta) elige Desembolso."
+                etiqueta="Información sobre saldo inicial"
+                texto="Si ya venías pagando esta deuda elige Deuda previa; si recibiste plata nueva elige Préstamo en efectivo."
               />
             </div>
-            <Insignia variante="indigo">Plan de cuotas</Insignia>
+            <Insignia variante="indigo">Opcional</Insignia>
           </div>
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="origen-plan" className={claseEtiquetaCampo}>Origen del capital</label>
-            <select id="origen-plan" className={claseCampoTexto} value={permiteDesembolso ? origenPlan : 'saldo_inicial'} onChange={(e) => setOrigenPlan(e.target.value === 'desembolso' ? 'desembolso' : 'saldo_inicial')}>
-              <option value="saldo_inicial">Saldo inicial (deuda previa existente)</option>
-              <option value="desembolso" disabled={!permiteDesembolso}>Desembolso (préstamo en efectivo · solo Crédito o Deuda)</option>
-            </select>
+            <label htmlFor="saldo-inicial-cop" className={claseEtiquetaCampo}>Monto en COP (opcional)</label>
+            <CampoMontoCop id="saldo-inicial-cop" className="text-xl font-extrabold" placeholder="$0" valor={capitalPlan} onCambiar={setCapitalPlan} />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="saldo-inicial-cop" className={claseEtiquetaCampo}>Capital inicial o desembolso en COP (opcional)</label>
-            <CampoMontoCop id="saldo-inicial-cop" className="text-xl font-extrabold" placeholder="Ej. $8.400.000" valor={capitalPlan} onCambiar={setCapitalPlan} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-1.5">
-              <label htmlFor="fecha-saldo-inicial" className={claseEtiquetaCampo}>Fecha del saldo inicial o giro</label>
-              <AyudaInfo
-                etiqueta="Información sobre fecha del saldo inicial"
-                texto="Define el orden en FIFO del capital inicial o desembolso."
-              />
+          <div className="grid grid-cols-2 items-end gap-2.5">
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <label htmlFor="origen-plan" className={claseEtiquetaCampo}>Origen</label>
+              <select id="origen-plan" className={claseCampoTexto} value={permiteDesembolso ? origenPlan : 'saldo_inicial'} onChange={(e) => setOrigenPlan(e.target.value === 'desembolso' ? 'desembolso' : 'saldo_inicial')}>
+                <option value="saldo_inicial">Deuda previa</option>
+                <option value="desembolso" disabled={!permiteDesembolso}>Préstamo en efectivo</option>
+              </select>
             </div>
-            <input id="fecha-saldo-inicial" className={claseCampoTexto} type="date" value={fechaPlan} onChange={(e) => setFechaPlan(e.target.value)} />
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <label htmlFor="fecha-saldo-inicial" className={claseEtiquetaCampo}>Fecha</label>
+              <input id="fecha-saldo-inicial" className={claseCampoTexto} type="date" value={fechaPlan} onChange={(e) => setFechaPlan(e.target.value)} />
+            </div>
           </div>
           <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-1.5">
-              <label htmlFor="sistema-amortizacion" className={claseEtiquetaCampo}>Sistema de cuotas</label>
-              <AyudaInfo
-                etiqueta="Información sobre sistema de cuotas"
-                texto="Por defecto se guarda sin calendario (sin inventar cuotas ni fechas). Completa las cuotas solo si conoces el calendario."
-              />
-            </div>
+            <label htmlFor="sistema-amortizacion" className={claseEtiquetaCampo}>Forma de pago</label>
             <select id="sistema-amortizacion" className={claseCampoTexto} value={sistemaPlan} onChange={(e) => setSistemaPlan(e.target.value === 'capital_fijo' ? 'capital_fijo' : 'sin_calendario')}>
-              <option value="sin_calendario">Sin calendario (por defecto · abonos libres)</option>
-              <option value="capital_fijo">Capital fijo (cuotas iguales de capital)</option>
+              <option value="sin_calendario">Abonos libres</option>
+              <option value="capital_fijo">Cuotas mensuales fijas</option>
             </select>
           </div>
           {sistemaPlan === 'capital_fijo' ? (
@@ -355,8 +352,6 @@ export function PantallaNuevoPasivo() {
             </div>
           ) : null}
         </Tarjeta>
-
-        <Link to="/obligaciones" className={`${claseBotonSecundario} w-full no-underline`}>Cancelar</Link>
       </form>
     </ShellApp>
   )

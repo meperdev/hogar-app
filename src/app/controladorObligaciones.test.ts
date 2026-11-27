@@ -63,6 +63,9 @@ class PuertoMemoria implements ObligacionesPort {
     this.enviados.push(lote)
     return this.respuesta
   }
+  async eliminarPasivo(_pasivoId: string): Promise<{ accion: 'eliminado' | 'archivado' }> {
+    return { accion: 'eliminado' }
+  }
   async leerPreferencia(clave: string) {
     return this.preferencias.get(clave) ?? null
   }
@@ -254,10 +257,13 @@ describe('alta de pasivo', () => {
 
     const agenda = await controlador.cargarMes('2026-11')
     expect(agenda.pasivos).toContainEqual(expect.objectContaining({
-      pasivoId, nombre: 'Cuenta pendiente Kiroi', saldoPendiente: 1_426_000, tieneSinCalendario: true,
+      pasivoId, nombre: 'Cuenta pendiente Kiroi', saldoPendiente: 1_426_000, tieneSinCalendario: true, cuotasAbiertasMes: 0,
     }))
     const borradorAbono = await controlador.prepararPagoPasivo(pasivoId)
-    expect(borradorAbono).toMatchObject({ pasivoId, cuotaId: null, capital: 1_426_000, interes: null })
+    expect(borradorAbono).toMatchObject({ pasivoId, cuotaId: null, capital: 0, interes: null })
+
+    const eliminacion = await controlador.eliminarPasivo(pasivoId)
+    expect(eliminacion).toEqual({ accion: 'eliminado', resumen: 'Obligación eliminada' })
   })
 
   it('crédito con saldo inicial, tasa E.A. exacta y calendario conocido', async () => {

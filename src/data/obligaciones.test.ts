@@ -59,6 +59,7 @@ function remotoFalso(cambios: Partial<RemotoObligaciones> = {}): RemotoObligacio
   return {
     leer: vi.fn(async () => datosBase()),
     enviar: vi.fn(async (): Promise<ResultadoEnvio> => ({ estado: 'aplicado' })),
+    eliminarPasivo: vi.fn(async () => ({ accion: 'eliminado' as const })),
     ...cambios,
   }
 }
@@ -430,5 +431,18 @@ describe('crearRemotoObligaciones · enviar', () => {
     const { cliente } = clienteFalso(filasRemotas(), { data: null, error: new Error('sin red') })
 
     await expect(crearRemotoObligaciones(cliente).enviar(loteBase())).rejects.toThrow('sin red')
+  })
+
+  it('eliminarPasivo llama al RPC eliminar_pasivo y devuelve la acción', async () => {
+    const pasivoId = crypto.randomUUID()
+    const { cliente, rpc } = clienteFalso(filasRemotas(), {
+      data: { id: pasivoId, accion: 'archivado' },
+      error: null,
+    })
+
+    await expect(crearRemotoObligaciones(cliente).eliminarPasivo(pasivoId)).resolves.toEqual({
+      accion: 'archivado',
+    })
+    expect(rpc).toHaveBeenCalledWith('eliminar_pasivo', { p_pasivo_id: pasivoId })
   })
 })

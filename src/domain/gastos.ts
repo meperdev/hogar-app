@@ -54,6 +54,34 @@ export type MiembroGasto = {
   nombre: string
 }
 
+export type PagoDeudaGasto = {
+  id: string
+  pasivoId: string
+  pasivoNombre: string
+  pasivoTipo: 'tarjeta' | 'credito' | 'deuda'
+  pasivoAmbito: 'hogar' | 'personal'
+  pasivoOwnerMiembroId: string | null
+  tipo: 'abono' | 'saldo_a_favor'
+  monto: number
+  fecha: string
+  medioDePagoId: string | null
+  registradoPor: string
+  nota: string | null
+}
+
+export type AbonoDeudaGasto = {
+  id: string
+  fecha: string
+  pasivoNombre: string
+  pasivoTipo: 'tarjeta' | 'credito' | 'deuda'
+  ambito: 'hogar' | 'personal'
+  monto: number
+  medioNombre: string
+  medioTipo: TipoMedioGasto
+  registradoPorNombre: string
+  nota: string | null
+}
+
 export type EntradaResumenGastos = {
   periodo: string
   actorId: string
@@ -64,6 +92,7 @@ export type EntradaResumenGastos = {
   pasivos: PasivoGasto[]
   planes: PlanCompraGasto[]
   miembros: MiembroGasto[]
+  pagosDeuda?: PagoDeudaGasto[] | undefined
 }
 
 export type CategoriaResumenGasto = {
@@ -111,6 +140,8 @@ export type ResumenGastosMes = {
   comparativaAnterior: ComparativaMesAnterior | null
   categorias: CategoriaResumenGasto[]
   movimientos: MovimientoGasto[]
+  abonosDeuda?: AbonoDeudaGasto[] | undefined
+  totalAbonosDeuda?: number | undefined
   categoriasDisponibles: CategoriaGasto[]
   mediosDisponibles: MedioGasto[]
 }
@@ -298,6 +329,44 @@ export function calcularResumenGastos(entrada: EntradaResumenGastos): ResumenGas
     .slice()
     .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0) || a.nombre.localeCompare(b.nombre, 'es'))
 
+  // Los abonos a obligaciones se muestran aparte para evitar doble conteo de compras a cuotas (domain.md).
+  const abonosDeuda: AbonoDeudaGasto[] = []
+  let totalAbonosDeuda = 0
+  for (const pago of entrada.pagosDeuda ?? []) {
+    if (pago.tipo !== 'abono') continue
+    if (periodoDe(pago.fecha) !== entrada.periodo) continue
+    const visibleEnAmbito =
+      entrada.ambito === 'hogar'
+        ? pago.pasivoAmbito === 'hogar'
+        : entrada.ambito === 'personal'
+          ? pago.pasivoAmbito === 'personal' && pago.pasivoOwnerMiembroId === entrada.actorId
+          : pago.pasivoAmbito === 'hogar' ||
+            (pago.pasivoAmbito === 'personal' && pago.pasivoOwnerMiembroId === entrada.actorId)
+    if (!visibleEnAmbito) continue
+
+    const montoAbono = pesos(pago.monto)
+    const medio = pago.medioDePagoId ? mediosPorId.get(pago.medioDePagoId) : undefined
+    totalAbonosDeuda += montoAbono
+    abonosDeuda.push({
+      id: pago.id,
+      fecha: pago.fecha,
+      pasivoNombre: pago.pasivoNombre,
+      pasivoTipo: pago.pasivoTipo,
+      ambito: pago.pasivoAmbito,
+      monto: montoAbono,
+      medioNombre: medio?.nombre ?? 'Medio de pago',
+      medioTipo: medio?.tipo ?? 'otro',
+      registradoPorNombre: miembrosPorId.get(pago.registradoPor) ?? 'Miembro',
+      nota: pago.nota,
+    })
+  }
+  abonosDeuda.sort(
+    (a, b) =>
+      b.fecha.localeCompare(a.fecha) ||
+      b.monto - a.monto ||
+      a.id.localeCompare(b.id),
+  )
+
   return {
     periodo: entrada.periodo,
     ambito: entrada.ambito,
@@ -307,6 +376,8 @@ export function calcularResumenGastos(entrada: EntradaResumenGastos): ResumenGas
     comparativaAnterior,
     categorias,
     movimientos,
+    abonosDeuda,
+    totalAbonosDeuda,
     categoriasDisponibles,
     mediosDisponibles,
   }

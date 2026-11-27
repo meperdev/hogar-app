@@ -15,6 +15,10 @@ import {
 import { useNotificacionesOpcional } from '../Notificaciones'
 import { ShellApp } from '../ShellApp'
 import {
+  formatearFechaCortaEs,
+} from '../compraRapida/formatoCop'
+import { identidadMedio } from '../marcas'
+import {
   formatearPeriodoEs,
   nombreMesPeriodoEs,
 } from '../periodos'
@@ -199,6 +203,18 @@ export function PantallaGastos() {
               {formatearPesos(promedioPorCompra)}
             </strong>
           </span>
+          {(vista?.totalAbonosDeuda ?? 0) > 0 ? (
+            <span className="inline-flex items-center gap-1">
+              Abonos a obligaciones:{' '}
+              <strong className="hogar-cop text-hogar-indigo">
+                {formatearPesos(vista?.totalAbonosDeuda ?? 0)}
+              </strong>
+              <AyudaInfo
+                etiqueta="Información sobre abonos a obligaciones"
+                texto="Pagos a tarjetas, créditos y deudas del mes. Se muestran aparte del consumo para no contar dos veces compras a cuotas."
+              />
+            </span>
+          ) : null}
         </div>
       </Tarjeta>
 
@@ -306,6 +322,68 @@ export function PantallaGastos() {
               Ninguna compra coincide con «{busqueda.trim()}».
             </p>
           )}
+        </section>
+      ) : null}
+
+      {(vista?.abonosDeuda?.length ?? 0) > 0 ? (
+        <section aria-labelledby="gastos-abonos-heading" className="flex flex-col gap-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5">
+              <h2
+                id="gastos-abonos-heading"
+                className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta"
+              >
+                Abonos a obligaciones
+              </h2>
+              <AyudaInfo
+                etiqueta="Información de abonos en gastos"
+                texto="Salidas registradas en Obligaciones. No se suman al consumo arriba para evitar doble conteo."
+              />
+            </div>
+            <Link
+              to="/obligaciones"
+              className="text-xs font-bold text-hogar-primario no-underline hover:underline"
+            >
+              Ver obligaciones →
+            </Link>
+          </div>
+          <ul className="m-0 flex list-none flex-col gap-2 p-0">
+            {(vista?.abonosDeuda ?? []).map((abono) => {
+              const identidad = identidadMedio(
+                abono.medioNombre,
+                abono.medioTipo === 'efectivo' ? 'efectivo' : 'cuenta',
+              )
+              const { Logo } = identidad
+              return (
+                <li
+                  key={abono.id}
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-hogar-borde bg-hogar-superficie p-3 shadow-[var(--hogar-shadow-card)]"
+                >
+                  <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                    <span
+                      className="grid size-10 shrink-0 place-items-center rounded-2xl shadow-[0_3px_8px_-2px_rgba(16,24,20,0.22)]"
+                      style={{ background: identidad.gradiente, color: identidad.texto }}
+                      aria-hidden="true"
+                    >
+                      <Logo className="size-5" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="m-0 truncate text-sm font-extrabold text-hogar-tinta">
+                        Abono · {abono.pasivoNombre}
+                      </p>
+                      <p className="m-0 mt-0.5 truncate text-xs text-hogar-tinta-suave">
+                        {formatearFechaCortaEs(abono.fecha)} · {abono.medioNombre} · {abono.registradoPorNombre}
+                        {abono.nota ? ` · ${abono.nota}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="hogar-cop shrink-0 text-sm font-extrabold text-hogar-indigo">
+                    {formatearPesos(abono.monto)}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
         </section>
       ) : null}
     </ShellApp>
