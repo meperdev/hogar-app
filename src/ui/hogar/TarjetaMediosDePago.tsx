@@ -210,7 +210,7 @@ export function TarjetaMediosDePago({
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <div className="flex flex-col gap-1.5">
+              <div className="flex min-w-0 flex-col gap-1.5 overflow-hidden">
                 <label htmlFor="medio-nuevo-tipo" className={claseEtiquetaCampo}>
                   Tipo
                 </label>
@@ -226,7 +226,7 @@ export function TarjetaMediosDePago({
                 </select>
               </div>
 
-              <div className="flex flex-col gap-1.5">
+              <div className="flex min-w-0 flex-col gap-1.5 overflow-hidden">
                 <label htmlFor="medio-nuevo-dueno" className={claseEtiquetaCampo}>
                   ¿De quién es?
                 </label>

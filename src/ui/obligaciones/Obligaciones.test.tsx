@@ -151,6 +151,15 @@ describe('Obligaciones del mes UI', () => {
     expect(contenedor.textContent).toContain('Hogar · titular Santiago')
     expect(contenedor.textContent).toContain('Hogar · titular Hogar')
 
+    const kpis = [...contenedor.querySelectorAll('section[aria-labelledby="resumen-contable-heading"] article')]
+    expect(kpis).toHaveLength(3)
+    for (const kpi of kpis) {
+      expect(kpi.className).toContain('min-w-0')
+      expect(kpi.className).toContain('overflow-hidden')
+      expect(kpi.className).toContain('justify-between')
+      expect(kpi.querySelector('span.items-start')).not.toBeNull()
+    }
+
     const headings = [...contenedor.querySelectorAll('h2')].map((h) => h.textContent?.trim())
     expect(headings.indexOf('Vencidas')).toBeLessThan(headings.indexOf('Pendientes este mes'))
     expect(headings.indexOf('Pendientes este mes')).toBeLessThan(headings.findIndex((t) => t?.startsWith('Pagadas en ')))

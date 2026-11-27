@@ -496,7 +496,7 @@ export function PantallaCompraRapida() {
               <button
                 key={t}
                 type="button"
-                className={`hogar-cop inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-2xl border font-extrabold transition-all duration-100 active:translate-y-[1px] active:scale-[0.96] active:shadow-none ${estilo}`}
+                className={`hogar-cop inline-flex min-h-11 w-full min-w-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl border font-extrabold transition-all duration-100 active:translate-y-[1px] active:scale-[0.96] active:shadow-none ${estilo}`}
                 aria-label={
                   t === '000'
                     ? 'Agregar tres ceros (miles)'
