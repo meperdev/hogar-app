@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 
 export type TipoMedioVisual = 'efectivo' | 'cuenta' | 'tarjeta' | 'prestamo' | 'medio'
 
@@ -86,6 +86,27 @@ function normalizar(texto: string): string {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .trim()
+}
+
+function crearLogoMarca(
+  slug: string,
+  Fallback: (props: { className?: string }) => ReactNode,
+) {
+  return function LogoMarca({ className = 'size-6' }: { className?: string }) {
+    const [fallo, setFallo] = useState(false)
+    if (fallo) return <Fallback className={className} />
+    return (
+      <img
+        src={`/logos/${slug}.png`}
+        alt=""
+        aria-hidden="true"
+        loading="eager"
+        decoding="async"
+        onError={() => setFallo(true)}
+        className={`${className} rounded-[24%] bg-white object-cover shadow-[0_1px_2px_rgba(0,0,0,0.18)]`}
+      />
+    )
+  }
 }
 
 export function IconoCheckSvg({ className = 'size-4' }: { className?: string }) {
@@ -263,6 +284,22 @@ export function MotivoTarjetaSvg({ className = 'size-12' }: { className?: string
   )
 }
 
+const LogoNequiMarca = crearLogoMarca('nequi', LogoNequi)
+const LogoBancolombiaMarca = crearLogoMarca('bancolombia', LogoBancolombia)
+const LogoDaviviendaMarca = crearLogoMarca('davivienda', LogoDaviplata)
+const LogoDaviplataMarca = crearLogoMarca('daviplata', LogoDaviplata)
+const LogoNuMarca = crearLogoMarca('nu', LogoNu)
+const LogoRappiMarca = crearLogoMarca('rappi', LogoRappi)
+const LogoBbvaMarca = crearLogoMarca('bbva', LogoBbva)
+const LogoBogotaMarca = crearLogoMarca('banco-bogota', LogoBogota)
+const LogoColpatriaMarca = crearLogoMarca('scotiabank-colpatria', LogoCuentaGenerica)
+const LogoOccidenteMarca = crearLogoMarca('banco-occidente', LogoCuentaGenerica)
+const LogoAvVillasMarca = crearLogoMarca('av-villas', LogoCuentaGenerica)
+const LogoCajaSocialMarca = crearLogoMarca('banco-caja-social', LogoCuentaGenerica)
+const LogoFalabellaMarca = crearLogoMarca('falabella', LogoCuentaGenerica)
+const LogoItauMarca = crearLogoMarca('itau', LogoCuentaGenerica)
+const LogoLuloMarca = crearLogoMarca('lulo', LogoCuentaGenerica)
+
 export function identidadMedio(nombre: string, tipo: TipoMedioVisual): IdentidadVisual {
   const n = normalizar(nombre)
   if (n.includes('nequi')) {
@@ -274,7 +311,7 @@ export function identidadMedio(nombre: string, tipo: TipoMedioVisual): Identidad
       acento: '#DA0081',
       brillo: 'rgba(218, 0, 129, 0.36)',
       sombra: '0 10px 22px -6px rgba(218, 0, 129, 0.42), 0 0 0 2px #DA0081',
-      Logo: LogoNequi,
+      Logo: LogoNequiMarca,
     }
   }
   if (n.includes('bancolombia')) {
@@ -286,7 +323,7 @@ export function identidadMedio(nombre: string, tipo: TipoMedioVisual): Identidad
       acento: '#FDDA24',
       brillo: 'rgba(253, 218, 36, 0.28)',
       sombra: '0 10px 22px -6px rgba(20, 19, 18, 0.46), 0 0 0 2px #FDDA24',
-      Logo: LogoBancolombia,
+      Logo: LogoBancolombiaMarca,
     }
   }
   if (n.includes('bre-b') || n.includes('breb') || n.includes('bre b') || n.includes('llave')) {
@@ -310,7 +347,7 @@ export function identidadMedio(nombre: string, tipo: TipoMedioVisual): Identidad
       acento: '#FCA5A5',
       brillo: 'rgba(252, 165, 165, 0.28)',
       sombra: '0 10px 22px -6px rgba(185, 28, 28, 0.45), 0 0 0 2px #FCA5A5',
-      Logo: LogoDaviplata,
+      Logo: n.includes('daviplata') ? LogoDaviplataMarca : LogoDaviviendaMarca,
     }
   }
   if (/\bnu\b/.test(n) || n.includes('nubank')) {
@@ -322,7 +359,7 @@ export function identidadMedio(nombre: string, tipo: TipoMedioVisual): Identidad
       acento: '#E9D5FF',
       brillo: 'rgba(233, 213, 255, 0.30)',
       sombra: '0 10px 22px -6px rgba(130, 10, 209, 0.48), 0 0 0 2px #E9D5FF',
-      Logo: LogoNu,
+      Logo: LogoNuMarca,
     }
   }
   if (n.includes('rappi')) {
@@ -334,7 +371,7 @@ export function identidadMedio(nombre: string, tipo: TipoMedioVisual): Identidad
       acento: '#FED7AA',
       brillo: 'rgba(254, 215, 170, 0.28)',
       sombra: '0 10px 22px -6px rgba(255, 68, 31, 0.45), 0 0 0 2px #FED7AA',
-      Logo: LogoRappi,
+      Logo: LogoRappiMarca,
     }
   }
   if (n.includes('bbva')) {
@@ -346,7 +383,7 @@ export function identidadMedio(nombre: string, tipo: TipoMedioVisual): Identidad
       acento: '#7DD3FC',
       brillo: 'rgba(125, 211, 252, 0.28)',
       sombra: '0 10px 22px -6px rgba(0, 68, 129, 0.45), 0 0 0 2px #7DD3FC',
-      Logo: LogoBbva,
+      Logo: LogoBbvaMarca,
     }
   }
   if (n.includes('bogota')) {
@@ -358,7 +395,7 @@ export function identidadMedio(nombre: string, tipo: TipoMedioVisual): Identidad
       acento: '#FACC15',
       brillo: 'rgba(250, 204, 21, 0.26)',
       sombra: '0 10px 22px -6px rgba(0, 51, 160, 0.45), 0 0 0 2px #FACC15',
-      Logo: LogoBogota,
+      Logo: LogoBogotaMarca,
     }
   }
   if (n.includes('colpatria') || n.includes('scotiabank')) {
@@ -370,7 +407,7 @@ export function identidadMedio(nombre: string, tipo: TipoMedioVisual): Identidad
       acento: '#FECACA',
       brillo: 'rgba(236, 17, 26, 0.30)',
       sombra: '0 10px 22px -6px rgba(236, 17, 26, 0.45), 0 0 0 2px #FECACA',
-      Logo: LogoCuentaGenerica,
+      Logo: LogoColpatriaMarca,
     }
   }
   if (n.includes('occidente')) {
@@ -382,7 +419,7 @@ export function identidadMedio(nombre: string, tipo: TipoMedioVisual): Identidad
       acento: '#7DD3FC',
       brillo: 'rgba(125, 211, 252, 0.28)',
       sombra: '0 10px 22px -6px rgba(0, 74, 152, 0.45), 0 0 0 2px #7DD3FC',
-      Logo: LogoCuentaGenerica,
+      Logo: LogoOccidenteMarca,
     }
   }
   if (n.includes('av villas') || n.includes('avvillas')) {
@@ -394,7 +431,7 @@ export function identidadMedio(nombre: string, tipo: TipoMedioVisual): Identidad
       acento: '#FCA5A5',
       brillo: 'rgba(252, 165, 165, 0.26)',
       sombra: '0 10px 22px -6px rgba(0, 59, 115, 0.45), 0 0 0 2px #FCA5A5',
-      Logo: LogoCuentaGenerica,
+      Logo: LogoAvVillasMarca,
     }
   }
   if (n.includes('caja social')) {
@@ -406,7 +443,7 @@ export function identidadMedio(nombre: string, tipo: TipoMedioVisual): Identidad
       acento: '#BAE6FD',
       brillo: 'rgba(186, 230, 253, 0.26)',
       sombra: '0 10px 22px -6px rgba(0, 98, 184, 0.45), 0 0 0 2px #BAE6FD',
-      Logo: LogoCuentaGenerica,
+      Logo: LogoCajaSocialMarca,
     }
   }
   if (n.includes('falabella')) {
@@ -418,7 +455,7 @@ export function identidadMedio(nombre: string, tipo: TipoMedioVisual): Identidad
       acento: '#BEF264',
       brillo: 'rgba(190, 242, 100, 0.28)',
       sombra: '0 10px 22px -6px rgba(47, 125, 24, 0.45), 0 0 0 2px #BEF264',
-      Logo: LogoCuentaGenerica,
+      Logo: LogoFalabellaMarca,
     }
   }
   if (n.includes('itau')) {
@@ -430,7 +467,7 @@ export function identidadMedio(nombre: string, tipo: TipoMedioVisual): Identidad
       acento: '#FEF08A',
       brillo: 'rgba(254, 240, 138, 0.30)',
       sombra: '0 10px 22px -6px rgba(236, 112, 0, 0.46), 0 0 0 2px #FEF08A',
-      Logo: LogoCuentaGenerica,
+      Logo: LogoItauMarca,
     }
   }
   if (n.includes('lulo')) {
@@ -442,7 +479,7 @@ export function identidadMedio(nombre: string, tipo: TipoMedioVisual): Identidad
       acento: '#A3E635',
       brillo: 'rgba(163, 230, 53, 0.28)',
       sombra: '0 10px 22px -6px rgba(15, 23, 42, 0.48), 0 0 0 2px #A3E635',
-      Logo: LogoCuentaGenerica,
+      Logo: LogoLuloMarca,
     }
   }
   if (n.includes('visa')) {
@@ -610,16 +647,30 @@ const PALETA_COMERCIO_CUSTOM = [
   { fondo: '#0E7490', texto: '#FFFFFF', acento: '#A5F3FC', sombra: '0 6px 16px -4px rgba(14, 116, 144, 0.42)' },
 ] as const
 
+const LogoD1Marca = crearLogoMarca('d1', LogoCanasta)
+const LogoExitoMarca = crearLogoMarca('exito', LogoEstrella)
+const LogoAraMarca = crearLogoMarca('ara', LogoCanasta)
+const LogoCarullaMarca = crearLogoMarca('carulla', LogoHoja)
+const LogoUberMarca = crearLogoMarca('uber', LogoAuto)
+const LogoFarmatodoMarca = crearLogoMarca('farmatodo', LogoCruz)
+const LogoLaikaMarca = crearLogoMarca('laika', LogoHuella)
+const LogoJuanValdezMarca = crearLogoMarca('juan-valdez', LogoTaza)
+const LogoCruzVerdeMarca = crearLogoMarca('cruz-verde', LogoCruz)
+const LogoTostaoMarca = crearLogoMarca('tostao', LogoTaza)
+const LogoJumboMarca = crearLogoMarca('jumbo', LogoCanasta)
+const LogoHomecenterMarca = crearLogoMarca('homecenter', LogoBolsaComercio)
+const LogoOlimpicaMarca = crearLogoMarca('olimpica', LogoBolsaComercio)
+
 export const COMERCIOS_RAPIDOS: readonly ComercioRapido[] = [
-  { id: 'd1', nombre: 'D1', fondo: '#D61F26', texto: '#FFFFFF', acento: '#FCA5A5', sombra: '0 6px 16px -4px rgba(214, 31, 38, 0.45)', categoriaSugerida: 'mercado', Logo: LogoCanasta },
-  { id: 'exito', nombre: 'Éxito', fondo: '#FFE600', texto: '#161E1B', acento: '#161E1B', sombra: '0 6px 16px -4px rgba(234, 179, 8, 0.45)', categoriaSugerida: 'mercado', Logo: LogoEstrella },
-  { id: 'ara', nombre: 'Ara', fondo: '#EA580C', texto: '#FFFFFF', acento: '#FED7AA', sombra: '0 6px 16px -4px rgba(234, 88, 12, 0.45)', categoriaSugerida: 'mercado', Logo: LogoCanasta },
-  { id: 'carulla', nombre: 'Carulla', fondo: '#007A33', texto: '#FFFFFF', acento: '#BBF7D0', sombra: '0 6px 16px -4px rgba(0, 122, 51, 0.45)', categoriaSugerida: 'mercado', Logo: LogoHoja },
-  { id: 'rappi', nombre: 'Rappi', fondo: '#FF441F', texto: '#FFFFFF', acento: '#FED7AA', sombra: '0 6px 16px -4px rgba(255, 68, 31, 0.45)', categoriaSugerida: 'mercado', Logo: LogoRappi },
-  { id: 'uber', nombre: 'Uber', fondo: '#111827', texto: '#FFFFFF', acento: '#9CA3AF', sombra: '0 6px 16px -4px rgba(17, 24, 39, 0.42)', categoriaSugerida: 'transporte', Logo: LogoAuto },
-  { id: 'farmatodo', nombre: 'Farmatodo', fondo: '#0057B8', texto: '#FFFFFF', acento: '#BFDBFE', sombra: '0 6px 16px -4px rgba(0, 87, 184, 0.45)', categoriaSugerida: 'salud', Logo: LogoCruz },
-  { id: 'laika', nombre: 'Laika', fondo: '#6D28D9', texto: '#FFFFFF', acento: '#DDD6FE', sombra: '0 6px 16px -4px rgba(109, 40, 217, 0.45)', categoriaSugerida: 'mascotas', Logo: LogoHuella },
-  { id: 'juan-valdez', nombre: 'Juan Valdez', fondo: '#4E2A1E', texto: '#FFF7ED', acento: '#FDBA74', sombra: '0 6px 16px -4px rgba(78, 42, 30, 0.45)', categoriaSugerida: 'entretenimiento', Logo: LogoTaza },
+  { id: 'd1', nombre: 'D1', fondo: '#D61F26', texto: '#FFFFFF', acento: '#FCA5A5', sombra: '0 6px 16px -4px rgba(214, 31, 38, 0.45)', categoriaSugerida: 'mercado', Logo: LogoD1Marca },
+  { id: 'exito', nombre: 'Éxito', fondo: '#FFE600', texto: '#161E1B', acento: '#161E1B', sombra: '0 6px 16px -4px rgba(234, 179, 8, 0.45)', categoriaSugerida: 'mercado', Logo: LogoExitoMarca },
+  { id: 'ara', nombre: 'Ara', fondo: '#EA580C', texto: '#FFFFFF', acento: '#FED7AA', sombra: '0 6px 16px -4px rgba(234, 88, 12, 0.45)', categoriaSugerida: 'mercado', Logo: LogoAraMarca },
+  { id: 'carulla', nombre: 'Carulla', fondo: '#007A33', texto: '#FFFFFF', acento: '#BBF7D0', sombra: '0 6px 16px -4px rgba(0, 122, 51, 0.45)', categoriaSugerida: 'mercado', Logo: LogoCarullaMarca },
+  { id: 'rappi', nombre: 'Rappi', fondo: '#FF441F', texto: '#FFFFFF', acento: '#FED7AA', sombra: '0 6px 16px -4px rgba(255, 68, 31, 0.45)', categoriaSugerida: 'mercado', Logo: LogoRappiMarca },
+  { id: 'uber', nombre: 'Uber', fondo: '#111827', texto: '#FFFFFF', acento: '#9CA3AF', sombra: '0 6px 16px -4px rgba(17, 24, 39, 0.42)', categoriaSugerida: 'transporte', Logo: LogoUberMarca },
+  { id: 'farmatodo', nombre: 'Farmatodo', fondo: '#0057B8', texto: '#FFFFFF', acento: '#BFDBFE', sombra: '0 6px 16px -4px rgba(0, 87, 184, 0.45)', categoriaSugerida: 'salud', Logo: LogoFarmatodoMarca },
+  { id: 'laika', nombre: 'Laika', fondo: '#6D28D9', texto: '#FFFFFF', acento: '#DDD6FE', sombra: '0 6px 16px -4px rgba(109, 40, 217, 0.45)', categoriaSugerida: 'mascotas', Logo: LogoLaikaMarca },
+  { id: 'juan-valdez', nombre: 'Juan Valdez', fondo: '#4E2A1E', texto: '#FFF7ED', acento: '#FDBA74', sombra: '0 6px 16px -4px rgba(78, 42, 30, 0.45)', categoriaSugerida: 'entretenimiento', Logo: LogoJuanValdezMarca },
 ]
 
 export function identidadComercio(nombre: string): IdentidadComercio {
@@ -632,19 +683,28 @@ export function identidadComercio(nombre: string): IdentidadComercio {
   if (n.includes('uber')) return COMERCIOS_RAPIDOS[5]!
   if (n.includes('farmatodo') || n.includes('cruz verde')) {
     return n.includes('cruz verde')
-      ? { fondo: '#00843D', texto: '#FFFFFF', acento: '#BBF7D0', sombra: '0 6px 16px -4px rgba(0, 132, 61, 0.45)', Logo: LogoCruz }
+      ? { fondo: '#00843D', texto: '#FFFFFF', acento: '#BBF7D0', sombra: '0 6px 16px -4px rgba(0, 132, 61, 0.45)', Logo: LogoCruzVerdeMarca }
       : COMERCIOS_RAPIDOS[6]!
   }
   if (n.includes('laika')) return COMERCIOS_RAPIDOS[7]!
   if (n.includes('juan valdez') || n.includes('tostao')) {
     return n.includes('tostao')
-      ? { fondo: '#F59E0B', texto: '#161E1B', acento: '#161E1B', sombra: '0 6px 16px -4px rgba(245, 158, 11, 0.45)', Logo: LogoTaza }
+      ? { fondo: '#F59E0B', texto: '#161E1B', acento: '#161E1B', sombra: '0 6px 16px -4px rgba(245, 158, 11, 0.45)', Logo: LogoTostaoMarca }
       : COMERCIOS_RAPIDOS[8]!
   }
-  if (n.includes('jumbo') || n.includes('makro')) {
+  if (n.includes('jumbo')) {
+    return { fondo: '#15803D', texto: '#FFFFFF', acento: '#BBF7D0', sombra: '0 6px 16px -4px rgba(21, 128, 61, 0.45)', Logo: LogoJumboMarca }
+  }
+  if (n.includes('makro')) {
     return { fondo: '#15803D', texto: '#FFFFFF', acento: '#BBF7D0', sombra: '0 6px 16px -4px rgba(21, 128, 61, 0.45)', Logo: LogoCanasta }
   }
-  if (n.includes('olimpica') || n.includes('dollarcity') || n.includes('homecenter')) {
+  if (n.includes('olimpica')) {
+    return { fondo: '#C81E1E', texto: '#FFFFFF', acento: '#FECACA', sombra: '0 6px 16px -4px rgba(200, 30, 30, 0.45)', Logo: LogoOlimpicaMarca }
+  }
+  if (n.includes('homecenter')) {
+    return { fondo: '#C81E1E', texto: '#FFFFFF', acento: '#FECACA', sombra: '0 6px 16px -4px rgba(200, 30, 30, 0.45)', Logo: LogoHomecenterMarca }
+  }
+  if (n.includes('dollarcity')) {
     return { fondo: '#C81E1E', texto: '#FFFFFF', acento: '#FECACA', sombra: '0 6px 16px -4px rgba(200, 30, 30, 0.45)', Logo: LogoBolsaComercio }
   }
   let hash = 0
