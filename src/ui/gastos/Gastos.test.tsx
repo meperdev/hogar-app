@@ -279,16 +279,25 @@ describe('UI Gastos generales', () => {
     expect(linkRegistrar?.getAttribute('href')).toBe('/compra')
   })
 
-  it('permite editar una compra de contado, recarga y muestra aviso de confirmación', async () => {
+  it('despliega el editor acoplado debajo de la compra con un solo botón cerrar y formato COP automático', async () => {
     const cargarMes = vi.fn(async (p: string, a: FiltroAmbitoGastos) => vistaDemo(p, a))
     const editarCompra = vi.fn(async () => {})
     const { contenedor } = await montar({ cargarMes, editarCompra })
 
+    const botonD1 = botonPorTexto(contenedor, 'D1')
+    expect(botonD1).toBeDefined()
     await act(async () => {
-      botonPorTexto(contenedor, 'D1')?.click()
+      botonD1?.click()
     })
-    const dialogo = contenedor.querySelector('[role="dialog"]')
-    expect(dialogo).not.toBeNull()
+
+    const region = contenedor.querySelector('[role="region"][aria-label="Editar compra"]')
+    expect(region).not.toBeNull()
+    expect(contenedor.querySelector('[role="dialog"]')).toBeNull()
+    expect(contenedor.querySelector('button[aria-label="Cerrar"]')).toBeNull()
+    expect(region?.closest('li')).toBe(botonD1?.closest('li'))
+
+    const inputMonto = contenedor.querySelector('#editar-gasto-monto') as HTMLInputElement
+    expect(inputMonto.value).toBe('$320.000')
 
     const escribir = (el: HTMLInputElement | HTMLSelectElement, valor: string) => {
       const proto = el instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype
@@ -299,13 +308,15 @@ describe('UI Gastos generales', () => {
 
     await act(async () => {
       escribir(contenedor.querySelector('#editar-gasto-descripcion') as HTMLInputElement, 'D1 corregido')
-      escribir(contenedor.querySelector('#editar-gasto-monto') as HTMLInputElement, '75000')
+      escribir(inputMonto, '75000')
       escribir(contenedor.querySelector('#editar-gasto-fecha') as HTMLInputElement, '2026-11-19')
       escribir(contenedor.querySelector('#editar-gasto-categoria') as HTMLSelectElement, 'cat-transporte')
       escribir(contenedor.querySelector('#editar-gasto-medio') as HTMLSelectElement, 'm-nequi')
     })
 
-    const form = dialogo?.querySelector('form')
+    expect(inputMonto.value).toBe('$75.000')
+
+    const form = region?.querySelector('form')
     await act(async () => {
       form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     })
@@ -318,7 +329,7 @@ describe('UI Gastos generales', () => {
       fecha: '2026-11-19',
       medioDePagoId: 'm-nequi',
     })
-    expect(contenedor.querySelector('[role="dialog"]')).toBeNull()
+    expect(contenedor.querySelector('[role="region"][aria-label="Editar compra"]')).toBeNull()
     expect(contenedor.querySelector('[role="status"]')?.textContent).toContain('Compra actualizada')
     expect(cargarMes).toHaveBeenCalledTimes(2)
   })
@@ -331,8 +342,8 @@ describe('UI Gastos generales', () => {
     await act(async () => {
       botonPorTexto(contenedor, 'Uber')?.click()
     })
-    const dialogo = contenedor.querySelector('[role="dialog"]')
-    expect(dialogo?.textContent).toContain('solo puedes editar descripción y categoría')
+    const region = contenedor.querySelector('[role="region"][aria-label="Editar compra"]')
+    expect(region?.textContent).toContain('solo puedes editar descripción y categoría')
     expect((contenedor.querySelector('#editar-gasto-monto') as HTMLInputElement).disabled).toBe(true)
     expect((contenedor.querySelector('#editar-gasto-fecha') as HTMLInputElement).disabled).toBe(true)
     expect(contenedor.querySelector('#editar-gasto-medio')).toBeNull()
@@ -344,7 +355,7 @@ describe('UI Gastos generales', () => {
     })
 
     await act(async () => {
-      dialogo?.querySelector('form')?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      region?.querySelector('form')?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     })
 
     expect(editarCompra).toHaveBeenCalledWith({
@@ -374,7 +385,7 @@ describe('UI Gastos generales', () => {
     })
 
     expect(anularCompra).toHaveBeenCalledWith('g1')
-    expect(contenedor.querySelector('[role="dialog"]')).toBeNull()
+    expect(contenedor.querySelector('[role="region"][aria-label="Editar compra"]')).toBeNull()
     expect(contenedor.querySelector('[role="status"]')?.textContent).toContain('Compra anulada')
     expect(cargarMes).toHaveBeenCalledTimes(2)
   })

@@ -46,6 +46,7 @@ const esquemaMedio = z.object({
   id: z.uuid(),
   nombre: z.string(),
   owner_miembro_id: z.uuid().nullable(),
+  orden: z.number().int().optional(),
 })
 
 const esquemaPasivo = z.object({
@@ -145,7 +146,7 @@ export function crearRemotoObligaciones(cliente: SupabaseClient): RemotoObligaci
             .eq('hogar_id', hogarId).eq('activo', true).is('eliminado_en', null),
           cliente.from('categoria').select('id,nombre')
             .eq('hogar_id', hogarId).is('eliminado_en', null),
-          cliente.from('medio_de_pago').select('id,nombre,owner_miembro_id')
+          cliente.from('medio_de_pago').select('id,nombre,owner_miembro_id,orden')
             .eq('hogar_id', hogarId).eq('activo', true).is('eliminado_en', null),
           cliente.from('pasivo').select('id,tipo,nombre,ambito,owner_miembro_id')
             .eq('hogar_id', hogarId).eq('activo', true).is('eliminado_en', null),
@@ -173,7 +174,9 @@ export function crearRemotoObligaciones(cliente: SupabaseClient): RemotoObligaci
       return {
         miembros: z.array(esquemaMiembro).parse(miembros.data),
         categorias: z.array(esquemaCategoria).parse(categorias.data),
-        medios: z.array(esquemaMedio).parse(medios.data),
+        medios: z.array(esquemaMedio)
+          .parse(medios.data)
+          .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0) || a.nombre.localeCompare(b.nombre, 'es')),
         pasivos: z.array(esquemaPasivo).parse(pasivos.data).map((pasivo) => ({
           ...pasivo,
           ultimos_4: filasTarjeta.find((tarjeta) => tarjeta.pasivo_id === pasivo.id)?.ultimos_4 ?? null,

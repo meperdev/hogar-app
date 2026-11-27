@@ -10,6 +10,7 @@ export type MedioDePagoItem = {
   ownerTipo: DuenoMedioPago
   ownerMiembroId: string | null
   activo: boolean
+  orden: number
 }
 
 export type NuevoMedioEntrada = {
@@ -22,6 +23,7 @@ export interface MediosDePagoPort {
   listar(hogarId: string): Promise<MedioDePagoItem[]>
   crear(entrada: NuevoMedioEntrada): Promise<MedioDePagoItem>
   cambiarActivo(medioId: string, activo: boolean): Promise<{ id: string; activo: boolean }>
+  reordenar(ids: string[]): Promise<void>
 }
 
 export class ErrorMedioDePago extends Error {}

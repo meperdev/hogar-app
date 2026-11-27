@@ -352,6 +352,7 @@ describe('Shell autenticado, navegación e invitaciones', () => {
         ownerTipo: 'miembro' as const,
         ownerMiembroId: 'ana-id',
         activo: true,
+        orden: 0,
       },
     ])
     const crear = vi.fn(async (entrada: { nombre: string; tipo: 'efectivo' | 'cuenta'; ownerTipo: 'miembro' | 'hogar' }) => ({
@@ -361,7 +362,9 @@ describe('Shell autenticado, navegación e invitaciones', () => {
       ownerTipo: entrada.ownerTipo,
       ownerMiembroId: entrada.ownerTipo === 'miembro' ? 'ana-id' : null,
       activo: true,
+      orden: 1,
     }))
+    const reordenar = vi.fn(async () => {})
     const { servicios, notificar } = crearServiciosBase({
       cargar: vi.fn(async () => hogarEjemplo('admin')),
     })
@@ -369,6 +372,7 @@ describe('Shell autenticado, navegación e invitaciones', () => {
       listar,
       crear,
       cambiarActivo: vi.fn(async (id, activo) => ({ id, activo })),
+      reordenar,
     }
 
     const { contenedor } = await montar(servicios)
@@ -407,5 +411,17 @@ describe('Shell autenticado, navegación e invitaciones', () => {
 
     expect(crear).toHaveBeenCalledWith({ nombre: 'Nequi Ana', tipo: 'cuenta', ownerTipo: 'miembro' })
     expect(contenedor.textContent).toContain('Nequi Ana')
+
+    const asaNequi = contenedor.querySelector<HTMLButtonElement>('button[aria-label="Reordenar Nequi Ana"]')
+    expect(asaNequi).not.toBeNull()
+    await act(async () => {
+      asaNequi?.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }))
+    })
+
+    expect(reordenar).toHaveBeenCalledWith(['mp-2', 'mp-1'])
+    const idsEnDom = [...contenedor.querySelectorAll<HTMLLIElement>('li[data-medio-id]')].map(
+      (el) => el.dataset.medioId,
+    )
+    expect(idsEnDom).toEqual(['mp-2', 'mp-1'])
   })
 })

@@ -169,7 +169,9 @@ export function crearRemotoBalance(cliente: SupabaseClient): RemotoBalance {
           .from('medio_de_pago')
           .select('id,nombre,tipo,owner_tipo,owner_miembro_id,activo')
           .eq('hogar_id', hogarId)
-          .is('eliminado_en', null),
+          .is('eliminado_en', null)
+          .order('orden', { ascending: true })
+          .order('nombre', { ascending: true }),
         cliente
           .from('compra')
           .select(

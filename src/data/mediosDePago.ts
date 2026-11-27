@@ -14,6 +14,7 @@ const esquemaMedio = z.object({
   owner_tipo: z.enum(['miembro', 'hogar']),
   owner_miembro_id: z.uuid().nullable(),
   activo: z.boolean(),
+  orden: z.number().int().default(0),
 })
 
 function mapearMedio(fila: z.infer<typeof esquemaMedio>): MedioDePagoItem {
@@ -24,6 +25,7 @@ function mapearMedio(fila: z.infer<typeof esquemaMedio>): MedioDePagoItem {
     ownerTipo: fila.owner_tipo,
     ownerMiembroId: fila.owner_miembro_id,
     activo: fila.activo,
+    orden: fila.orden,
   }
 }
 
@@ -45,10 +47,11 @@ export function crearMediosDePagoSupabase(cliente: SupabaseClient): MediosDePago
     async listar(hogarId) {
       const { data, error } = await cliente
         .from('medio_de_pago')
-        .select('id,nombre,tipo,owner_tipo,owner_miembro_id,activo')
+        .select('id,nombre,tipo,owner_tipo,owner_miembro_id,activo,orden')
         .eq('hogar_id', hogarId)
         .is('eliminado_en', null)
-        .order('nombre')
+        .order('orden', { ascending: true })
+        .order('nombre', { ascending: true })
       if (error) throw new ErrorMedioDePago('No se pudieron cargar los medios de pago.')
       return esquemaMedio.array().parse(data).map(mapearMedio)
     },
@@ -71,6 +74,12 @@ export function crearMediosDePagoSupabase(cliente: SupabaseClient): MediosDePago
       })
       if (error) errorRpcMedio(error, 'No se pudo actualizar el medio de pago.')
       return z.object({ id: z.uuid(), activo: z.boolean() }).parse(data)
+    },
+
+    async reordenar(ids) {
+      if (ids.length === 0) return
+      const { error } = await cliente.rpc('reordenar_medios_de_pago', { p_ids: ids })
+      if (error) errorRpcMedio(error, 'No se pudo guardar el orden de los medios.')
     },
   }
 }

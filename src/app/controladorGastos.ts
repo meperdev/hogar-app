@@ -37,6 +37,7 @@ export type DatosGastos = {
     nombre: string
     tipo: 'efectivo' | 'cuenta'
     activo: boolean
+    orden?: number | undefined
   }>
   pasivos: Array<{
     id: string

@@ -37,6 +37,7 @@ export type FilaMedio = {
   nombre: string
   tipo: 'efectivo' | 'cuenta'
   activo: boolean
+  orden?: number | undefined
 }
 
 export type FilaPasivo = {
@@ -137,6 +138,8 @@ export function armarCatalogo(f: FilasCatalogo): CatalogoCompra {
 
   const medios: MedioOpcion[] = f.medios
     .filter((medio) => medio.activo)
+    .slice()
+    .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0) || a.nombre.localeCompare(b.nombre, 'es'))
     .map((medio) => ({ tipo: 'medio', id: medio.id, nombre: medio.nombre, ambito: null }))
 
   const tarjetas: MedioOpcion[] = []
@@ -183,7 +186,7 @@ export function armarCatalogo(f: FilasCatalogo): CatalogoCompra {
 
   return {
     categorias,
-    medios: [...medios.sort(porNombre), ...tarjetas.sort(porNombre), ...prestamos.sort(porNombre)],
+    medios: [...medios, ...tarjetas.sort(porNombre), ...prestamos.sort(porNombre)],
   }
 }
 
@@ -381,6 +384,7 @@ const esquemaMedio = z.object({
   nombre: z.string(),
   tipo: z.enum(['efectivo', 'cuenta']),
   activo: z.boolean(),
+  orden: z.number().int().optional(),
 })
 
 const esquemaPasivo = z.object({
@@ -443,7 +447,7 @@ export function crearRemotoSupabase(cliente: SupabaseClient): RemotoCompraRapida
         await Promise.all([
           cliente.from('categoria').select('id,nombre,icono,orden,activa')
             .eq('hogar_id', hogarId).is('eliminado_en', null),
-          cliente.from('medio_de_pago').select('id,nombre,tipo,activo')
+          cliente.from('medio_de_pago').select('id,nombre,tipo,activo,orden')
             .eq('hogar_id', hogarId).is('eliminado_en', null),
           cliente.from('pasivo').select('id,tipo,nombre,ambito,tasa_tipo,tasa_ppm,activo')
             .eq('hogar_id', hogarId).is('eliminado_en', null),
