@@ -65,7 +65,7 @@ const nombresValidos = z.object({
 
 function validarCorreo(correo: string): string {
   const resultado = correoValido.safeParse(correo)
-  if (!resultado.success) throw new ErrorFundacion('Ingresá un correo válido.')
+  if (!resultado.success) throw new ErrorFundacion('Ingresa un correo válido.')
   return resultado.data
 }
 
@@ -78,7 +78,7 @@ export async function verificarCodigo(
 ) {
   const resultado = codigoValido.safeParse(codigo)
   if (!resultado.success) {
-    throw new ErrorFundacion('Ingresá el código de seis dígitos.')
+    throw new ErrorFundacion('Ingresa el código de seis dígitos.')
   }
   await auth.verificarCodigo(validarCorreo(correo), resultado.data)
 }
@@ -86,7 +86,7 @@ export async function verificarCodigo(
 export async function crearHogar(hogares: HogarPort, nombres: NombreHogar) {
   const resultado = nombresValidos.safeParse(nombres)
   if (!resultado.success) {
-    throw new ErrorFundacion('Ingresá el nombre del hogar y tu nombre.')
+    throw new ErrorFundacion('Ingresa el nombre del hogar y tu nombre.')
   }
   return hogares.crear(resultado.data)
 }

@@ -51,15 +51,15 @@ export function conectarSupabase(url: unknown, clavePublica: unknown): Servicios
       },
       async pedirCodigo(email) {
         const { error } = await cliente.auth.signInWithOtp({ email })
-        if (error) throw new ErrorFundacion('No se pudo enviar el código. Intentá de nuevo.')
+        if (error) throw new ErrorFundacion('No se pudo enviar el código. Intenta de nuevo.')
       },
       async verificarCodigo(email, token) {
         const { error } = await cliente.auth.verifyOtp({ email, token, type: 'email' })
-        if (error) throw new ErrorFundacion('Código inválido o vencido. Revisalo o pedí otro.')
+        if (error) throw new ErrorFundacion('Código inválido o vencido. Revísalo o pide otro.')
       },
       async salir() {
         const { error } = await cliente.auth.signOut({ scope: 'local' })
-        if (error) throw new ErrorFundacion('No se pudo cerrar la sesión. Intentá de nuevo.')
+        if (error) throw new ErrorFundacion('No se pudo cerrar la sesión. Intenta de nuevo.')
       },
     },
     hogares: {
@@ -98,8 +98,8 @@ export function conectarSupabase(url: unknown, clavePublica: unknown): Servicios
         const { data, error } = await cliente.rpc('crear_hogar', {
           p_nombre: nombre, p_nombre_miembro: nombreMiembro,
         })
-        if (error?.code === '23505') throw new ErrorFundacion('Ya pertenecés a un hogar.')
-        if (error?.code === '22023') throw new ErrorFundacion('Revisá el largo de los nombres.')
+        if (error?.code === '23505') throw new ErrorFundacion('Ya perteneces a un hogar.')
+        if (error?.code === '22023') throw new ErrorFundacion('Revisa el largo de los nombres.')
         if (error) throw error
         const resultado = z.object({ hogar_id: z.uuid(), miembro_id: z.uuid() }).parse(data)
         return { hogarId: resultado.hogar_id, miembroId: resultado.miembro_id }

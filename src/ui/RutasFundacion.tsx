@@ -109,12 +109,12 @@ function Ingreso({ auth }: { auth: AuthPort }) {
         await pedirCodigo(auth, correo)
         setEnviado(true)
       }
-    }, 'No pudimos iniciar sesión. Intentá de nuevo.')
+    }, 'No pudimos iniciar sesión. Intenta de nuevo.')
   }
 
   return (
     <ShellApp
-      titulo="Ingresá a hogar-app"
+      titulo="Ingresa a hogar-app"
       subtitulo="Sin contraseña · Código por correo"
       marcaInicio
       accionDerecha={<Insignia variante="primario">Fundación</Insignia>}
@@ -131,7 +131,7 @@ function Ingreso({ auth }: { auth: AuthPort }) {
 
       {enviado ? (
         <Aviso variante="primario" icono="✓" role="status">
-          <p>Ingresá el código que enviamos a {correo.trim()}.</p>
+          <p>Ingresa el código que enviamos a {correo.trim()}.</p>
         </Aviso>
       ) : null}
 
@@ -171,7 +171,7 @@ function Ingreso({ auth }: { auth: AuthPort }) {
                 disabled={ocupado}
               />
               <p id="ayuda-ingreso-codigo" className={claseAyudaCampo}>
-                Conservá los ceros iniciales si tu código empieza por 0.
+                Conserva los ceros iniciales si tu código empieza por 0.
               </p>
             </div>
           ) : (
@@ -263,12 +263,12 @@ function AltaHogar({
     void ejecutar(async () => {
       await crearHogar(hogares, { nombre, nombreMiembro })
       recargar()
-    }, 'No pudimos crear el hogar. Intentá de nuevo.')
+    }, 'No pudimos crear el hogar. Intenta de nuevo.')
   }
 
   return (
     <ShellApp
-      titulo="Creá tu hogar"
+      titulo="Crea tu hogar"
       subtitulo="Primer administrador · Paso inicial"
       marcaInicio
       accionDerecha={<BotonSalir ocupado={saliendo} onSalir={onSalir} />}
@@ -282,7 +282,7 @@ function AltaHogar({
 
       <Aviso variante="primario" icono="✓">
         <p>
-          Vas a ser su primer administrador. Se prepararán las categorías base del hogar y tu
+          Serás su primer administrador. Se prepararán las categorías base del hogar y tu
           espacio personal privado.
         </p>
       </Aviso>
@@ -454,7 +454,7 @@ function ResumenHogar({
                     <div className="min-w-0 flex-1">
                       <p className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta break-words">
                         {m.nombre} — {nombreRol}
-                        {esActual ? ' (vos)' : ''}
+                        {esActual ? ' (tú)' : ''}
                         {m.activo ? '' : ' · Inactivo'}
                       </p>
                     </div>
@@ -550,7 +550,7 @@ function HogarConSesion({ servicios, sesion }: { servicios: Servicios; sesion: S
   }
 
   function salir() {
-    void ejecutar(() => auth.salir(), 'No pudimos cerrar sesión. Intentá de nuevo.')
+    void ejecutar(() => auth.salir(), 'No pudimos cerrar sesión. Intenta de nuevo.')
   }
 
   if (carga === 'cargando') {
@@ -578,7 +578,7 @@ function HogarConSesion({ servicios, sesion }: { servicios: Servicios; sesion: S
     return (
       <ShellApp
         titulo="No pudimos cargar el hogar"
-        subtitulo="Revisá tu conexión local con Supabase"
+        subtitulo="Revisa tu conexión con Supabase"
         marcaInicio
         accionDerecha={<BotonSalir ocupado={ocupado} onSalir={salir} />}
         pie="Montos enteros en COP · Offline-first"
@@ -590,7 +590,7 @@ function HogarConSesion({ servicios, sesion }: { servicios: Servicios; sesion: S
         ) : null}
         <Aviso variante="peligro" icono="▲" role="alert">
           <p className="font-bold">No pudimos cargar el hogar.</p>
-          <p>Intentá nuevamente cuando el servidor responda.</p>
+          <p>Intenta nuevamente cuando el servidor responda.</p>
         </Aviso>
         <button
           type="button"

@@ -4,7 +4,7 @@ import { ShellApp } from './ShellApp'
 export function PantallaConfigurarSupabase() {
   return (
     <ShellApp
-      titulo="Configurá Supabase"
+      titulo="Configura Supabase"
       subtitulo="hogar-app · Entorno local"
       marcaInicio
       accionDerecha={<Insignia variante="primario">Fundación</Insignia>}
@@ -23,7 +23,7 @@ export function PantallaConfigurarSupabase() {
           Variables requeridas para arrancar
         </h2>
         <p className="m-0 text-sm text-hogar-tinta">
-          Para iniciar sesión, configurá{' '}
+          Para iniciar sesión, configura{' '}
           <code className="rounded bg-hogar-superficie-suave px-1.5 py-0.5 font-mono text-[0.8125rem]">
             VITE_SUPABASE_URL
           </code>{' '}
