@@ -148,6 +148,8 @@ describe('Obligaciones del mes UI', () => {
     expect(contenedor.textContent).toContain('$220.000')
     expect(contenedor.textContent).toContain('$450.000 pend.')
     expect(contenedor.textContent).toContain('$68.799')
+    expect(contenedor.querySelector('[aria-labelledby="resumen-contable-heading"] .grid-cols-3')).toBeNull()
+    expect(contenedor.querySelector('[aria-labelledby="resumen-contable-heading"] .grid-cols-2')).not.toBeNull()
     expect(contenedor.textContent).toContain('Hogar · titular Santiago')
     expect(contenedor.textContent).toContain('Hogar · titular Hogar')
 

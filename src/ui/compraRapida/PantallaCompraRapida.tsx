@@ -69,10 +69,17 @@ export function PantallaCompraRapida() {
   const fechaRef = useRef<HTMLInputElement>(null)
   const recompraRef = useRef(false)
 
+  function cerrarPanelNota() {
+    setPanelNotaAbierto(false)
+    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+      window.scrollTo(0, 0)
+    }
+  }
+
   useEffect(() => {
     if (!panelNotaAbierto) return
     function cerrarConEscape(evento: KeyboardEvent) {
-      if (evento.key === 'Escape') setPanelNotaAbierto(false)
+      if (evento.key === 'Escape') cerrarPanelNota()
     }
     document.addEventListener('keydown', cerrarConEscape)
     return () => document.removeEventListener('keydown', cerrarConEscape)
@@ -80,11 +87,11 @@ export function PantallaCompraRapida() {
 
   function abrirPanelNota() {
     flushSync(() => setPanelNotaAbierto(true))
-    notaRef.current?.focus()
+    notaRef.current?.focus({ preventScroll: true })
   }
 
   function alternarPanelNota() {
-    if (panelNotaAbierto) setPanelNotaAbierto(false)
+    if (panelNotaAbierto) cerrarPanelNota()
     else abrirPanelNota()
   }
 
@@ -207,7 +214,7 @@ export function PantallaCompraRapida() {
     if (res.estado === 'fallo') return setErrorValidacion({ campo: 'monto', mensaje: res.mensaje })
     setErrorValidacion(null)
     setAvisoCuotas('')
-    setPanelNotaAbierto(false)
+    cerrarPanelNota()
   }
 
   return (
@@ -269,11 +276,11 @@ export function PantallaCompraRapida() {
           data-modal-fondo="comentario-compra"
           className={
             panelNotaAbierto
-              ? 'absolute inset-0 z-50 flex flex-col justify-end bg-hogar-tinta/40 px-3.5 pb-[calc(var(--hogar-nav-height)+env(safe-area-inset-bottom,0px)+16px)] backdrop-blur-[2px]'
+              ? 'absolute inset-0 z-50 flex flex-col justify-start overflow-y-auto bg-hogar-tinta/40 px-3.5 pt-[calc(env(safe-area-inset-top,0px)+4.75rem)] pb-6 backdrop-blur-[2px]'
               : 'hidden'
           }
           onClick={(e) => {
-            if (e.target === e.currentTarget) setPanelNotaAbierto(false)
+            if (e.target === e.currentTarget) cerrarPanelNota()
           }}
         >
           <div
@@ -288,7 +295,7 @@ export function PantallaCompraRapida() {
               <button
                 type="button"
                 className={claseBotonPequenoPrimario}
-                onClick={() => setPanelNotaAbierto(false)}
+                onClick={cerrarPanelNota}
               >
                 Listo
               </button>
@@ -309,7 +316,7 @@ export function PantallaCompraRapida() {
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault()
-                      setPanelNotaAbierto(false)
+                      cerrarPanelNota()
                     }
                   }}
                 />
@@ -414,12 +421,12 @@ export function PantallaCompraRapida() {
 
       <section
         aria-labelledby="monto-heading"
-        className="sticky top-0 z-10 -mx-3.5 bg-hogar-fondo/92 px-3.5 pt-1 pb-1.5 backdrop-blur-md"
+        className="sticky top-0 z-20 -mx-3.5 bg-[linear-gradient(to_bottom,var(--color-hogar-fondo)_76%,rgba(243,245,242,0.9)_89%,transparent_100%)] px-3.5 pt-2 pb-3"
       >
         <h2 id="monto-heading" className="sr-only">
           Monto en pesos colombianos
         </h2>
-        <div className="rounded-[22px] border border-hogar-borde bg-hogar-superficie px-3.5 py-2 text-right shadow-[var(--hogar-shadow-card)]">
+        <div className="rounded-[22px] border border-hogar-borde bg-hogar-superficie px-3.5 py-2 text-right shadow-[0_12px_26px_-10px_rgba(16,24,20,0.22),0_2px_6px_-1px_rgba(16,24,20,0.08)]">
           <div className="mb-0.5 flex items-center justify-between gap-2 text-[0.8125rem] text-hogar-tinta-suave">
             <label htmlFor="monto-input" className="inline-flex items-center gap-1.5 font-bold text-hogar-tinta-suave">
               {medioSeleccionado ? (

@@ -354,6 +354,7 @@ describe('Compra rápida UI (controlador real)', () => {
     await act(async () => btnComentario.click())
     expect(fondoInicial.className).not.toContain('hidden')
     expect(fondoInicial.className).toContain('inset-0')
+    expect(fondoInicial.className).toContain('justify-start')
     expect(contenedor.querySelector('.hogar-shell #panel-comentario-compra')).not.toBeNull()
     expect(document.activeElement?.id).toBe('nota-compra')
 
