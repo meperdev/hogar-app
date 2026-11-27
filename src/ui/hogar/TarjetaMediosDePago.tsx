@@ -18,6 +18,7 @@ import {
   claseCampoTexto,
   claseEtiquetaCampo,
 } from '../ComponentesBase'
+import { ATAJOS_MEDIOS_SUGERIDOS, identidadMedio } from '../marcas'
 
 export function TarjetaMediosDePago({
   hogar,
@@ -68,7 +69,7 @@ export function TarjetaMediosDePago({
   const nombresMiembro = new Map(hogar.miembros.map((m) => [m.id, m.nombre]))
 
   function etiquetaDueno(medio: MedioDePagoItem): string {
-    if (medio.ownerTipo === 'hogar') return 'Hogar (compartido)'
+    if (medio.ownerTipo === 'hogar') return 'Hogar'
     if (medio.ownerMiembroId === hogar.miembroActual.id) return 'Tuyo'
     const dueno = medio.ownerMiembroId ? nombresMiembro.get(medio.ownerMiembroId) : null
     return dueno ? `De ${dueno}` : 'De un miembro'
@@ -154,11 +155,6 @@ export function TarjetaMediosDePago({
         </button>
       </div>
 
-      <p className={claseAyudaCampo}>
-        Efectivo, Nequi, cuentas o fondo común para compras de contado y aportes. Las tarjetas de
-        crédito se crean en Obligaciones.
-      </p>
-
       {error ? (
         <Aviso variante="peligro" icono="▲" role="alert">
           <p>{error}</p>
@@ -174,6 +170,28 @@ export function TarjetaMediosDePago({
       {abierto ? (
         <Tarjeta acento="primario">
           <form className="flex flex-col gap-3" onSubmit={(e) => void crearMedio(e)} noValidate>
+            <div className="hogar-carrusel" role="group" aria-label="Atajos rápidos de medios">
+              {ATAJOS_MEDIOS_SUGERIDOS.map((atajo) => {
+                const idVisual = identidadMedio(atajo.nombre, atajo.tipo)
+                const { Logo } = idVisual
+                return (
+                  <button
+                    key={atajo.nombre}
+                    type="button"
+                    className="inline-flex min-h-11 shrink-0 snap-start cursor-pointer items-center gap-2 rounded-full px-3.5 py-2 text-xs font-bold"
+                    style={{ backgroundColor: idVisual.fondo, color: idVisual.texto }}
+                    onClick={() => {
+                      setNombre(atajo.nombre)
+                      setTipo(atajo.tipo)
+                    }}
+                  >
+                    <Logo className="size-4 shrink-0" />
+                    <span>{atajo.nombre}</span>
+                  </button>
+                )
+              })}
+            </div>
+
             <div className="flex flex-col gap-1.5">
               <label htmlFor="medio-nuevo-nombre" className={claseEtiquetaCampo}>
                 Nombre del medio
@@ -183,7 +201,7 @@ export function TarjetaMediosDePago({
                 className={claseCampoTexto}
                 type="text"
                 maxLength={80}
-                placeholder="Ej. Nequi, Bancolombia, Efectivo"
+                placeholder="Ej. Nequi, Bancolombia, Bre-B"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
                 disabled={guardando}
@@ -242,35 +260,48 @@ export function TarjetaMediosDePago({
         </Tarjeta>
       ) : (
         <ul className="m-0 flex list-none flex-col gap-2 p-0">
-          {activos.map((medio) => (
-            <li key={medio.id}>
-              <Tarjeta className="flex items-center justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <p className="m-0 text-sm font-extrabold text-hogar-tinta break-words">
-                    {medio.nombre}
-                  </p>
-                  <div className="mt-1 flex flex-wrap gap-1.5">
-                    <Insignia variante={medio.ownerTipo === 'hogar' ? 'primario' : 'indigo'}>
-                      {etiquetaDueno(medio)}
-                    </Insignia>
-                    <Insignia variante="neutral">
-                      {medio.tipo === 'efectivo' ? 'Efectivo' : 'Cuenta'}
-                    </Insignia>
+          {activos.map((medio) => {
+            const idVisual = identidadMedio(medio.nombre, medio.tipo)
+            const { Logo } = idVisual
+            return (
+              <li key={medio.id}>
+                <Tarjeta className="flex items-center justify-between gap-2.5">
+                  <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                    <span
+                      className="grid size-10 shrink-0 place-items-center rounded-xl"
+                      style={{ backgroundColor: idVisual.fondo, color: idVisual.texto }}
+                      aria-hidden="true"
+                    >
+                      <Logo className="size-5" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="m-0 text-sm font-extrabold text-hogar-tinta break-words">
+                        {medio.nombre}
+                      </p>
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        <Insignia variante={medio.ownerTipo === 'hogar' ? 'primario' : 'indigo'}>
+                          {etiquetaDueno(medio)}
+                        </Insignia>
+                        <Insignia variante="neutral">
+                          {medio.tipo === 'efectivo' ? 'Efectivo' : 'Cuenta'}
+                        </Insignia>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                {puedeModificar(medio) ? (
-                  <button
-                    type="button"
-                    className={claseBotonPequenoSecundario}
-                    disabled={cambiandoId === medio.id}
-                    onClick={() => void alternarActivo(medio)}
-                  >
-                    {cambiandoId === medio.id ? '…' : 'Archivar'}
-                  </button>
-                ) : null}
-              </Tarjeta>
-            </li>
-          ))}
+                  {puedeModificar(medio) ? (
+                    <button
+                      type="button"
+                      className={claseBotonPequenoSecundario}
+                      disabled={cambiandoId === medio.id}
+                      onClick={() => void alternarActivo(medio)}
+                    >
+                      {cambiandoId === medio.id ? '…' : 'Archivar'}
+                    </button>
+                  ) : null}
+                </Tarjeta>
+              </li>
+            )
+          })}
         </ul>
       )}
 

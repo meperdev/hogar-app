@@ -135,11 +135,11 @@ export function PantallaBalance() {
         >
           ‹
         </button>
-        <div className="text-center">
-          <span className="block text-[0.9375rem] font-extrabold text-hogar-tinta">
+        <div className="flex min-w-0 flex-wrap items-center justify-center gap-2 text-center">
+          <span className="text-[0.9375rem] font-extrabold text-hogar-tinta">
             {formatearPeriodoEs(periodo)}
           </span>
-          <span className="block text-xs text-hogar-tinta-suave">Mes calendario</span>
+          <Insignia variante="primario">Aporte libre</Insignia>
         </div>
         <button
           type="button"
@@ -150,14 +150,6 @@ export function PantallaBalance() {
           ›
         </button>
       </div>
-
-      <Aviso variante="primario" icono="✓">
-        <p>
-          <strong className="text-hogar-tinta">Aporte libre:</strong> cada quien aporta lo que
-          quiere o puede al hogar (incluye transferencias al fondo común). Nunca se generan saldos
-          ni deudas entre ustedes.
-        </p>
-      </Aviso>
 
       <section aria-labelledby="preferencias-vista-heading" className="flex flex-col gap-2">
         <h2 id="preferencias-vista-heading" className="sr-only">

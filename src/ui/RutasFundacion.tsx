@@ -409,11 +409,6 @@ function ResumenHogar({
       ) : null}
 
       <Tarjeta acento="primario">
-        <div className="mb-3 flex flex-wrap gap-1.5">
-          <Insignia variante="primario">✓ Hogar activo</Insignia>
-          <Insignia variante="neutral">COP enteros</Insignia>
-          <Insignia variante="neutral">America/Bogota</Insignia>
-        </div>
         <div className="grid grid-cols-2 gap-2">
           <Link
             to="/compra"

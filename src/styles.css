@@ -262,6 +262,23 @@
     font-variant-numeric: tabular-nums;
   }
 
+  .hogar-carrusel {
+    display: flex;
+    gap: 0.625rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+    scrollbar-width: none;
+    padding: 2px 2px 6px;
+    margin: 0 -2px;
+  }
+
+  .hogar-carrusel::-webkit-scrollbar {
+    display: none;
+  }
+
   .hogar-barra-indigo {
     background: repeating-linear-gradient(
       -45deg,

@@ -42,7 +42,6 @@ export function PantallaObligaciones() {
   const totalPendientes = pendientes.reduce((acc, it) => acc + montoPendienteItem(it), 0)
   const totalVencidas = vencidas.reduce((acc, it) => acc + montoPendienteItem(it), 0)
   const abiertasCount = vencidas.length + pendientes.length
-  const capitalTotalMes = resumen.capitalPagado + resumen.capitalPendiente
 
   const interesPag = pagadas.filter((i): i is ItemCuota => i.tipo === 'cuota').reduce((acc, c) => acc + (c.interes ?? 0), 0)
   const interesPend = [...vencidas, ...pendientes].filter((i): i is ItemCuota => i.tipo === 'cuota').reduce((acc, c) => acc + (c.interes ?? 0), 0)
@@ -100,29 +99,17 @@ export function PantallaObligaciones() {
         </div>
       </section>
 
-      <Aviso variante="indigo" icono="ℹ">
-        <p>
-          <strong className="text-hogar-tinta">Sin doble conteo:</strong> el capital de cuotas del mes ({formatearPesos(capitalTotalMes)}) se divide en{' '}
-          <strong className="text-hogar-tinta">{formatearPesos(resumen.capitalPagado)} pagados</strong> (único <em>Pago de deuda</em> real) y{' '}
-          <strong className="text-hogar-tinta">{formatearPesos(resumen.capitalPendiente)} pendientes</strong>. Ninguno se suma al consumo real ({formatearPesos(resumen.consumoReal)}), y <em>Costo financiero</em> es un balde aparte.
-        </p>
-        <p>
-          <strong className="text-hogar-tinta">Agenda por periodo vs. gasto por fecha:</strong> esta agenda agrupa obligaciones por su <em>periodo</em>, mientras el gasto del mes suma cada compra por su <em>fecha</em> de pago.
-        </p>
-      </Aviso>
-
       <div className="flex items-center justify-between gap-2 rounded-xl border border-hogar-borde bg-hogar-superficie p-1" role="region" aria-label="Cambiar mes calendario">
         <button type="button" className={claseBotonIcono} aria-label="Mes anterior" onClick={() => cambiarPeriodo(desplazarPeriodo(periodo, -1))}>‹</button>
         <span className="text-[0.9375rem] font-extrabold text-hogar-tinta">{formatearPeriodoEs(periodo)}</span>
         <button type="button" className={claseBotonIcono} aria-label="Mes siguiente" onClick={() => cambiarPeriodo(desplazarPeriodo(periodo, 1))}>›</button>
       </div>
 
-      <div className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-hogar-borde bg-hogar-superficie px-3 py-2">
-        <div className="min-w-0 flex-1">
-          <label htmlFor="toggle-incluir-personales" className="flex min-h-11 cursor-pointer items-center text-sm font-bold text-hogar-tinta">Incluir mis gastos personales</label>
-          <p id="ayuda-incluir-personales" className="m-0 text-xs text-hogar-tinta-suave">Preferencia local en este dispositivo. Nunca cambia aportes del hogar.</p>
-        </div>
-        <input id="toggle-incluir-personales" type="checkbox" role="switch" checked={incluirPersonales} aria-describedby="ayuda-incluir-personales" onChange={(e) => void alternarIncluirPersonales(e.target.checked)} className="size-6 min-h-11 min-w-11 shrink-0 cursor-pointer accent-hogar-primario" />
+      <div className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-hogar-borde bg-hogar-superficie px-3 py-1.5">
+        <label htmlFor="toggle-incluir-personales" className="min-w-0 flex-1 cursor-pointer text-sm font-bold text-hogar-tinta">
+          Incluir mis gastos personales
+        </label>
+        <input id="toggle-incluir-personales" type="checkbox" role="switch" checked={incluirPersonales} onChange={(e) => void alternarIncluirPersonales(e.target.checked)} className="size-6 min-h-11 min-w-11 shrink-0 cursor-pointer accent-hogar-primario" />
       </div>
 
       {cargando && !agenda ? (
@@ -149,7 +136,6 @@ export function PantallaObligaciones() {
         ) : vencidas.length === 0 && !cargando ? (
           <Tarjeta suave>
             <p className="m-0 text-sm font-bold text-hogar-tinta">✓ Sin pagos pendientes en {mesTexto}</p>
-            <p className={`${claseAyudaCampo} mt-1`}>Cuando tengas cuotas de tarjetas, créditos, deudas u obligaciones recurrentes, aparecerán aquí separadas del consumo.</p>
           </Tarjeta>
         ) : null}
       </section>

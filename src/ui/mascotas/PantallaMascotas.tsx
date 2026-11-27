@@ -69,7 +69,7 @@ export function PantallaMascotas() {
   const nombresMascotas = mascotasActivas.map((m) => m.nombre).join(' y ')
   const subtitulo =
     (nombresMascotas ? `${nombresMascotas} · ` : `${hogar.nombre} · `)
-    + (alertasCount === 1 ? '1 alerta (<= umbral)' : `${alertasCount} alertas (<= umbral)`)
+    + (alertasCount === 0 ? 'Al día' : alertasCount === 1 ? '1 alerta' : `${alertasCount} alertas`)
 
   async function manejarAjustarNivel(itemId: string, nivelPct: number) {
     await controlador.ajustarNivel({ itemDespensaId: itemId, nivelPct })
