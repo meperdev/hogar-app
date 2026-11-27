@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 const botonBase =
   'inline-flex min-h-11 min-w-11 max-w-full items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-center text-[0.9375rem] font-bold leading-tight whitespace-normal break-words transition-all duration-150 active:scale-[0.98] cursor-pointer disabled:cursor-not-allowed disabled:opacity-60'
@@ -56,7 +57,7 @@ export function Insignia({
 export function AyudaInfo({
   texto,
   etiqueta = 'Más información',
-  alinear = 'izquierda',
+  alinear: _alinear,
   className = '',
 }: {
   texto: string
@@ -65,29 +66,105 @@ export function AyudaInfo({
   className?: string | undefined
 }) {
   const [abierto, setAbierto] = useState(false)
-  const contenedorRef = useRef<HTMLSpanElement>(null)
+  const [posicion, setPosicion] = useState<{
+    top: number
+    left: number
+    width: number
+    arrowLeft: number
+    arriba: boolean
+  } | null>(null)
+  const botonRef = useRef<HTMLButtonElement>(null)
+  const popoverRef = useRef<HTMLSpanElement>(null)
+
+  useLayoutEffect(() => {
+    if (!abierto) {
+      setPosicion(null)
+      return
+    }
+    function calcular() {
+      const boton = botonRef.current
+      if (!boton) return
+      const vw = window.innerWidth || 390
+      const vh = window.innerHeight || 844
+      const margen = 12
+      const ancho = Math.min(264, Math.max(160, vw - margen * 2))
+      const rect = boton.getBoundingClientRect()
+      const centroBoton = rect.left + rect.width / 2
+      const left = Math.max(margen, Math.min(centroBoton - ancho / 2, vw - ancho - margen))
+      const alto = popoverRef.current?.offsetHeight || 96
+      const cabeAbajo = rect.bottom + 8 + alto <= vh - margen
+      const cabeArriba = rect.top - 8 - alto >= margen
+      const arriba = !cabeAbajo && cabeArriba
+      const top = arriba
+        ? rect.top - 8 - alto
+        : Math.max(margen, Math.min(rect.bottom + 8, vh - alto - margen))
+      const arrowLeft = Math.max(14, Math.min(centroBoton - left, ancho - 14))
+      setPosicion({ top, left, width: ancho, arrowLeft, arriba })
+    }
+    calcular()
+    window.addEventListener('resize', calcular)
+    return () => window.removeEventListener('resize', calcular)
+  }, [abierto, texto])
 
   useEffect(() => {
     if (!abierto) return
     function cerrarSiFuera(evento: PointerEvent) {
-      if (contenedorRef.current && !contenedorRef.current.contains(evento.target as Node)) {
-        setAbierto(false)
-      }
+      const objetivo = evento.target as Node
+      if (botonRef.current?.contains(objetivo) || popoverRef.current?.contains(objetivo)) return
+      setAbierto(false)
     }
     function cerrarConEscape(evento: KeyboardEvent) {
       if (evento.key === 'Escape') setAbierto(false)
     }
+    function cerrarAlDesplazar() {
+      setAbierto(false)
+    }
     document.addEventListener('pointerdown', cerrarSiFuera)
     document.addEventListener('keydown', cerrarConEscape)
+    window.addEventListener('scroll', cerrarAlDesplazar, true)
     return () => {
       document.removeEventListener('pointerdown', cerrarSiFuera)
       document.removeEventListener('keydown', cerrarConEscape)
+      window.removeEventListener('scroll', cerrarAlDesplazar, true)
     }
   }, [abierto])
 
+  const popover =
+    abierto && typeof document !== 'undefined'
+      ? createPortal(
+          <span
+            ref={popoverRef}
+            role="note"
+            style={{
+              position: 'fixed',
+              top: posicion?.top ?? -9999,
+              left: posicion?.left ?? 12,
+              width: posicion?.width ?? 264,
+              visibility: posicion ? 'visible' : 'hidden',
+            }}
+            className="z-[70] rounded-xl border border-hogar-borde-fuerte bg-hogar-superficie p-2.5 text-left text-xs font-normal leading-relaxed text-hogar-tinta shadow-[var(--hogar-shadow-elevated)]"
+          >
+            {posicion ? (
+              <span
+                aria-hidden="true"
+                style={{ left: posicion.arrowLeft - 5 }}
+                className={`absolute size-2.5 rotate-45 border-hogar-borde-fuerte bg-hogar-superficie ${
+                  posicion.arriba
+                    ? '-bottom-[6px] border-r border-b'
+                    : '-top-[6px] border-t border-l'
+                }`}
+              />
+            ) : null}
+            {texto}
+          </span>,
+          document.body,
+        )
+      : null
+
   return (
-    <span ref={contenedorRef} className={`relative inline-flex items-center ${className}`.trim()}>
+    <span className={`relative inline-flex items-center ${className}`.trim()}>
       <button
+        ref={botonRef}
         type="button"
         aria-label={etiqueta}
         aria-expanded={abierto}
@@ -99,16 +176,7 @@ export function AyudaInfo({
       >
         <span aria-hidden="true">i</span>
       </button>
-      {abierto ? (
-        <span
-          role="note"
-          className={`absolute top-full z-30 mt-1.5 w-64 max-w-[min(16rem,calc(100vw-3rem))] rounded-xl border border-hogar-borde-fuerte bg-hogar-superficie p-2.5 text-left text-xs font-normal leading-relaxed text-hogar-tinta shadow-[var(--hogar-shadow-elevated)] ${
-            alinear === 'derecha' ? 'right-0 left-auto' : 'left-0'
-          }`}
-        >
-          {texto}
-        </span>
-      ) : null}
+      {popover}
     </span>
   )
 }

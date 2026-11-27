@@ -25,6 +25,7 @@ import {
   claseEtiquetaCampo,
 } from '../ComponentesBase'
 import { ATAJOS_COMERCIOS_SUGERIDOS, identidadComercio } from '../marcas'
+import { useNotificacionesOpcional } from '../Notificaciones'
 import {
   calcularDesplazamientoHermano,
   calcularIndiceDestino,
@@ -70,6 +71,11 @@ export function TarjetaComercios({
   } | null>(null)
   const [error, setError] = useState('')
   const [exito, setExito] = useState('')
+  const notificaciones = useNotificacionesOpcional()
+  function mostrarExito(mensaje: string) {
+    setExito(mensaje)
+    notificaciones?.publicar({ mensaje, variante: 'exito' })
+  }
 
   const listaActivosRef = useRef<HTMLUListElement>(null)
   const listaRef = useRef<ComercioFrecuenteItem[]>([])
@@ -136,7 +142,7 @@ export function TarjetaComercios({
     setExito('')
     try {
       await comercios.reordenar(idsOrdenados)
-      setExito('Orden de comercios actualizado.')
+      mostrarExito('Orden de comercios actualizado.')
       onCambio?.()
     } catch (causa) {
       setLista(snapshotPrevio)
@@ -165,7 +171,7 @@ export function TarjetaComercios({
       setNombre('')
       setCategoriaId('')
       setAbierto(false)
-      setExito(`Agregamos "${creado.nombre}" a comercios frecuentes.`)
+      mostrarExito(`Agregamos "${creado.nombre}" a comercios frecuentes.`)
       onCambio?.()
     } catch (causa) {
       setError(
@@ -190,7 +196,7 @@ export function TarjetaComercios({
       })
       setLista((prev) => prev.map((c) => (c.id === comercioId ? actualizado : c)))
       setEditandoId(null)
-      setExito(`Actualizamos "${actualizado.nombre}".`)
+      mostrarExito(`Actualizamos "${actualizado.nombre}".`)
       onCambio?.()
     } catch (causa) {
       setError(
@@ -349,7 +355,7 @@ export function TarjetaComercios({
         </Aviso>
       ) : null}
 
-      {exito ? (
+      {exito && !notificaciones ? (
         <Aviso variante="primario" icono="✓" role="status">
           <p>{exito}</p>
         </Aviso>

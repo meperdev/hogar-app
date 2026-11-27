@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import type { ErrorBorrador } from '../../app/compraRapida'
 import { hoyCivil } from '../../domain/fechas'
@@ -8,12 +9,13 @@ import {
   Insignia,
   Tarjeta,
   claseAyudaCampo,
+  claseBotonPequenoPrimario,
   claseBotonPequenoSecundario,
   claseBotonPrimario,
   claseCampoTexto,
   claseEtiquetaCampo,
 } from '../ComponentesBase'
-import { IconoQr } from '../Iconos'
+import { IconoComentario, IconoQr } from '../Iconos'
 import { ShellApp } from '../ShellApp'
 import { identidadMedio } from '../marcas'
 import { useCompraRapida, type DatosRecompra } from './ContextoCompraRapida'
@@ -52,21 +54,39 @@ export function PantallaCompraRapida() {
     aplicarRecompra,
     guardarBorrador,
     descartarConfirmacionDuplicado,
-    deshacerUltimoGuardado,
     anunciarEstado,
   } = useCompraRapida()
 
   const [verTodas, setVerTodas] = useState(false)
+  const [panelNotaAbierto, setPanelNotaAbierto] = useState(false)
   const [errorValidacion, setErrorValidacion] = useState<ErrorBorrador | null>(null)
   const [avisoCuotas, setAvisoCuotas] = useState('')
   const montoRef = useRef<HTMLInputElement>(null)
   const montoBoxRef = useRef<HTMLDivElement>(null)
   const primerChipRef = useRef<HTMLButtonElement>(null)
   const primerMedioRef = useRef<HTMLButtonElement>(null)
-  const notaDetailsRef = useRef<HTMLDetailsElement>(null)
   const notaRef = useRef<HTMLInputElement>(null)
   const fechaRef = useRef<HTMLInputElement>(null)
   const recompraRef = useRef(false)
+
+  useEffect(() => {
+    if (!panelNotaAbierto) return
+    function cerrarConEscape(evento: KeyboardEvent) {
+      if (evento.key === 'Escape') setPanelNotaAbierto(false)
+    }
+    document.addEventListener('keydown', cerrarConEscape)
+    return () => document.removeEventListener('keydown', cerrarConEscape)
+  }, [panelNotaAbierto])
+
+  function abrirPanelNota() {
+    flushSync(() => setPanelNotaAbierto(true))
+    notaRef.current?.focus()
+  }
+
+  function alternarPanelNota() {
+    if (panelNotaAbierto) setPanelNotaAbierto(false)
+    else abrirPanelNota()
+  }
 
   function pulsarMonto() {
     if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
@@ -176,10 +196,10 @@ export function PantallaCompraRapida() {
       else if (res.error.campo === 'categoria') primerChipRef.current?.focus()
       else if (res.error.campo === 'medio') primerMedioRef.current?.focus()
       else if (res.error.campo === 'descripcion') {
-        if (notaDetailsRef.current) notaDetailsRef.current.open = true
+        flushSync(() => setPanelNotaAbierto(true))
         notaRef.current?.focus()
       } else if (res.error.campo === 'fecha') {
-        if (notaDetailsRef.current) notaDetailsRef.current.open = true
+        flushSync(() => setPanelNotaAbierto(true))
         fechaRef.current?.focus()
       }
       return
@@ -187,6 +207,7 @@ export function PantallaCompraRapida() {
     if (res.estado === 'fallo') return setErrorValidacion({ campo: 'monto', mensaje: res.mensaje })
     setErrorValidacion(null)
     setAvisoCuotas('')
+    setPanelNotaAbierto(false)
   }
 
   return (
@@ -207,47 +228,44 @@ export function PantallaCompraRapida() {
       compacto
       etiquetaBarraAccion="Guardar compra rápida"
       barraAccion={
-        <button
-          type="button"
-          className={`${claseBotonPrimario} w-full ${borrador.monto <= 0 ? 'opacity-65' : ''}`}
-          aria-disabled={borrador.monto <= 0 || guardando ? 'true' : undefined}
-          data-sin-scroll
-          onClick={() => void intentarGuardar(false)}
-        >
-          {guardando
-            ? 'Guardando…'
-            : borrador.monto > 0
-              ? `Guardar ${formatearPesos(borrador.monto)}`
-              : 'Guardar compra'}
-        </button>
+        <div className="flex w-full items-center gap-2">
+          <button
+            type="button"
+            className={`${claseBotonPrimario} flex-1 ${borrador.monto <= 0 ? 'opacity-65' : ''}`}
+            aria-disabled={borrador.monto <= 0 || guardando ? 'true' : undefined}
+            data-sin-scroll
+            onClick={() => void intentarGuardar(false)}
+          >
+            {guardando
+              ? 'Guardando…'
+              : borrador.monto > 0
+                ? `Guardar ${formatearPesos(borrador.monto)}`
+                : 'Guardar compra'}
+          </button>
+          <button
+            type="button"
+            onClick={alternarPanelNota}
+            aria-label={
+              borrador.descripcion.trim()
+                ? `Editar comentario: ${borrador.descripcion.trim()}`
+                : 'Agregar comentario o fecha'
+            }
+            aria-expanded={panelNotaAbierto}
+            aria-controls="panel-comentario-compra"
+            className="relative inline-flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center rounded-2xl border border-hogar-borde-fuerte bg-hogar-superficie px-3 text-hogar-tinta shadow-[0_2px_8px_-2px_rgba(16,24,20,0.12)] transition-transform duration-150 active:scale-95 hover:bg-hogar-superficie-suave"
+          >
+            <IconoComentario className="size-5" />
+            {borrador.descripcion.trim() ? (
+              <span
+                aria-hidden="true"
+                className="absolute top-2 right-2 size-2 rounded-full bg-hogar-primario ring-2 ring-hogar-superficie"
+              />
+            ) : null}
+          </button>
+        </div>
       }
     >
-      {toastGuardado ? (
-        <div
-          className="hogar-toast flex items-center justify-between gap-2 rounded-2xl bg-hogar-tinta px-3.5 py-2 text-sm text-white shadow-[var(--hogar-shadow-elevated)]"
-          role="status"
-          aria-live="polite"
-        >
-          <span className="min-w-0 flex-1 break-words">✓ {toastGuardado.resumen}</span>
-          <div className="flex shrink-0 items-center gap-1">
-            {toastGuardado.conCuotas ? (
-              <Link
-                to="/obligaciones"
-                className="inline-flex min-h-11 min-w-11 items-center justify-center px-2 font-bold text-[#9be8d0] underline"
-              >
-                Ver cuotas
-              </Link>
-            ) : null}
-            <button
-              type="button"
-              className="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent px-2.5 py-1.5 font-bold text-[#9be8d0] underline"
-              onClick={() => void deshacerUltimoGuardado()}
-            >
-              Deshacer
-            </button>
-          </div>
-        </div>
-      ) : avisoEstado ? (
+      {!toastGuardado && avisoEstado ? (
         <p className="sr-only" role="status" aria-live="polite">
           {avisoEstado}
         </p>
@@ -327,11 +345,14 @@ export function PantallaCompraRapida() {
         ) : null}
       </section>
 
-      <section aria-labelledby="monto-heading">
+      <section
+        aria-labelledby="monto-heading"
+        className="sticky top-0 z-10 -mx-3.5 bg-hogar-fondo/92 px-3.5 pt-1 pb-1.5 backdrop-blur-md"
+      >
         <h2 id="monto-heading" className="sr-only">
           Monto en pesos colombianos
         </h2>
-        <div className="rounded-[22px] border border-hogar-borde bg-hogar-superficie px-4 py-2.5 text-right shadow-[var(--hogar-shadow-card)]">
+        <div className="rounded-[22px] border border-hogar-borde bg-hogar-superficie px-3.5 py-2 text-right shadow-[var(--hogar-shadow-card)]">
           <div className="mb-0.5 flex items-center justify-between gap-2 text-[0.8125rem] text-hogar-tinta-suave">
             <label htmlFor="monto-input" className="inline-flex items-center gap-1.5 font-bold text-hogar-tinta-suave">
               {medioSeleccionado ? (
@@ -352,13 +373,20 @@ export function PantallaCompraRapida() {
               ) : null}
               <span>Monto</span>
             </label>
-            <Insignia variante="neutral">{badgeMonto}</Insignia>
+            <div className="flex min-w-0 items-center gap-1.5">
+              {borrador.descripcion.trim() ? (
+                <span className="max-w-[140px] truncate rounded-full border border-hogar-borde bg-hogar-fondo px-2 py-0.5 text-[0.6875rem] font-semibold text-hogar-tinta-suave">
+                  {borrador.descripcion.trim()}
+                </span>
+              ) : null}
+              <Insignia variante="neutral">{badgeMonto}</Insignia>
+            </div>
           </div>
           <div ref={montoBoxRef}>
             <input
               ref={montoRef}
               id="monto-input"
-              className="hogar-cop min-h-[46px] min-w-11 w-full border-0 bg-transparent py-0.5 text-right text-[2.125rem] font-extrabold leading-[1.1] tracking-tight text-hogar-tinta focus:outline-none"
+              className="hogar-cop min-h-[42px] min-w-11 w-full border-0 bg-transparent py-0.5 text-right text-[2rem] font-extrabold leading-[1.1] tracking-tight text-hogar-tinta focus:outline-none"
               type="text"
               inputMode="numeric"
               value={formatearPesos(borrador.monto)}
@@ -530,35 +558,53 @@ export function PantallaCompraRapida() {
         </div>
       </section>
 
-      <details
-        ref={notaDetailsRef}
-        className="hogar-details overflow-hidden rounded-2xl border border-hogar-borde bg-hogar-superficie shadow-[var(--hogar-shadow-card)]"
+      <div
+        aria-hidden="true"
+        className={panelNotaAbierto ? 'fixed inset-0 z-40 bg-black/25 backdrop-blur-[1px]' : 'hidden'}
+        onClick={() => setPanelNotaAbierto(false)}
+      />
+      <div
+        id="panel-comentario-compra"
+        role="dialog"
+        aria-label="Comentario y fecha de la compra"
+        className={
+          panelNotaAbierto
+            ? 'fixed bottom-[calc(var(--hogar-nav-height)+var(--hogar-action-bar-height)+env(safe-area-inset-bottom,0px)+8px)] left-1/2 z-50 w-[min(calc(100vw-28px),362px)] -translate-x-1/2 rounded-2xl border border-hogar-borde-fuerte bg-hogar-superficie p-3.5 shadow-[var(--hogar-shadow-elevated)]'
+            : 'hidden'
+        }
       >
-        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3.5 py-2 text-sm font-semibold text-hogar-tinta">
-          <span>
-            Nota o fecha
-            {borrador.descripcion.trim() ? `: ${borrador.descripcion.trim()}` : ''}
-          </span>
-          <span className="hogar-chevron inline-block" aria-hidden="true">
-            ▾
-          </span>
-        </summary>
-        <div className="flex flex-col gap-2.5 border-t border-hogar-borde bg-hogar-fondo px-3 py-2.5">
+        <div className="mb-2.5 flex items-center justify-between gap-2">
+          <h2 className="m-0 text-sm font-extrabold text-hogar-tinta">Comentario y fecha</h2>
+          <button
+            type="button"
+            className={claseBotonPequenoPrimario}
+            onClick={() => setPanelNotaAbierto(false)}
+          >
+            Listo
+          </button>
+        </div>
+        <div className="flex flex-col gap-2.5">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="nota-compra" className={claseEtiquetaCampo}>
-              Nota
+              Comentario o comercio
             </label>
             <input
               ref={notaRef}
               id="nota-compra"
               className={claseCampoTexto}
               type="text"
-              placeholder="Ej. Almacenes Éxito"
+              placeholder="Ej. Almuerzo, D1 mercado semanal…"
               value={borrador.descripcion}
               onChange={(e) => setBorrador((p) => ({ ...p, descripcion: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  setPanelNotaAbierto(false)
+                }
+              }}
             />
           </div>
-          <div className="min-w-0 max-w-full overflow-hidden flex flex-col gap-1.5">
+          <div className="flex min-w-0 max-w-full flex-col gap-1.5 overflow-hidden">
             <label htmlFor="fecha-compra" className={claseEtiquetaCampo}>
               Fecha
             </label>
@@ -572,7 +618,7 @@ export function PantallaCompraRapida() {
             />
           </div>
         </div>
-      </details>
+      </div>
     </ShellApp>
   )
 }

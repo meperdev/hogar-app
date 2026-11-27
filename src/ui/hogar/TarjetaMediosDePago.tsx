@@ -26,6 +26,7 @@ import {
   claseEtiquetaCampo,
 } from '../ComponentesBase'
 import { ATAJOS_MEDIOS_SUGERIDOS, identidadMedio } from '../marcas'
+import { useNotificacionesOpcional } from '../Notificaciones'
 import {
   calcularDesplazamientoHermano,
   calcularIndiceDestino,
@@ -60,6 +61,11 @@ export function TarjetaMediosDePago({
   } | null>(null)
   const [error, setError] = useState('')
   const [exito, setExito] = useState('')
+  const notificaciones = useNotificacionesOpcional()
+  function mostrarExito(mensaje: string) {
+    setExito(mensaje)
+    notificaciones?.publicar({ mensaje, variante: 'exito' })
+  }
   const listaActivosRef = useRef<HTMLUListElement>(null)
   const mediosRef = useRef<MedioDePagoItem[]>([])
   const arrastreRef = useRef<{
@@ -129,7 +135,7 @@ export function TarjetaMediosDePago({
       )
       setNombre('')
       setAbierto(false)
-      setExito(`Agregamos "${creado.nombre}" a tus medios de pago.`)
+      mostrarExito(`Agregamos "${creado.nombre}" a tus medios de pago.`)
       onCambio?.()
     } catch (causa) {
       setError(
@@ -188,7 +194,7 @@ export function TarjetaMediosDePago({
     setExito('')
     try {
       await mediosDePago.reordenar(idsOrdenados)
-      setExito('Orden de medios actualizado.')
+      mostrarExito('Orden de medios actualizado.')
       onCambio?.()
     } catch (causa) {
       setMedios(snapshotPrevio)
@@ -324,7 +330,7 @@ export function TarjetaMediosDePago({
         </Aviso>
       ) : null}
 
-      {exito ? (
+      {exito && !notificaciones ? (
         <Aviso variante="primario" icono="✓" role="status">
           <p>{exito}</p>
         </Aviso>

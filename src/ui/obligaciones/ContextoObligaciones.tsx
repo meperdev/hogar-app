@@ -3,6 +3,7 @@ import type { AlcanceCompra } from '../../app/compraRapida'
 import type { Hogar } from '../../app/fundacion'
 import type { AgendaMes, ControladorObligaciones, ItemCuota, ItemObligacion, MedioPagoOpcion } from '../../app/obligaciones'
 import { hoyCivil } from '../../domain/fechas'
+import { useNotificacionesOpcional } from '../Notificaciones'
 
 type ValorContextoObligaciones = {
   hogar: Hogar
@@ -45,6 +46,14 @@ export function ProveedorObligaciones({
   const [errorCarga, setErrorCarga] = useState('')
   const [toast, setToast] = useState('')
   const [revision, setRevision] = useState(0)
+  const notificaciones = useNotificacionesOpcional()
+  const mostrarToast = useCallback(
+    (mensaje: string) => {
+      setToast(mensaje)
+      notificaciones?.publicar({ mensaje, variante: 'exito' })
+    },
+    [notificaciones],
+  )
 
   useEffect(() => {
     let vigente = true
@@ -93,7 +102,8 @@ export function ProveedorObligaciones({
         hogar, controlador, periodo, agenda, medios, incluirPersonales, cargando, errorCarga, toast,
         cambiarPeriodo: setPeriodo, alternarIncluirPersonales,
         recargar: () => setRevision((actual) => actual + 1),
-        mostrarToast: setToast, limpiarToast: () => setToast(''),
+        mostrarToast,
+        limpiarToast: () => setToast(''),
         buscarCuota, buscarObligacion,
       }}
     >
