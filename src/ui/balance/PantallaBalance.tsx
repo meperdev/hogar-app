@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { formatearPesos } from '../../domain/pesos'
 import {
   Aviso,
+  AyudaInfo,
   Insignia,
   Tarjeta,
   claseAyudaCampo,
@@ -22,7 +23,6 @@ import {
 import { useBalance } from './ContextoBalance'
 import {
   BarraProporcional,
-  InterruptorBalance,
   TarjetaIngresoFijo,
   TarjetaMiembroBalance,
 } from './PiezasBalance'
@@ -37,7 +37,6 @@ export function PantallaBalance() {
     errorCarga,
     toast,
     cambiarPeriodo,
-    alternarMostrarPctIngreso,
     alternarIncluirPersonales,
     recargar,
     notificar,
@@ -130,11 +129,15 @@ export function PantallaBalance() {
         >
           ‹
         </button>
-        <div className="flex min-w-0 flex-wrap items-center justify-center gap-2 text-center">
+        <div className="flex min-w-0 flex-wrap items-center justify-center gap-1.5 text-center">
           <span className="text-[0.9375rem] font-extrabold text-hogar-tinta">
             {formatearPeriodoEs(periodo)}
           </span>
           <Insignia variante="primario">Aporte libre</Insignia>
+          <AyudaInfo
+            etiqueta="Información sobre aporte libre"
+            texto="Cada miembro aporta libremente al hogar. Nunca se calculan saldos ni deudas entre ustedes."
+          />
         </div>
         <button
           type="button"
@@ -146,27 +149,28 @@ export function PantallaBalance() {
         </button>
       </div>
 
-      <section aria-labelledby="preferencias-vista-heading" className="flex flex-col gap-2">
-        <h2 id="preferencias-vista-heading" className="sr-only">
-          Preferencias de vista del balance
-        </h2>
-        <InterruptorBalance
-          id="toggle-pct-ingreso"
-          etiqueta="Mostrar % de su ingreso"
-          ayuda="Apagado por defecto. Actívalo si quieren ver el aporte frente al ingreso de cada uno."
-          checked={vista?.mostrarPctIngreso ?? false}
-          disabled={cargando}
-          onChange={(v) => void alternarMostrarPctIngreso(v)}
+      <div className="flex items-center justify-end gap-1.5">
+        <label
+          htmlFor="toggle-personales"
+          className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-full border border-hogar-borde bg-hogar-superficie px-3 py-1 text-xs font-bold text-hogar-tinta-suave shadow-[0_1px_2px_rgba(16,24,20,0.04)]"
+        >
+          <input
+            id="toggle-personales"
+            type="checkbox"
+            role="switch"
+            checked={vista?.incluirPersonales ?? false}
+            disabled={cargando}
+            onChange={(e) => void alternarIncluirPersonales(e.target.checked)}
+            className="hogar-switch scale-75"
+          />
+          <span>Mis personales</span>
+        </label>
+        <AyudaInfo
+          alinear="derecha"
+          etiqueta="Información sobre gastos personales en balance"
+          texto="Apagado por defecto. Lo personal se excluye del balance y nunca suma como aporte al hogar."
         />
-        <InterruptorBalance
-          id="toggle-personales"
-          etiqueta="Incluir mis gastos personales"
-          ayuda="Apagado por defecto. Lo personal se excluye del balance y nunca suma como aporte al hogar."
-          checked={vista?.incluirPersonales ?? false}
-          disabled={cargando}
-          onChange={(v) => void alternarIncluirPersonales(v)}
-        />
-      </section>
+      </div>
 
       {vista?.incluirPersonales ? (
         <Aviso variante="ambar" icono="ℹ">

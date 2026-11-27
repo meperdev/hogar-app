@@ -176,7 +176,7 @@ export function ModalEditarGasto({
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2">
           <div className="space-y-1">
             <label htmlFor="editar-gasto-monto" className={claseEtiquetaCampo}>
               Monto total (COP)

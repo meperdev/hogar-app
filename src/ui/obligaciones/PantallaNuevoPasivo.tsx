@@ -4,7 +4,7 @@ import type { Ambito, BorradorPasivo, ErrorFormulario } from '../../app/obligaci
 import { hoyCivil } from '../../domain/fechas'
 import { formatearPesos } from '../../domain/pesos'
 import {
-  Aviso, Insignia, Tarjeta, claseAyudaCampo, claseBotonPrimario,
+  Aviso, AyudaInfo, Insignia, Tarjeta, claseAyudaCampo, claseBotonPrimario,
   claseBotonSecundario, claseCampoTexto, claseEtiquetaCampo,
 } from '../ComponentesBase'
 import { ShellApp } from '../ShellApp'
@@ -142,25 +142,32 @@ export function PantallaNuevoPasivo() {
 
       <form className="flex flex-col gap-3.5" onSubmit={(e) => { e.preventDefault(); void manejarGuardar() }} noValidate>
         <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-          <legend className={claseEtiquetaCampo}>Tipo de pasivo</legend>
+          <div className="flex items-center gap-1.5">
+            <legend className={claseEtiquetaCampo}>Tipo de pasivo</legend>
+            <AyudaInfo
+              etiqueta="Información sobre tipo de pasivo"
+              texto="Fase 1: Tarjeta y Crédito tienen como titular a un solo miembro. Deuda (informal o no bancaria) admite titular miembro u Hogar."
+            />
+          </div>
           <div className="grid grid-cols-3 gap-2">
             <TarjetaRadio id="tipo-tc" name="tipo-instrumento" value="tarjeta" checked={tipo === 'tarjeta'} onChange={() => cambiarTipo('tarjeta')}>Tarjeta</TarjetaRadio>
             <TarjetaRadio id="tipo-credito" name="tipo-instrumento" value="credito" checked={tipo === 'credito'} onChange={() => cambiarTipo('credito')}>Crédito</TarjetaRadio>
             <TarjetaRadio id="tipo-deuda" name="tipo-instrumento" value="deuda" checked={tipo === 'deuda'} onChange={() => cambiarTipo('deuda')}>Deuda</TarjetaRadio>
           </div>
-          <p className={claseAyudaCampo}>Fase 1: Tarjeta y Crédito tienen como titular a un solo miembro. Deuda (informal o no bancaria) admite titular miembro u Hogar.</p>
         </fieldset>
 
         <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-          <legend className={claseEtiquetaCampo}>Ámbito del pasivo</legend>
+          <div className="flex items-center gap-1.5">
+            <legend className={claseEtiquetaCampo}>Ámbito del pasivo</legend>
+            <AyudaInfo
+              etiqueta="Información sobre ámbito del pasivo"
+              texto="Cada pasivo es un libro de un solo ámbito (inmutable con movimientos). Si usas una tarjeta para ambos ámbitos, lleva dos libros aparte con los mismos últimos 4 dígitos."
+            />
+          </div>
           <div className="grid grid-cols-2 gap-2">
             <TarjetaRadio id="ambito-hogar" name="ambito-pasivo" value="hogar" checked={ambito === 'hogar'} onChange={() => cambiarAmbito('hogar')}>Hogar</TarjetaRadio>
             <TarjetaRadio id="ambito-personal" name="ambito-pasivo" value="personal" checked={ambito === 'personal'} onChange={() => cambiarAmbito('personal')}>Personal (solo yo)</TarjetaRadio>
           </div>
-          <p className={claseAyudaCampo}>Cada pasivo es un libro de un solo ámbito (inmutable con movimientos). Si eliges <strong>Personal</strong>, el titular debe ser un miembro y sus pagos no suman al hogar.</p>
-          <Aviso variante="indigo" icono="ℹ">
-            <p><strong className="text-hogar-tinta">Tarjeta usada para ambos ámbitos:</strong> lleva <strong>dos libros</strong> aparte (ej. <em>Visa ••4521 Hogar</em> y <em>Visa ••4521 Personal</em>) con los mismos últimos 4 dígitos.</p>
-          </Aviso>
         </fieldset>
 
         <div className="flex flex-col gap-1.5">
@@ -169,19 +176,24 @@ export function PantallaNuevoPasivo() {
         </div>
 
         <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-          <legend className={claseEtiquetaCampo}>Titular del pasivo</legend>
+          <div className="flex items-center gap-1.5">
+            <legend className={claseEtiquetaCampo}>Titular del pasivo</legend>
+            <AyudaInfo
+              etiqueta="Información sobre titular del pasivo"
+              texto="Titular Hogar disponible solo para Deuda en fase 1 (ámbito Hogar). Cualquier miembro puede pagar cualquier pasivo sin crear deuda entre ustedes."
+            />
+          </div>
           <div className={`grid gap-2 ${miembrosActivos.length === 1 ? 'grid-cols-2' : 'grid-cols-3'}`}>
             {miembrosActivos.map((miembro) => (
               <TarjetaRadio key={miembro.id} id={`titular-${miembro.id}`} name="titular" value={miembro.id} checked={titularMiembroId === miembro.id} onChange={() => setTitularMiembroId(miembro.id)}>{miembro.nombre}</TarjetaRadio>
             ))}
             <TarjetaRadio id="titular-hogar" name="titular" value="hogar" checked={titularMiembroId === null} disabled={!permiteTitularHogar} onChange={() => setTitularMiembroId(null)}>Hogar*</TarjetaRadio>
           </div>
-          <p className={claseAyudaCampo}>*Titular Hogar disponible solo para <strong>Deuda</strong> en fase 1 (ámbito Hogar). Igual cualquier miembro podrá pagar cualquier pasivo sin crear deuda entre ustedes.</p>
         </fieldset>
 
         {tipo === 'tarjeta' ? (
           <>
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 items-end gap-2.5">
               <div className="flex min-w-0 flex-col gap-1.5">
                 <label htmlFor="dia-corte" className={claseEtiquetaCampo}>Día de corte (tarjeta)</label>
                 <input id="dia-corte" className={claseCampoTexto} type="number" min={1} max={31} value={diaCorte} onChange={(e) => setDiaCorte(e.target.value)} />
@@ -191,7 +203,7 @@ export function PantallaNuevoPasivo() {
                 <input id="dia-pago" className={claseCampoTexto} type="number" min={1} max={31} value={diaPago} onChange={(e) => setDiaPago(e.target.value)} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 items-end gap-2.5">
               <div className="flex min-w-0 flex-col gap-1.5">
                 <label htmlFor="ultimos-4" className={claseEtiquetaCampo}>Últimos 4 dígitos (opcional)</label>
                 <input id="ultimos-4" className={claseCampoTexto} type="text" inputMode="numeric" maxLength={4} placeholder="Ej. 4521" value={ultimos4} onChange={(e) => setUltimos4(e.target.value.replace(/\D+/g, '').slice(0, 4))} />

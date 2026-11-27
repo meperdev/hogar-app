@@ -200,7 +200,7 @@ export function PantallaNuevoInsumo() {
             </div>
           ) : null}
 
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-2 items-end gap-2.5">
             <div className="flex flex-col gap-1.5">
               <label htmlFor="duracion-dias" className={claseEtiquetaCampo}>
                 Frecuencia estimada (días)

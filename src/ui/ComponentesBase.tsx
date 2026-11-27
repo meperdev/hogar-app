@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 const botonBase =
   'inline-flex min-h-11 min-w-11 max-w-full items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-center text-[0.9375rem] font-bold leading-tight whitespace-normal break-words transition-all duration-150 active:scale-[0.98] cursor-pointer disabled:cursor-not-allowed disabled:opacity-60'
@@ -46,9 +46,69 @@ export function Insignia({
 }) {
   return (
     <span
-      className={`inline-flex max-w-full items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-bold leading-snug whitespace-normal break-words ${estilosInsignia[variante]} ${className}`.trim()}
+      className={`inline-flex min-w-0 max-w-full items-center gap-1 overflow-hidden rounded-full border px-2.5 py-0.5 text-xs font-bold leading-snug whitespace-normal break-words ${estilosInsignia[variante]} ${className}`.trim()}
     >
       {children}
+    </span>
+  )
+}
+
+export function AyudaInfo({
+  texto,
+  etiqueta = 'Más información',
+  alinear = 'izquierda',
+  className = '',
+}: {
+  texto: string
+  etiqueta?: string | undefined
+  alinear?: 'izquierda' | 'derecha' | undefined
+  className?: string | undefined
+}) {
+  const [abierto, setAbierto] = useState(false)
+  const contenedorRef = useRef<HTMLSpanElement>(null)
+
+  useEffect(() => {
+    if (!abierto) return
+    function cerrarSiFuera(evento: PointerEvent) {
+      if (contenedorRef.current && !contenedorRef.current.contains(evento.target as Node)) {
+        setAbierto(false)
+      }
+    }
+    function cerrarConEscape(evento: KeyboardEvent) {
+      if (evento.key === 'Escape') setAbierto(false)
+    }
+    document.addEventListener('pointerdown', cerrarSiFuera)
+    document.addEventListener('keydown', cerrarConEscape)
+    return () => {
+      document.removeEventListener('pointerdown', cerrarSiFuera)
+      document.removeEventListener('keydown', cerrarConEscape)
+    }
+  }, [abierto])
+
+  return (
+    <span ref={contenedorRef} className={`relative inline-flex items-center ${className}`.trim()}>
+      <button
+        type="button"
+        aria-label={etiqueta}
+        aria-expanded={abierto}
+        onClick={(evento) => {
+          evento.stopPropagation()
+          setAbierto((actual) => !actual)
+        }}
+        className="inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full border border-hogar-borde-fuerte bg-hogar-superficie-suave text-[0.7rem] font-extrabold text-hogar-tinta-suave transition-colors hover:border-hogar-primario hover:text-hogar-primario"
+      >
+        <span aria-hidden="true">i</span>
+      </button>
+      {abierto ? (
+        <span
+          role="note"
+          className={`absolute top-full z-30 mt-1.5 w-64 max-w-[min(16rem,calc(100vw-3rem))] rounded-xl border border-hogar-borde-fuerte bg-hogar-superficie p-2.5 text-left text-xs font-normal leading-relaxed text-hogar-tinta shadow-[var(--hogar-shadow-elevated)] ${
+            alinear === 'derecha' ? 'right-0 left-auto' : 'left-0'
+          }`}
+        >
+          {texto}
+        </span>
+      ) : null}
     </span>
   )
 }

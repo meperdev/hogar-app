@@ -478,80 +478,78 @@ export function TarjetaComercios({
                       siendoArrastrado ? 'shadow-[var(--hogar-shadow-elevated)]' : ''
                     }`.trim()}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex min-w-0 flex-1 items-center gap-2">
-                        {activos.length > 1 ? (
-                          <button
-                            type="button"
-                            aria-label={`Reordenar ${comercio.nombre}`}
-                            disabled={reordenando}
-                            onPointerDown={(e) => iniciarArrastre(e, comercio.id)}
-                            onPointerMove={moverArrastre}
-                            onPointerUp={finalizarArrastre}
-                            onPointerCancel={finalizarArrastre}
-                            onLostPointerCapture={finalizarArrastre}
-                            onKeyDown={(e) => manejarTeclaOrden(e, indice)}
-                            className="inline-flex min-h-11 min-w-8 shrink-0 touch-none cursor-grab select-none items-center justify-center rounded-xl border-0 bg-transparent px-1 text-base font-extrabold tracking-[-0.15em] text-hogar-tinta-suave hover:bg-hogar-superficie-suave active:cursor-grabbing disabled:opacity-50"
-                          >
-                            <span aria-hidden="true">⋮⋮</span>
-                          </button>
-                        ) : null}
-                        <div
-                          className={`flex min-w-0 flex-1 items-center gap-2 ${
-                            arrastre ? 'pointer-events-none select-none' : ''
-                          }`.trim()}
+                    <div className="flex items-center gap-2.5">
+                      {activos.length > 1 ? (
+                        <button
+                          type="button"
+                          aria-label={`Reordenar ${comercio.nombre}`}
+                          disabled={reordenando}
+                          onPointerDown={(e) => iniciarArrastre(e, comercio.id)}
+                          onPointerMove={moverArrastre}
+                          onPointerUp={finalizarArrastre}
+                          onPointerCancel={finalizarArrastre}
+                          onLostPointerCapture={finalizarArrastre}
+                          onKeyDown={(e) => manejarTeclaOrden(e, indice)}
+                          className="inline-flex min-h-11 min-w-8 shrink-0 touch-none cursor-grab select-none items-center justify-center rounded-xl border-0 bg-transparent px-1 text-base font-extrabold tracking-[-0.15em] text-hogar-tinta-suave hover:bg-hogar-superficie-suave active:cursor-grabbing disabled:opacity-50"
                         >
-                          <span
-                            className="grid size-10 shrink-0 place-items-center rounded-2xl shadow-[0_3px_8px_-2px_rgba(16,24,20,0.2)]"
-                            style={{ backgroundColor: idVisual.fondo, color: idVisual.texto }}
-                            aria-hidden="true"
-                          >
-                            <Logo className="size-5" />
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <p className="m-0 text-sm font-extrabold text-hogar-tinta break-words">
-                              {comercio.nombre}
-                            </p>
-                            {categoriaNombre ? (
-                              <div className="mt-1 flex flex-wrap gap-1.5">
-                                <Insignia variante="neutral">{categoriaNombre}</Insignia>
-                              </div>
-                            ) : null}
-                          </div>
-                        </div>
-                      </div>
-
+                          <span aria-hidden="true">⋮⋮</span>
+                        </button>
+                      ) : null}
                       <div
-                        className={`flex shrink-0 flex-wrap items-center gap-1.5 ${
-                          arrastre ? 'pointer-events-none' : ''
+                        className={`flex min-w-0 flex-1 items-center gap-2.5 ${
+                          arrastre ? 'pointer-events-none select-none' : ''
                         }`.trim()}
                       >
-                        <button
-                          type="button"
-                          className={claseBotonPequenoSecundario}
-                          disabled={guardando || reordenando || cambiandoId === comercio.id}
-                          onClick={() => {
-                            if (editando) {
-                              setEditandoId(null)
-                              return
-                            }
-                            setError('')
-                            setEditandoId(comercio.id)
-                            setEditNombre(comercio.nombre)
-                            setEditCategoriaId(comercio.categoriaSugeridaId ?? '')
-                          }}
+                        <span
+                          className="grid size-10 shrink-0 place-items-center rounded-2xl shadow-[0_3px_8px_-2px_rgba(16,24,20,0.2)]"
+                          style={{ backgroundColor: idVisual.fondo, color: idVisual.texto }}
+                          aria-hidden="true"
                         >
-                          {editando ? 'Cerrar' : 'Editar'}
-                        </button>
-                        <button
-                          type="button"
-                          className={claseBotonPequenoSecundario}
-                          disabled={guardando || reordenando || cambiandoId === comercio.id}
-                          onClick={() => void alternarActivo(comercio)}
-                        >
-                          {cambiandoId === comercio.id ? '…' : 'Archivar'}
-                        </button>
+                          <Logo className="size-5" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="m-0 text-sm font-extrabold text-hogar-tinta break-words">
+                            {comercio.nombre}
+                          </p>
+                          {categoriaNombre ? (
+                            <div className="mt-1 flex flex-wrap gap-1.5">
+                              <Insignia variante="neutral">{categoriaNombre}</Insignia>
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
+                    </div>
+
+                    <div
+                      className={`flex flex-wrap items-center justify-end gap-1.5 border-t border-hogar-borde/70 pt-2 ${
+                        arrastre ? 'pointer-events-none' : ''
+                      }`.trim()}
+                    >
+                      <button
+                        type="button"
+                        className={claseBotonPequenoSecundario}
+                        disabled={guardando || reordenando || cambiandoId === comercio.id}
+                        onClick={() => {
+                          if (editando) {
+                            setEditandoId(null)
+                            return
+                          }
+                          setError('')
+                          setEditandoId(comercio.id)
+                          setEditNombre(comercio.nombre)
+                          setEditCategoriaId(comercio.categoriaSugeridaId ?? '')
+                        }}
+                      >
+                        {editando ? 'Cerrar' : 'Editar'}
+                      </button>
+                      <button
+                        type="button"
+                        className={claseBotonPequenoSecundario}
+                        disabled={guardando || reordenando || cambiandoId === comercio.id}
+                        onClick={() => void alternarActivo(comercio)}
+                      >
+                        {cambiandoId === comercio.id ? '…' : 'Archivar'}
+                      </button>
                     </div>
 
                     {editando ? (

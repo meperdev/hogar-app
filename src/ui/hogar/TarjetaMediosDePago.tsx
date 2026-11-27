@@ -372,7 +372,7 @@ export function TarjetaMediosDePago({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 items-end gap-2">
               <div className="flex min-w-0 flex-col gap-1.5 overflow-hidden">
                 <label htmlFor="medio-nuevo-tipo" className={claseEtiquetaCampo}>
                   Tipo
@@ -458,11 +458,11 @@ export function TarjetaMediosDePago({
                 >
                   <Tarjeta
                     acento={siendoArrastrado ? 'primario' : 'ninguno'}
-                    className={`flex items-center justify-between gap-2 transition-shadow ${
+                    className={`flex flex-wrap items-center justify-between gap-2 transition-shadow ${
                       siendoArrastrado ? 'shadow-[var(--hogar-shadow-elevated)]' : ''
                     }`.trim()}
                   >
-                    <div className="flex min-w-0 flex-1 items-center gap-2">
+                    <div className="flex min-w-[170px] flex-1 items-center gap-2">
                       {activos.length > 1 ? (
                         <button
                           type="button"

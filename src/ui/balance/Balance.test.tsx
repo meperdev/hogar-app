@@ -235,23 +235,26 @@ describe('UI del Núcleo 3 (Balance de pareja y exportación)', () => {
     expect(texto).toContain('43,3 %')
     expect(texto).not.toContain('le debe')
 
-    const switchPct = contenedor.querySelector('#toggle-pct-ingreso') as HTMLInputElement
+    expect(contenedor.querySelector('#toggle-pct-ingreso')).toBeNull()
     const switchPers = contenedor.querySelector('#toggle-personales') as HTMLInputElement
-    expect(switchPct.checked).toBe(false)
     expect(switchPers.checked).toBe(false)
   })
 
-  it('enciende Mostrar % de su ingreso (incluye aviso sin ingresos) e Incluir mis gastos personales', async () => {
-    const { contenedor } = await montar('/balance', crearPuertoDePrueba())
-
-    await clic(contenedor.querySelector('#toggle-pct-ingreso'))
-    expect(contenedor.textContent).toContain('37,8 %')
-    expect(contenedor.textContent).toContain('Sin ingresos registrados este mes')
+  it('enciende Mis personales en Balance y Mostrar % de su ingreso desde Ajustes', async () => {
+    const port = crearPuertoDePrueba()
+    const { contenedor } = await montar('/balance', port)
 
     await clic(contenedor.querySelector('#toggle-personales'))
     expect(contenedor.textContent).toContain('$140.000')
     expect(contenedor.textContent).toContain('sin contarse como aporte')
     expect(contenedor.textContent).toContain('$3.000.000')
+
+    const { contenedor: contAjustes } = await montar('/ajustes', port)
+    await clic(contAjustes.querySelector('#cfg-pct-ingreso'))
+
+    const { contenedor: contConPct } = await montar('/balance', port)
+    expect(contConPct.textContent).toContain('37,8 %')
+    expect(contConPct.textContent).toContain('Sin ingresos registrados este mes')
   })
 
   it('permite marcar recibido un ingreso fijo con monto distinto al esperado', async () => {

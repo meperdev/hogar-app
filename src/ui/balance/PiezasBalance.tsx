@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { AporteMiembroVista, IngresoFijoVista } from '../../app/balance'
 import { formatearPesos } from '../../domain/pesos'
 import {
+  AyudaInfo,
   Insignia,
   Tarjeta,
   claseAyudaCampo,
@@ -261,14 +262,20 @@ export function TarjetaIngresoFijo({
               <span className="hogar-chevron inline-block" aria-hidden="true">▾</span>
             </summary>
             <div className="flex flex-col gap-2.5 border-t border-hogar-borde bg-hogar-fondo p-3">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="flex min-w-0 flex-col gap-1 overflow-hidden">
-                  <label
-                    htmlFor={`monto-rec-${item.serieId}`}
-                    className={claseEtiquetaCampo}
-                  >
-                    Monto recibido (COP)
-                  </label>
+              <div className="grid grid-cols-2 items-end gap-2">
+                <div className="flex min-w-0 flex-col gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <label
+                      htmlFor={`monto-rec-${item.serieId}`}
+                      className={claseEtiquetaCampo}
+                    >
+                      Monto (COP)
+                    </label>
+                    <AyudaInfo
+                      etiqueta="Información sobre cambio de monto"
+                      texto="Si llegó un valor distinto al esperado, el balance usará el monto recibido sin cambiar tu salario base."
+                    />
+                  </div>
                   <input
                     id={`monto-rec-${item.serieId}`}
                     aria-label={`Monto recibido ${item.descripcion}`}
@@ -283,12 +290,12 @@ export function TarjetaIngresoFijo({
                     }}
                   />
                 </div>
-                <div className="flex min-w-0 flex-col gap-1 overflow-hidden">
+                <div className="flex min-w-0 flex-col gap-1">
                   <label
                     htmlFor={`fecha-rec-${item.serieId}`}
                     className={claseEtiquetaCampo}
                   >
-                    Fecha recepción
+                    Fecha
                   </label>
                   <input
                     id={`fecha-rec-${item.serieId}`}
@@ -300,9 +307,6 @@ export function TarjetaIngresoFijo({
                   />
                 </div>
               </div>
-              <p className={claseAyudaCampo}>
-                Si llegó un valor distinto al esperado, el balance usará el monto recibido sin cambiar tu salario base.
-              </p>
               {error ? (
                 <p role="alert" className="m-0 text-xs font-bold text-hogar-peligro">
                   {error}

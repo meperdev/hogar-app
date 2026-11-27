@@ -92,6 +92,13 @@ export function ProveedorCompraRapida({
   const [confirmacionDuplicado, setConfirmacionDuplicado] = useState(false)
   const [sync, setSync] = useState<EstadoSincronizacion | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pendientesPreviosRef = useRef(0)
+
+  const notificarComprasActualizadas = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('hogar:compras-actualizadas'))
+    }
+  }, [])
 
   const limpiarTimer = useCallback(() => {
     if (timerRef.current !== null) {
@@ -103,11 +110,17 @@ export function ProveedorCompraRapida({
 
   const refrescarSync = useCallback(async () => {
     try {
-      setSync(await controlador.sincronizacion())
+      const siguiente = await controlador.sincronizacion()
+      const previos = pendientesPreviosRef.current
+      pendientesPreviosRef.current = siguiente.pendientes
+      setSync(siguiente)
+      if (previos > 0 && siguiente.pendientes < previos) {
+        notificarComprasActualizadas()
+      }
     } catch {
       // informativo
     }
-  }, [controlador])
+  }, [controlador, notificarComprasActualizadas])
 
   useEffect(() => {
     let vigente = true
@@ -242,6 +255,7 @@ export function ProveedorCompraRapida({
           timerRef.current = null
         }, VENTANA_DESHACER_MS)
         await refrescarSync()
+        notificarComprasActualizadas()
         return { estado: 'guardado', toast }
       } catch (causa) {
         const mensaje = causa instanceof Error && causa.message ? causa.message : 'No pudimos guardar la compra.'
@@ -251,7 +265,7 @@ export function ProveedorCompraRapida({
         setGuardando(false)
       }
     },
-    [borrador, catalogo, controlador, limpiarTimer, refrescarSync],
+    [borrador, catalogo, controlador, limpiarTimer, notificarComprasActualizadas, refrescarSync],
   )
 
   const deshacerUltimoGuardado = useCallback(async () => {
@@ -263,10 +277,11 @@ export function ProveedorCompraRapida({
       await controlador.deshacer(loteId)
       setAvisoEstado('Compra deshecha.')
       await refrescarSync()
+      notificarComprasActualizadas()
     } catch (causa) {
       setAvisoEstado(causa instanceof Error && causa.message ? causa.message : 'No pudimos deshacer la compra.')
     }
-  }, [controlador, limpiarTimer, refrescarSync, toastGuardado])
+  }, [controlador, limpiarTimer, notificarComprasActualizadas, refrescarSync, toastGuardado])
 
   return (
     <ContextoCompraRapida.Provider

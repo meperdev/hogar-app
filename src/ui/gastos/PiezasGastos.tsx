@@ -91,7 +91,7 @@ export function DonaCategorias({
   categoriaActivaId: string | null
   onAlternarCategoria: (categoriaId: string) => void
 }) {
-  const radio = 56
+  const radio = 72
   const circunferencia = 2 * Math.PI * radio
   const activa = categoriaActivaId
     ? categorias.find((c) => c.categoriaId === categoriaActivaId) ?? null
@@ -107,21 +107,25 @@ export function DonaCategorias({
     return { cat, color: colorCategoria(idx), largo, offset }
   })
 
+  const montoCentro = formatearPesos(activa ? activa.total : total)
+  const claseMontoCentro =
+    montoCentro.length >= 12 ? 'text-xs' : montoCentro.length >= 9 ? 'text-sm' : 'text-base'
+
   return (
-    <div className="relative mx-auto flex size-[172px] items-center justify-center">
+    <div className="relative mx-auto flex size-[200px] items-center justify-center">
       <svg
         className="size-full -rotate-90"
-        viewBox="0 0 160 160"
+        viewBox="0 0 180 180"
         aria-hidden="true"
         focusable="false"
       >
         <circle
-          cx="80"
-          cy="80"
+          cx="90"
+          cy="90"
           r={radio}
           fill="none"
           stroke="#eaeeea"
-          strokeWidth="20"
+          strokeWidth="18"
         />
         {total > 0
           ? segmentos.map(({ cat, color, largo, offset }) => {
@@ -130,12 +134,12 @@ export function DonaCategorias({
               return (
                 <circle
                   key={cat.categoriaId}
-                  cx="80"
-                  cy="80"
+                  cx="90"
+                  cy="90"
                   r={radio}
                   fill="none"
                   stroke={color}
-                  strokeWidth={esActiva ? 23 : 20}
+                  strokeWidth={esActiva ? 21 : 18}
                   strokeDasharray={`${largo} ${circunferencia}`}
                   strokeDashoffset={offset}
                   strokeLinecap="butt"
@@ -149,14 +153,14 @@ export function DonaCategorias({
           : null}
       </svg>
 
-      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
         {activa ? (
           <>
             <span className="max-w-full truncate text-[0.6875rem] font-bold text-hogar-tinta-suave">
               {activa.nombre}
             </span>
-            <span className="hogar-cop text-base font-extrabold leading-tight text-hogar-tinta">
-              {formatearPesos(activa.total)}
+            <span className={`hogar-cop font-extrabold leading-tight text-hogar-tinta ${claseMontoCentro}`}>
+              {montoCentro}
             </span>
             <span className="hogar-cop text-[0.6875rem] font-bold text-hogar-primario">
               {activa.pctTexto}
@@ -167,8 +171,8 @@ export function DonaCategorias({
             <span className="text-[0.6875rem] font-bold text-hogar-tinta-suave">
               {cantidadCompras === 1 ? '1 compra' : `${cantidadCompras} compras`}
             </span>
-            <span className="hogar-cop text-lg font-extrabold leading-tight text-hogar-tinta">
-              {formatearPesos(total)}
+            <span className={`hogar-cop font-extrabold leading-tight text-hogar-tinta ${claseMontoCentro}`}>
+              {montoCentro}
             </span>
             <span className="text-[0.6875rem] font-semibold text-hogar-tinta-suave">
               Total del mes

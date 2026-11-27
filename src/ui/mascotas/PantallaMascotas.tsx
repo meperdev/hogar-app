@@ -5,13 +5,13 @@ import type { EspecieMascota } from '../../domain/mascotas'
 import { formatearPesos } from '../../domain/pesos'
 import {
   Aviso,
+  AyudaInfo,
   Tarjeta,
   claseAyudaCampo,
   claseBotonIcono,
   claseBotonPequenoPrimario,
   claseBotonPequenoSecundario,
   claseBotonPrimario,
-  claseBotonSecundario,
   claseCampoTexto,
   claseEtiquetaCampo,
 } from '../ComponentesBase'
@@ -103,17 +103,23 @@ export function PantallaMascotas() {
     <ShellApp
       titulo="Despensa de mascotas"
       subtitulo={subtitulo}
-      accionDerecha={
-        <Link to="/mascotas/nuevo-insumo" className={`${claseBotonPequenoSecundario} no-underline`}>
-          + Insumo
-        </Link>
-      }
       mostrarNavegacion
       etiquetaBarraAccion="Acción principal de despensa de mascotas"
       barraAccion={
-        <Link to={ctaPrincipal.to} className={`${claseBotonPrimario} w-full no-underline`} data-sin-scroll>
-          {ctaPrincipal.etiqueta}
-        </Link>
+        primerInsumo ? (
+          <div className="flex items-center gap-2">
+            <Link to={ctaPrincipal.to} className={`${claseBotonPrimario} flex-1 no-underline`} data-sin-scroll>
+              {ctaPrincipal.etiqueta}
+            </Link>
+            <Link to="/mascotas/nuevo-insumo" className={`${claseBotonPequenoSecundario} shrink-0 no-underline`}>
+              + Insumo
+            </Link>
+          </div>
+        ) : (
+          <Link to="/mascotas/nuevo-insumo" className={`${claseBotonPrimario} w-full no-underline`} data-sin-scroll>
+            + Agregar insumo o gasto recurrente
+          </Link>
+        )
       }
     >
       {toast ? (
@@ -175,14 +181,15 @@ export function PantallaMascotas() {
       </div>
 
       <Tarjeta acento="primario" className="flex flex-col gap-2.5">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5">
             <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">
-              Gasto en Mascotas (hogar · {formatearPeriodoEs(periodo)})
+              Gasto en Mascotas ({formatearPeriodoEs(periodo)})
             </h2>
-            <p className="m-0 mt-0.5 text-xs text-hogar-tinta-suave">
-              Derivado · Solo ámbito hogar y categoría Mascotas (1 vez c/u)
-            </p>
+            <AyudaInfo
+              etiqueta="Información del cálculo de gasto en mascotas"
+              texto="Se calcula automáticamente con las compras del hogar en categoría Mascotas, contando cada compra una sola vez."
+            />
           </div>
           <span className="hogar-cop text-xl font-extrabold text-hogar-tinta">
             {formatearPesos(gastoMes?.total ?? 0)}
@@ -356,10 +363,6 @@ export function PantallaMascotas() {
           </Tarjeta>
         ) : null}
       </section>
-
-      <Link to="/mascotas/nuevo-insumo" className={`${claseBotonSecundario} w-full no-underline`}>
-        + Agregar insumo o gasto recurrente
-      </Link>
     </ShellApp>
   )
 }

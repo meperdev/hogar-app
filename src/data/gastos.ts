@@ -3,7 +3,7 @@ import { z } from 'zod'
 import type { AlcanceCompra } from '../app/compraRapida'
 import type { DatosGastos, GastosPort } from '../app/controladorGastos'
 import { ErrorGastos, type EditarCompraEntrada } from '../app/gastos'
-import type { BaseActorDexie } from './db'
+import type { BaseActorDexie, EntradaOutbox } from './db'
 
 export interface RemotoGastos {
   leer(hogarId: string): Promise<DatosGastos>
@@ -161,6 +161,63 @@ export function crearRemotoGastos(cliente: SupabaseClient): RemotoGastos {
 const CLAVE_INSTANTANEA = 'gastos_generales'
 const SIN_INSTANTANEA = 'Sin conexión y sin copia local de gastos'
 
+/**
+ * Fusiona compras pendientes del outbox local (en ventana Deshacer o sin red)
+ * sobre los datos remotos o en caché, evitando duplicados si ya sincronizaron.
+ */
+export function combinarPendientesGastos(
+  datos: DatosGastos,
+  pendientes: readonly EntradaOutbox[],
+  hogarId: string,
+  actorId = '',
+): DatosGastos {
+  const idsExistentes = new Set(datos.compras.map((c) => c.id))
+  const planesExistentes = new Set(
+    datos.planes.map((p) => p.compra_id).filter((id): id is string => id !== null),
+  )
+  const comprasExtra: DatosGastos['compras'] = []
+  const planesExtra: DatosGastos['planes'] = []
+
+  for (const entrada of pendientes) {
+    if (entrada.estado !== 'pendiente' || entrada.lote.hogar_id !== hogarId) continue
+    for (const c of entrada.lote.filas.compra) {
+      if (idsExistentes.has(c.id)) continue
+      idsExistentes.add(c.id)
+      comprasExtra.push({
+        id: c.id,
+        fecha: c.fecha,
+        descripcion: c.descripcion,
+        monto_total: c.monto_total,
+        categoria_id: c.categoria_id,
+        ambito: c.ambito,
+        miembro_id: c.miembro_id,
+        pago_tipo: c.pago_tipo,
+        medio_de_pago_id: c.medio_de_pago_id,
+        financiada_por_pasivo_id: c.financiada_por_pasivo_id,
+        obligacion_id: null,
+        registrado_por: c.miembro_id ?? actorId,
+        origen: c.origen,
+      })
+    }
+    for (const pl of entrada.lote.filas.plan_de_cuotas) {
+      if (!pl.compra_id || planesExistentes.has(pl.compra_id)) continue
+      planesExistentes.add(pl.compra_id)
+      planesExtra.push({
+        compra_id: pl.compra_id,
+        pasivo_id: pl.pasivo_id,
+        n_cuotas: pl.n_cuotas,
+      })
+    }
+  }
+
+  if (comprasExtra.length === 0 && planesExtra.length === 0) return datos
+  return {
+    ...datos,
+    compras: [...datos.compras, ...comprasExtra],
+    planes: [...datos.planes, ...planesExtra],
+  }
+}
+
 export function crearPuertoGastos(d: {
   base: () => Promise<BaseActorDexie>
   remoto: RemotoGastos
@@ -172,6 +229,7 @@ export function crearPuertoGastos(d: {
   return {
     async cargar() {
       const base = await d.base()
+      const pendientes = await base.outbox.where('estado').equals('pendiente').toArray()
       try {
         const datos = await d.remoto.leer(d.alcance.hogarId)
         await base.instantaneas.put({
@@ -179,11 +237,22 @@ export function crearPuertoGastos(d: {
           valor: datos,
           actualizadoEn: ahora().toISOString(),
         })
-        return { datos, sinConexion: false }
+        return {
+          datos: combinarPendientesGastos(datos, pendientes, d.alcance.hogarId, d.alcance.miembroId),
+          sinConexion: false,
+        }
       } catch {
         const cache = await base.instantaneas.get(CLAVE_INSTANTANEA)
         if (!cache) throw new Error(SIN_INSTANTANEA)
-        return { datos: cache.valor as DatosGastos, sinConexion: true }
+        return {
+          datos: combinarPendientesGastos(
+            cache.valor as DatosGastos,
+            pendientes,
+            d.alcance.hogarId,
+            d.alcance.miembroId,
+          ),
+          sinConexion: true,
+        }
       }
     },
 
