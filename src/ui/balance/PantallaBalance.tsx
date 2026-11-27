@@ -97,7 +97,7 @@ export function PantallaBalance() {
         </Aviso>
       ) : null}
 
-      <div className="overflow-hidden rounded-2xl border border-hogar-borde bg-hogar-superficie shadow-[var(--hogar-shadow-card)]">
+      <div className="shrink-0 overflow-hidden rounded-2xl border border-hogar-borde bg-hogar-superficie shadow-[var(--hogar-shadow-card)]">
         <div
           className="flex items-center justify-between gap-2 p-1.5"
           role="group"

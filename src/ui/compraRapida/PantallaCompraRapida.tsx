@@ -264,6 +264,73 @@ export function PantallaCompraRapida() {
           </button>
         </div>
       }
+      superposicion={
+        <div
+          data-modal-fondo="comentario-compra"
+          className={
+            panelNotaAbierto
+              ? 'absolute inset-0 z-50 flex flex-col justify-end bg-hogar-tinta/40 px-3.5 pb-[calc(var(--hogar-nav-height)+env(safe-area-inset-bottom,0px)+16px)] backdrop-blur-[2px]'
+              : 'hidden'
+          }
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setPanelNotaAbierto(false)
+          }}
+        >
+          <div
+            id="panel-comentario-compra"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Comentario y fecha de la compra"
+            className="hogar-toast w-full rounded-2xl border border-hogar-borde-fuerte bg-hogar-superficie p-4 shadow-[var(--hogar-shadow-elevated)]"
+          >
+            <div className="mb-2.5 flex items-center justify-between gap-2">
+              <h2 className="m-0 text-sm font-extrabold text-hogar-tinta">Comentario y fecha</h2>
+              <button
+                type="button"
+                className={claseBotonPequenoPrimario}
+                onClick={() => setPanelNotaAbierto(false)}
+              >
+                Listo
+              </button>
+            </div>
+            <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="nota-compra" className={claseEtiquetaCampo}>
+                  Comentario o comercio
+                </label>
+                <input
+                  ref={notaRef}
+                  id="nota-compra"
+                  className={claseCampoTexto}
+                  type="text"
+                  placeholder="Ej. Almuerzo, D1 mercado semanal…"
+                  value={borrador.descripcion}
+                  onChange={(e) => setBorrador((p) => ({ ...p, descripcion: e.target.value }))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      setPanelNotaAbierto(false)
+                    }
+                  }}
+                />
+              </div>
+              <div className="flex min-w-0 max-w-full flex-col gap-1.5 overflow-hidden">
+                <label htmlFor="fecha-compra" className={claseEtiquetaCampo}>
+                  Fecha
+                </label>
+                <input
+                  ref={fechaRef}
+                  id="fecha-compra"
+                  className={claseCampoTexto}
+                  type="date"
+                  value={borrador.fecha}
+                  onChange={(e) => setBorrador((p) => ({ ...p, fecha: e.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      }
     >
       {!toastGuardado && avisoEstado ? (
         <p className="sr-only" role="status" aria-live="polite">
@@ -557,68 +624,6 @@ export function PantallaCompraRapida() {
           })}
         </div>
       </section>
-
-      <div
-        aria-hidden="true"
-        className={panelNotaAbierto ? 'fixed inset-0 z-40 bg-black/25 backdrop-blur-[1px]' : 'hidden'}
-        onClick={() => setPanelNotaAbierto(false)}
-      />
-      <div
-        id="panel-comentario-compra"
-        role="dialog"
-        aria-label="Comentario y fecha de la compra"
-        className={
-          panelNotaAbierto
-            ? 'fixed bottom-[calc(var(--hogar-nav-height)+var(--hogar-action-bar-height)+env(safe-area-inset-bottom,0px)+8px)] left-1/2 z-50 w-[min(calc(100vw-28px),362px)] -translate-x-1/2 rounded-2xl border border-hogar-borde-fuerte bg-hogar-superficie p-3.5 shadow-[var(--hogar-shadow-elevated)]'
-            : 'hidden'
-        }
-      >
-        <div className="mb-2.5 flex items-center justify-between gap-2">
-          <h2 className="m-0 text-sm font-extrabold text-hogar-tinta">Comentario y fecha</h2>
-          <button
-            type="button"
-            className={claseBotonPequenoPrimario}
-            onClick={() => setPanelNotaAbierto(false)}
-          >
-            Listo
-          </button>
-        </div>
-        <div className="flex flex-col gap-2.5">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="nota-compra" className={claseEtiquetaCampo}>
-              Comentario o comercio
-            </label>
-            <input
-              ref={notaRef}
-              id="nota-compra"
-              className={claseCampoTexto}
-              type="text"
-              placeholder="Ej. Almuerzo, D1 mercado semanal…"
-              value={borrador.descripcion}
-              onChange={(e) => setBorrador((p) => ({ ...p, descripcion: e.target.value }))}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  setPanelNotaAbierto(false)
-                }
-              }}
-            />
-          </div>
-          <div className="flex min-w-0 max-w-full flex-col gap-1.5 overflow-hidden">
-            <label htmlFor="fecha-compra" className={claseEtiquetaCampo}>
-              Fecha
-            </label>
-            <input
-              ref={fechaRef}
-              id="fecha-compra"
-              className={claseCampoTexto}
-              type="date"
-              value={borrador.fecha}
-              onChange={(e) => setBorrador((p) => ({ ...p, fecha: e.target.value }))}
-            />
-          </div>
-        </div>
-      </div>
     </ShellApp>
   )
 }

@@ -64,6 +64,7 @@ export function ShellApp({
   compacto = false,
   etiquetaBarraAccion = 'Acción principal de la pantalla',
   barraAccion,
+  superposicion,
   pie,
   children,
 }: {
@@ -77,6 +78,7 @@ export function ShellApp({
   compacto?: boolean | undefined
   etiquetaBarraAccion?: string | undefined
   barraAccion?: ReactNode | undefined
+  superposicion?: ReactNode | undefined
   pie?: string | undefined
   children: ReactNode
 }) {
@@ -171,6 +173,7 @@ export function ShellApp({
       ) : null}
 
       {mostrarNavegacion ? <NavegacionInferior /> : null}
+      {superposicion ?? null}
     </div>
   )
 }

@@ -186,6 +186,10 @@
     touch-action: pan-y;
   }
 
+  .hogar-main-scroll > * {
+    flex-shrink: 0;
+  }
+
   .hogar-action-bar {
     position: absolute;
     left: 0;
@@ -389,7 +393,7 @@
   }
 
   .hogar-pantalla-enter {
-    animation: hogar-enter 220ms var(--hogar-ease-out) both;
+    animation: hogar-enter 220ms var(--hogar-ease-out) backwards;
   }
 
   .hogar-toast {
