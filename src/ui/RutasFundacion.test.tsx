@@ -135,7 +135,7 @@ it('espera la sesión antes de mostrar contenido y limpia el hogar al salir', as
       await act(async () => salir?.click())
       expect(servicios.auth.salir).toHaveBeenCalledOnce()
       expect(contenedor.textContent).not.toContain('Casa de Ana')
-      expect(contenedor.querySelector('h1')?.textContent).toBe('Ingresa a hogar-app')
+      expect(contenedor.querySelector('h1')?.textContent).toBe('Ingresa a MeperHome')
     } finally {
       await act(async () => raiz.unmount())
       contenedor.remove()
@@ -150,7 +150,7 @@ describe('Flujo de ingreso OTP', () => {
     const { contenedor } = await montar(servicios)
     await act(async () => notificar(null))
 
-    expect(contenedor.querySelector('h1')?.textContent).toBe('Ingresa a hogar-app')
+    expect(contenedor.querySelector('h1')?.textContent).toBe('Ingresa a MeperHome')
     expect(contenedor.querySelector('main#contenido')?.getAttribute('tabindex')).toBe('-1')
     const inputCorreo = contenedor.querySelector<HTMLInputElement>('#ingreso-correo')
     expect(inputCorreo).not.toBeNull()

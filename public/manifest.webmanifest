@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Hogar — finanzas compartidas",
-  "short_name": "Hogar",
+  "name": "MeperHome — finanzas compartidas",
+  "short_name": "MeperHome",
   "description": "Finanzas del hogar compartido en pesos colombianos, offline-first.",
   "lang": "es-CO",
   "dir": "ltr",

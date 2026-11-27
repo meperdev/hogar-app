@@ -112,6 +112,8 @@ describe('Manifiesto e index de la PWA', () => {
         (icono) => icono.purpose === 'maskable' && icono.sizes === '512x512',
       ),
     ).toBe(true);
+    expect(manifiesto.short_name).toBe('MeperHome');
+    expect(manifiesto.name).toContain('MeperHome');
   });
 
   it('index.html no enlaza assets servidos: el build los inyecta', () => {
@@ -125,6 +127,7 @@ describe('Manifiesto e index de la PWA', () => {
     expect(htmlCrudo).toContain('id="root"');
     expect(htmlCrudo).toContain('maximum-scale=1');
     expect(htmlCrudo).toContain('viewport-fit=cover');
+    expect(htmlCrudo).toContain('content="MeperHome"');
   });
 });
 

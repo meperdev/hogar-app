@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import { VitePWA, type ManifestOptions } from 'vite-plugin-pwa';
 
 /**
@@ -39,15 +39,45 @@ function cargarManifiesto(): Partial<ManifestOptions> {
 
 const manifiesto = cargarManifiesto();
 
+function inyectarIconosPwa(): Plugin {
+  return {
+    name: 'inyectar-iconos-pwa',
+    transformIndexHtml() {
+      return [
+        {
+          tag: 'link',
+          attrs: { rel: 'icon', type: 'image/png', sizes: '192x192', href: '/icons/icon-192.png' },
+          injectTo: 'head',
+        },
+        {
+          tag: 'link',
+          attrs: { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+          injectTo: 'head',
+        },
+        {
+          tag: 'link',
+          attrs: {
+            rel: 'apple-touch-icon',
+            sizes: '180x180',
+            href: '/icons/apple-touch-icon.png',
+          },
+          injectTo: 'head',
+        },
+      ];
+    },
+  };
+}
+
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    inyectarIconosPwa(),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       manifest: manifiesto,
-      includeAssets: ['favicon.svg', 'icons/*.png', 'logos/*.png'],
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'icons/*.png', 'logos/*.png'],
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,woff2}'],
         navigateFallback: '/index.html',
