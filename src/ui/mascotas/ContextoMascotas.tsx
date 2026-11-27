@@ -1,8 +1,9 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { AlcanceCompra } from '../../app/compraRapida'
 import type { Hogar } from '../../app/fundacion'
 import type { ControladorMascotas, VistaDespensa } from '../../app/mascotas'
 import { hoyCivil } from '../../domain/fechas'
+import { useNotificacionesOpcional } from '../Notificaciones'
 
 type ValorContextoMascotas = {
   hogar: Hogar
@@ -44,6 +45,14 @@ export function ProveedorMascotas({
   const [errorCarga, setErrorCarga] = useState('')
   const [toast, setToast] = useState('')
   const [revision, setRevision] = useState(0)
+  const notificaciones = useNotificacionesOpcional()
+  const mostrarToast = useCallback(
+    (mensaje: string) => {
+      setToast(mensaje)
+      notificaciones?.publicar({ mensaje, variante: 'exito' })
+    },
+    [notificaciones],
+  )
 
   useEffect(() => {
     let vigente = true
@@ -78,7 +87,7 @@ export function ProveedorMascotas({
         toast,
         cambiarPeriodo: setPeriodo,
         recargar: () => setRevision((actual) => actual + 1),
-        mostrarToast: setToast,
+        mostrarToast,
         limpiarToast: () => setToast(''),
       }}
     >

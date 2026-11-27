@@ -268,7 +268,13 @@ export function PantallaNuevoPasivo() {
 
         <Tarjeta className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">Tasa de interés (opcional)</h2>
+            <div className="flex items-center gap-1.5">
+              <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">Tasa de interés (opcional)</h2>
+              <AyudaInfo
+                etiqueta="Información sobre tasa de interés"
+                texto="Con Sin tasa activo, la app no calcula intereses automáticamente y podrás registrarlos a mano como Costo financiero al pagar tu extracto."
+              />
+            </div>
             <Insignia variante="primario">Sin tasa por defecto</Insignia>
           </div>
           <fieldset className="m-0 border-0 p-0">
@@ -289,19 +295,20 @@ export function PantallaNuevoPasivo() {
                   : <>Ejemplo de conversión exacta: <strong>28,32 % E.A. ⇄ 2,0997 % M.V.</strong> (MV = (1 + EA)^(1/12) − 1).</>}
               </p>
             </div>
-          ) : (
-            <Aviso variante="primario" icono="ℹ">
-              <p>Con <strong>Sin tasa</strong> activo, la app no calcula intereses automáticamente y podrás registrarlos a mano como <em>Costo financiero</em> al pagar tu extracto.</p>
-            </Aviso>
-          )}
+          ) : null}
         </Tarjeta>
 
         <Tarjeta acento="indigo" className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">Capital inicial o desembolso</h2>
+            <div className="flex items-center gap-1.5">
+              <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">Capital inicial o desembolso</h2>
+              <AyudaInfo
+                etiqueta="Información sobre capital inicial o desembolso"
+                texto="Para deuda previa elige Saldo inicial. Para préstamo en efectivo (Crédito o Deuda, nunca Tarjeta) elige Desembolso."
+              />
+            </div>
             <Insignia variante="indigo">Plan de cuotas</Insignia>
           </div>
-          <p className={claseAyudaCampo}>Para deuda previa elige <strong>Saldo inicial</strong>. Para préstamo en efectivo (Crédito o Deuda, nunca Tarjeta) elige <strong>Desembolso</strong>.</p>
           <div className="flex flex-col gap-1.5">
             <label htmlFor="origen-plan" className={claseEtiquetaCampo}>Origen del capital</label>
             <select id="origen-plan" className={claseCampoTexto} value={permiteDesembolso ? origenPlan : 'saldo_inicial'} onChange={(e) => setOrigenPlan(e.target.value === 'desembolso' ? 'desembolso' : 'saldo_inicial')}>
@@ -314,20 +321,30 @@ export function PantallaNuevoPasivo() {
             <input id="saldo-inicial-cop" className={`${claseCampoTexto} hogar-cop text-xl font-extrabold`} type="text" inputMode="numeric" placeholder="Ej. $8.400.000" value={capitalPlan > 0 ? formatearPesos(capitalPlan) : ''} onChange={(e) => setCapitalPlan(parsearDigitosCop(e.target.value))} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="fecha-saldo-inicial" className={claseEtiquetaCampo}>Fecha del saldo inicial o giro</label>
-            <input id="fecha-saldo-inicial" className={claseCampoTexto} type="date" value={fechaPlan} aria-describedby="ayuda-fecha-saldo" onChange={(e) => setFechaPlan(e.target.value)} />
-            <p id="ayuda-fecha-saldo" className={claseAyudaCampo}>Define el orden en FIFO del capital inicial o desembolso.</p>
+            <div className="flex items-center gap-1.5">
+              <label htmlFor="fecha-saldo-inicial" className={claseEtiquetaCampo}>Fecha del saldo inicial o giro</label>
+              <AyudaInfo
+                etiqueta="Información sobre fecha del saldo inicial"
+                texto="Define el orden en FIFO del capital inicial o desembolso."
+              />
+            </div>
+            <input id="fecha-saldo-inicial" className={claseCampoTexto} type="date" value={fechaPlan} onChange={(e) => setFechaPlan(e.target.value)} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="sistema-amortizacion" className={claseEtiquetaCampo}>Sistema de cuotas</label>
-            <select id="sistema-amortizacion" className={claseCampoTexto} value={sistemaPlan} aria-describedby="ayuda-sistema" onChange={(e) => setSistemaPlan(e.target.value === 'capital_fijo' ? 'capital_fijo' : 'sin_calendario')}>
+            <div className="flex items-center gap-1.5">
+              <label htmlFor="sistema-amortizacion" className={claseEtiquetaCampo}>Sistema de cuotas</label>
+              <AyudaInfo
+                etiqueta="Información sobre sistema de cuotas"
+                texto="Por defecto se guarda sin calendario (sin inventar cuotas ni fechas). Completa las cuotas solo si conoces el calendario."
+              />
+            </div>
+            <select id="sistema-amortizacion" className={claseCampoTexto} value={sistemaPlan} onChange={(e) => setSistemaPlan(e.target.value === 'capital_fijo' ? 'capital_fijo' : 'sin_calendario')}>
               <option value="sin_calendario">Sin calendario (por defecto · abonos libres)</option>
               <option value="capital_fijo">Capital fijo (cuotas iguales de capital)</option>
             </select>
-            <p id="ayuda-sistema" className={claseAyudaCampo}>Por defecto se guarda <strong>sin calendario</strong> (sin inventar cuotas ni fechas). Completa las cuotas solo si conoces el calendario.</p>
           </div>
           {sistemaPlan === 'capital_fijo' ? (
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 items-end gap-2.5">
               <div className="flex min-w-0 flex-col gap-1.5">
                 <label htmlFor="n-cuotas-inicial" className={claseEtiquetaCampo}>N.º cuotas</label>
                 <input id="n-cuotas-inicial" className={claseCampoTexto} type="number" min={1} max={360} placeholder="Ej. 24" value={nCuotasPlan} onChange={(e) => setNCuotasPlan(e.target.value)} />

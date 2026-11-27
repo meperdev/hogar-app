@@ -53,6 +53,7 @@ import { PantallaBalance } from './balance/PantallaBalance'
 import { PantallaRegistrarIngreso } from './balance/PantallaRegistrarIngreso'
 import { PantallaTransferirFondo } from './balance/PantallaTransferirFondo'
 import { ProveedorMascotas } from './mascotas/ContextoMascotas'
+import { ProveedorNotificaciones } from './Notificaciones'
 import { PantallaMascotas } from './mascotas/PantallaMascotas'
 import { PantallaNuevoInsumo } from './mascotas/PantallaNuevoInsumo'
 import { PantallaRecomprarInsumo } from './mascotas/PantallaRecomprarInsumo'
@@ -838,15 +839,15 @@ export function RutasFundacion({ servicios }: { servicios: Servicios }) {
     )
   }
 
-  if (sesion) {
-    return <HogarConSesion key={sesion.usuarioId} servicios={servicios} sesion={sesion} />
-  }
-
-  return (
+  const contenidoFinal = sesion ? (
+    <HogarConSesion key={sesion.usuarioId} servicios={servicios} sesion={sesion} />
+  ) : (
     <Routes>
       <Route path="/ingresar" element={<Ingreso auth={auth} />} />
       <Route path="/unirme" element={<RedireccionInvitacionSinSesion />} />
       <Route path="*" element={<Navigate to="/ingresar" replace />} />
     </Routes>
   )
+
+  return <ProveedorNotificaciones>{contenidoFinal}</ProveedorNotificaciones>
 }

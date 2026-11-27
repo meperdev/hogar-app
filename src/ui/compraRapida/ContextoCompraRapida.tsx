@@ -12,6 +12,7 @@ import {
   type MedioOpcion,
 } from '../../app/compraRapida'
 import type { Hogar } from '../../app/fundacion'
+import { useNotificacionesOpcional } from '../Notificaciones'
 
 export type ToastGuardado = { loteId: string; resumen: string; conCuotas: boolean }
 export type DatosRecompra = {
@@ -93,6 +94,7 @@ export function ProveedorCompraRapida({
   const [sync, setSync] = useState<EstadoSincronizacion | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendientesPreviosRef = useRef(0)
+  const notificaciones = useNotificacionesOpcional()
 
   const notificarComprasActualizadas = useCallback(() => {
     if (typeof window !== 'undefined') {
@@ -224,6 +226,33 @@ export function ProveedorCompraRapida({
     }))
   }, [])
 
+  const deshacerPorLote = useCallback(
+    async (loteId: string) => {
+      limpiarTimer()
+      notificaciones?.cerrar(`compra-${loteId}`)
+      setToastGuardado((actual) => (actual?.loteId === loteId ? null : actual))
+      try {
+        await controlador.deshacer(loteId)
+        setAvisoEstado('Compra deshecha.')
+        notificaciones?.publicar({
+          mensaje: 'Compra deshecha.',
+          variante: 'info',
+          duracionMs: 3200,
+        })
+        await refrescarSync()
+        notificarComprasActualizadas()
+      } catch (causa) {
+        const msg =
+          causa instanceof Error && causa.message
+            ? causa.message
+            : 'No pudimos deshacer la compra.'
+        setAvisoEstado(msg)
+        notificaciones?.publicar({ mensaje: msg, variante: 'peligro', duracionMs: 4200 })
+      }
+    },
+    [controlador, limpiarTimer, notificarComprasActualizadas, notificaciones, refrescarSync],
+  )
+
   const guardarBorrador = useCallback(
     async (b?: BorradorCompra, opts?: { ignorarDuplicadoInmediato?: boolean }): Promise<ResultadoGuardarUI> => {
       if (!catalogo) return { estado: 'fallo', mensaje: 'Todavía están cargando los datos del hogar.' }
@@ -250,6 +279,22 @@ export function ProveedorCompraRapida({
         limpiarTimer()
         setToastGuardado(toast)
         setAvisoEstado(res.resumen)
+        notificaciones?.publicar({
+          id: `compra-${res.loteId}`,
+          mensaje: res.resumen,
+          variante: 'exito',
+          duracionMs: VENTANA_DESHACER_MS,
+          acciones: [
+            ...(toast.conCuotas
+              ? [{ tipo: 'enlace' as const, etiqueta: 'Ver cuotas', to: '/obligaciones' }]
+              : []),
+            {
+              tipo: 'boton' as const,
+              etiqueta: 'Deshacer',
+              onClick: () => void deshacerPorLote(res.loteId),
+            },
+          ],
+        })
         timerRef.current = setTimeout(() => {
           setToastGuardado(null)
           timerRef.current = null
@@ -265,23 +310,22 @@ export function ProveedorCompraRapida({
         setGuardando(false)
       }
     },
-    [borrador, catalogo, controlador, limpiarTimer, notificarComprasActualizadas, refrescarSync],
+    [
+      borrador,
+      catalogo,
+      controlador,
+      deshacerPorLote,
+      limpiarTimer,
+      notificarComprasActualizadas,
+      notificaciones,
+      refrescarSync,
+    ],
   )
 
   const deshacerUltimoGuardado = useCallback(async () => {
     if (!toastGuardado) return
-    const { loteId } = toastGuardado
-    limpiarTimer()
-    setToastGuardado(null)
-    try {
-      await controlador.deshacer(loteId)
-      setAvisoEstado('Compra deshecha.')
-      await refrescarSync()
-      notificarComprasActualizadas()
-    } catch (causa) {
-      setAvisoEstado(causa instanceof Error && causa.message ? causa.message : 'No pudimos deshacer la compra.')
-    }
-  }, [controlador, limpiarTimer, notificarComprasActualizadas, refrescarSync, toastGuardado])
+    await deshacerPorLote(toastGuardado.loteId)
+  }, [deshacerPorLote, toastGuardado])
 
   return (
     <ContextoCompraRapida.Provider

@@ -3,6 +3,7 @@ import type { EstadoAjustes, ResultadoExportacion } from '../../app/balance'
 import type { ZipExportado } from '../../domain/exportacion'
 import {
   Aviso,
+  AyudaInfo,
   Insignia,
   Tarjeta,
   claseAyudaCampo,
@@ -142,29 +143,30 @@ export function PantallaAjustesExportar({
 
       <Tarjeta acento="primario" className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">
-            Exportación automática semanal
-          </h2>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">
+              Exportación automática semanal
+            </h2>
+            <AyudaInfo
+              etiqueta="Información sobre exportación automática semanal"
+              texto="Cada ciclo genera 1 + N archivos ZIP en Storage (uno del hogar compartido y uno personal por miembro activo, nunca mezclados). Cada miembro descarga exactamente dos ZIP con JSON y CSV de su alcance."
+            />
+          </div>
           <Insignia variante="primario">✓ Activa</Insignia>
         </div>
-        <p className={claseAyudaCampo}>
-          Cada ciclo genera <strong className="text-hogar-tinta">1 + N archivos ZIP en Storage</strong>{' '}
-          (uno del hogar compartido y uno personal por cada miembro activo,{' '}
-          <strong className="text-hogar-tinta">nunca mezclados</strong>). Cada miembro descarga{' '}
-          <strong className="text-hogar-tinta">exactamente dos ZIP</strong> con el JSON y los CSV de
-          su alcance.
-        </p>
 
         <div className="flex flex-col gap-2.5">
           <Tarjeta suave className="flex flex-col gap-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="m-0 text-sm font-extrabold text-hogar-tinta">Hogar (compartido)</h3>
+              <div className="flex min-w-0 items-center gap-1.5">
+                <h3 className="m-0 text-sm font-extrabold text-hogar-tinta">Hogar (compartido)</h3>
+                <AyudaInfo
+                  etiqueta="Información sobre exportación Hogar"
+                  texto="Un archivo ZIP con JSON + CSV de solo los hechos compartidos del hogar (ninguna fila personal)."
+                />
+              </div>
               <Insignia variante="primario">ZIP · Sin personales</Insignia>
             </div>
-            <p className={claseAyudaCampo}>
-              Un archivo ZIP con JSON + CSV de solo los hechos compartidos del hogar (ninguna fila
-              personal).
-            </p>
             <button
               type="button"
               className={`${claseBotonSecundario} w-full`}
@@ -177,13 +179,15 @@ export function PantallaAjustesExportar({
 
           <Tarjeta suave className="flex flex-col gap-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="m-0 text-sm font-extrabold text-hogar-tinta">Mis personales</h3>
+              <div className="flex min-w-0 items-center gap-1.5">
+                <h3 className="m-0 text-sm font-extrabold text-hogar-tinta">Mis personales</h3>
+                <AyudaInfo
+                  etiqueta="Información sobre exportación Mis personales"
+                  texto="Un archivo ZIP con JSON + CSV de solo tus compras, pasivos y costos personales (nunca los de otro miembro)."
+                />
+              </div>
               <Insignia variante="indigo">ZIP · Solo {hogar.miembroActual.nombre}</Insignia>
             </div>
-            <p className={claseAyudaCampo}>
-              Un archivo ZIP con JSON + CSV de solo tus compras, pasivos y costos personales (nunca
-              los de otro miembro).
-            </p>
             <button
               type="button"
               className={`${claseBotonSecundario} w-full`}
@@ -198,9 +202,15 @@ export function PantallaAjustesExportar({
 
       <Tarjeta acento="indigo" className="flex flex-col gap-2.5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">
-            Copia local en este dispositivo
-          </h2>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">
+              Copia local en este dispositivo
+            </h2>
+            <AyudaInfo
+              etiqueta="Información sobre copia local en este dispositivo"
+              texto="Cada sesión conserva en IndexedDB su réplica aislada por actor (hogar y solo tus personales + cambios pendientes)."
+            />
+          </div>
           <Insignia variante="indigo">IndexedDB</Insignia>
         </div>
         <ListaDesglose
@@ -224,10 +234,6 @@ export function PantallaAjustesExportar({
             },
           ]}
         />
-        <p className={claseAyudaCampo}>
-          Cada sesión conserva en IndexedDB su réplica aislada por actor (hogar y solo tus
-          personales + cambios pendientes).
-        </p>
       </Tarjeta>
 
       <Tarjeta className="flex flex-col gap-2.5">

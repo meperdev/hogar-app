@@ -29,11 +29,9 @@ export function PantallaMascotas() {
     vista,
     cargando,
     errorCarga,
-    toast,
     cambiarPeriodo,
     recargar,
     mostrarToast,
-    limpiarToast,
   } = useMascotas()
 
   const [filtroMascota, setFiltroMascota] = useState<'todas' | 'compartido' | string>('todas')
@@ -122,23 +120,6 @@ export function PantallaMascotas() {
         )
       }
     >
-      {toast ? (
-        <div
-          className="hogar-toast flex items-center justify-between gap-2 rounded-2xl bg-hogar-tinta px-3.5 py-2.5 text-sm text-white shadow-[var(--hogar-shadow-elevated)]"
-          role="status"
-          aria-live="polite"
-        >
-          <span className="min-w-0 flex-1 break-words">✓ {toast}</span>
-          <button
-            type="button"
-            className="inline-flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent px-2 font-bold text-[#9be8d0] underline"
-            onClick={limpiarToast}
-          >
-            Cerrar
-          </button>
-        </div>
-      ) : null}
-
       {vista?.sinConexion ? (
         <Aviso variante="ambar" icono="◷" role="status">
           <p>Modo sin conexión: mostrando la última copia guardada en este dispositivo.</p>

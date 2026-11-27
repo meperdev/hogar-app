@@ -35,12 +35,10 @@ export function PantallaBalance() {
     vista,
     cargando,
     errorCarga,
-    toast,
     cambiarPeriodo,
     alternarIncluirPersonales,
     recargar,
     notificar,
-    limpiarToast,
   } = useBalance()
   const [guardandoRecibo, setGuardandoRecibo] = useState(false)
 
@@ -86,23 +84,6 @@ export function PantallaBalance() {
         </Link>
       }
     >
-      {toast ? (
-        <div
-          className="hogar-toast flex items-center justify-between gap-2 rounded-2xl bg-hogar-tinta px-3.5 py-2.5 text-sm text-white shadow-[var(--hogar-shadow-elevated)]"
-          role="status"
-          aria-live="polite"
-        >
-          <span className="min-w-0 flex-1 break-words">✓ {toast}</span>
-          <button
-            type="button"
-            className="inline-flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent px-2 font-bold text-[#9be8d0] underline"
-            onClick={limpiarToast}
-          >
-            Cerrar
-          </button>
-        </div>
-      ) : null}
-
       {errorCarga ? (
         <Aviso variante="peligro" icono="▲" role="alert">
           <p>{errorCarga}</p>
@@ -116,44 +97,55 @@ export function PantallaBalance() {
         </Aviso>
       ) : null}
 
-      <div
-        className="flex items-center justify-between gap-2 rounded-2xl border border-hogar-borde bg-hogar-superficie p-1.5 shadow-[var(--hogar-shadow-card)]"
-        role="group"
-        aria-label="Cambiar mes calendario del balance"
-      >
-        <button
-          type="button"
-          className={claseBotonIcono}
-          aria-label="Mes anterior"
-          onClick={() => cambiarPeriodo(desplazarPeriodo(periodo, -1))}
+      <div className="overflow-hidden rounded-2xl border border-hogar-borde bg-hogar-superficie shadow-[var(--hogar-shadow-card)]">
+        <div
+          className="flex items-center justify-between gap-2 p-1.5"
+          role="group"
+          aria-label="Cambiar mes calendario del balance"
         >
-          ‹
-        </button>
-        <div className="flex min-w-0 flex-wrap items-center justify-center gap-1.5 text-center">
-          <span className="text-[0.9375rem] font-extrabold text-hogar-tinta">
-            {formatearPeriodoEs(periodo)}
-          </span>
-          <Insignia variante="primario">Aporte libre</Insignia>
-          <AyudaInfo
-            etiqueta="Información sobre aporte libre"
-            texto="Cada miembro aporta libremente al hogar. Nunca se calculan saldos ni deudas entre ustedes."
-          />
+          <button
+            type="button"
+            className={claseBotonIcono}
+            aria-label="Mes anterior"
+            onClick={() => cambiarPeriodo(desplazarPeriodo(periodo, -1))}
+          >
+            ‹
+          </button>
+          <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-center">
+            <span className="text-[0.9375rem] font-extrabold leading-tight text-hogar-tinta">
+              {formatearPeriodoEs(periodo)}
+            </span>
+            <span className="inline-flex items-center justify-center gap-1">
+              <Insignia variante="primario">Aporte libre</Insignia>
+              <AyudaInfo
+                etiqueta="Información sobre aporte libre"
+                texto="Cada miembro aporta libremente al hogar. Nunca se calculan saldos ni deudas entre ustedes."
+              />
+            </span>
+          </div>
+          <button
+            type="button"
+            className={claseBotonIcono}
+            aria-label="Mes siguiente"
+            onClick={() => cambiarPeriodo(desplazarPeriodo(periodo, 1))}
+          >
+            ›
+          </button>
         </div>
-        <button
-          type="button"
-          className={claseBotonIcono}
-          aria-label="Mes siguiente"
-          onClick={() => cambiarPeriodo(desplazarPeriodo(periodo, 1))}
-        >
-          ›
-        </button>
-      </div>
 
-      <div className="flex items-center justify-end gap-1.5">
-        <label
-          htmlFor="toggle-personales"
-          className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-full border border-hogar-borde bg-hogar-superficie px-3 py-1 text-xs font-bold text-hogar-tinta-suave shadow-[0_1px_2px_rgba(16,24,20,0.04)]"
-        >
+        <div className="flex items-center justify-between gap-2 border-t border-hogar-borde/80 bg-hogar-fondo/45 px-3 py-2">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <label
+              htmlFor="toggle-personales"
+              className="cursor-pointer text-xs font-bold text-hogar-tinta-suave"
+            >
+              Incluir mis gastos personales
+            </label>
+            <AyudaInfo
+              etiqueta="Información sobre gastos personales en balance"
+              texto="Apagado por defecto. Lo personal se excluye del balance y nunca suma como aporte al hogar."
+            />
+          </div>
           <input
             id="toggle-personales"
             type="checkbox"
@@ -161,15 +153,9 @@ export function PantallaBalance() {
             checked={vista?.incluirPersonales ?? false}
             disabled={cargando}
             onChange={(e) => void alternarIncluirPersonales(e.target.checked)}
-            className="hogar-switch scale-75"
+            className="hogar-switch hogar-switch--sm"
           />
-          <span>Mis personales</span>
-        </label>
-        <AyudaInfo
-          alinear="derecha"
-          etiqueta="Información sobre gastos personales en balance"
-          texto="Apagado por defecto. Lo personal se excluye del balance y nunca suma como aporte al hogar."
-        />
+        </div>
       </div>
 
       {vista?.incluirPersonales ? (

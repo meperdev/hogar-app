@@ -29,8 +29,8 @@ const claveItem = (item: ItemAgenda) => (item.tipo === 'cuota' ? `c-${item.cuota
 
 export function PantallaObligaciones() {
   const {
-    periodo, agenda, incluirPersonales, cargando, errorCarga, toast,
-    cambiarPeriodo, alternarIncluirPersonales, recargar, limpiarToast,
+    periodo, agenda, incluirPersonales, cargando, errorCarga,
+    cambiarPeriodo, alternarIncluirPersonales, recargar,
   } = useObligaciones()
 
   const hoy = hoyCivil(new Date())
@@ -78,13 +78,6 @@ export function PantallaObligaciones() {
         )
       }
     >
-      {toast ? (
-        <div className="hogar-toast flex items-center justify-between gap-2 rounded-2xl bg-hogar-tinta px-3.5 py-2.5 text-sm text-white shadow-[var(--hogar-shadow-elevated)]" role="status" aria-live="polite">
-          <span className="min-w-0 flex-1 break-words">✓ {toast}</span>
-          <button type="button" className="inline-flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent px-2 font-bold text-[#9be8d0] underline" onClick={limpiarToast}>Cerrar</button>
-        </div>
-      ) : null}
-
       {errorCarga ? (
         <Aviso variante="peligro" icono="▲" role="alert">
           <p>{errorCarga}</p>

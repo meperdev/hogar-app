@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import type { ControladorBalance, VistaBalanceMes } from '../../app/balance'
 import type { Hogar } from '../../app/fundacion'
 import { hoyCivil } from '../../domain/fechas'
+import { useNotificacionesOpcional } from '../Notificaciones'
 
 type ValorContextoBalance = {
   hogar: Hogar
@@ -39,8 +40,16 @@ export function ProveedorBalance({
   const [errorCarga, setErrorCarga] = useState('')
   const [toast, setToast] = useState('')
   const [revision, setRevision] = useState(0)
+  const notificaciones = useNotificacionesOpcional()
 
   const recargar = useCallback(() => setRevision((r) => r + 1), [])
+  const notificar = useCallback(
+    (mensaje: string) => {
+      setToast(mensaje)
+      notificaciones?.publicar({ mensaje, variante: 'exito' })
+    },
+    [notificaciones],
+  )
 
   useEffect(() => {
     let vigente = true
@@ -104,7 +113,7 @@ export function ProveedorBalance({
         alternarMostrarPctIngreso,
         alternarIncluirPersonales,
         recargar,
-        notificar: setToast,
+        notificar,
         limpiarToast: () => setToast(''),
       }}
     >

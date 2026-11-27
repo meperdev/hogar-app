@@ -10,6 +10,7 @@ import {
 } from 'react'
 import type { AlcanceCompra } from '../../app/compraRapida'
 import type { Hogar } from '../../app/fundacion'
+import { useNotificacionesOpcional } from '../Notificaciones'
 import type { ControladorGastos, FiltroAmbitoGastos, VistaGastosMes } from '../../app/gastos'
 import { hoyCivil } from '../../domain/fechas'
 
@@ -61,6 +62,7 @@ export function ProveedorGastos({
   const [revision, setRevision] = useState(0)
   const vistaRef = useRef<VistaGastosMes | null>(null)
   vistaRef.current = vista
+  const notificaciones = useNotificacionesOpcional()
 
   useEffect(() => {
     let vigente = true
@@ -104,12 +106,16 @@ export function ProveedorGastos({
     setToast('')
   }, [])
 
-  const mostrarToast = useCallback((mensaje: string) => {
-    setToast(mensaje)
-    setTimeout(() => {
-      setToast((actual) => (actual === mensaje ? '' : actual))
-    }, 3500)
-  }, [])
+  const mostrarToast = useCallback(
+    (mensaje: string) => {
+      setToast(mensaje)
+      notificaciones?.publicar({ mensaje, variante: 'exito' })
+      setTimeout(() => {
+        setToast((actual) => (actual === mensaje ? '' : actual))
+      }, 3500)
+    },
+    [notificaciones],
+  )
 
   const editarCompra: ControladorGastos['editarCompra'] = useCallback(
     async (entrada) => {

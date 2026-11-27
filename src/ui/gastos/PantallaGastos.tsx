@@ -12,6 +12,7 @@ import {
   claseBotonPequenoSecundario,
   claseCampoTexto,
 } from '../ComponentesBase'
+import { useNotificacionesOpcional } from '../Notificaciones'
 import { ShellApp } from '../ShellApp'
 import {
   desplazarPeriodo,
@@ -49,6 +50,7 @@ export function PantallaGastos() {
   const [movSeleccionadoId, setMovSeleccionadoId] = useState<string | null>(null)
   const primeraCargaRef = useRef(true)
   const yaCargadoRef = useRef(vista !== null)
+  const notificaciones = useNotificacionesOpcional()
 
   useEffect(() => {
     if (yaCargadoRef.current) {
@@ -111,17 +113,17 @@ export function PantallaGastos() {
       }
       mostrarNavegacion
     >
-      {toast ? (
+      {toast && !notificaciones ? (
         <div
-          className="hogar-toast flex items-center justify-between gap-2 rounded-2xl bg-hogar-tinta px-3.5 py-2.5 text-sm text-white shadow-[var(--hogar-shadow-elevated)]"
+          className="hogar-pill-toast fixed top-3 left-1/2 z-[60] flex min-h-11 w-[min(calc(100vw-24px),366px)] -translate-x-1/2 items-center justify-between gap-2 rounded-full bg-[#141e1b]/94 px-3.5 py-2 text-[0.8125rem] font-semibold text-white shadow-[var(--hogar-shadow-elevated)]"
           role="status"
           aria-live="polite"
         >
-          <span>{toast}</span>
+          <span className="min-w-0 flex-1 break-words">{toast}</span>
           <button
             type="button"
             onClick={limpiarToast}
-            className="cursor-pointer rounded-lg border-0 bg-white/15 px-2 py-0.5 text-xs font-bold text-white hover:bg-white/25"
+            className="cursor-pointer rounded-full border-0 bg-white/15 px-2 py-0.5 text-xs font-bold text-white hover:bg-white/25"
             aria-label="Cerrar aviso"
           >
             ✕

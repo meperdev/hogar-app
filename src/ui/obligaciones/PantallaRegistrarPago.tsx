@@ -4,7 +4,7 @@ import type { BorradorPago, EvaluacionPago } from '../../app/obligaciones'
 import { hoyCivil } from '../../domain/fechas'
 import { formatearPesos } from '../../domain/pesos'
 import {
-  Aviso, Insignia, Tarjeta, claseAyudaCampo, claseBotonPequenoSecundario,
+  Aviso, AyudaInfo, Insignia, Tarjeta, claseAyudaCampo, claseBotonPequenoSecundario,
   claseBotonPrimario, claseBotonSecundario, claseCampoTexto, claseEtiquetaCampo,
 } from '../ComponentesBase'
 import { ShellApp } from '../ShellApp'
@@ -161,11 +161,16 @@ function PagoCuota({ cuotaId }: { cuotaId: string }) {
         <>
           {item ? (
             <Tarjeta acento="indigo">
-              <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-                <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">{item.pasivoNombre} · Vence {formatearFechaCortaEs(item.fechaVencimiento)}</h2>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">{item.pasivoNombre} · Vence {formatearFechaCortaEs(item.fechaVencimiento)}</h2>
+                  <AyudaInfo
+                    etiqueta="Información sobre el pago de cuotas"
+                    texto="El pago reduce el saldo del pasivo sin volver a sumar al consumo del mes. El interés entra al balde aparte de Costo financiero."
+                  />
+                </div>
                 <Insignia variante={item.ambito === 'hogar' ? 'primario' : 'neutral'}>{etiquetaAmbitoTitular(item.ambito, item.titular)}</Insignia>
               </div>
-              <p className={claseAyudaCampo}>El pago reduce el saldo del pasivo sin volver a sumar al consumo del mes. El interés entra al balde aparte de Costo financiero.</p>
             </Tarjeta>
           ) : null}
 
@@ -249,17 +254,27 @@ function PagoCuota({ cuotaId }: { cuotaId: string }) {
 
             <div className="grid grid-cols-2 items-end gap-2.5">
               <div className="flex min-w-0 flex-col gap-1.5">
-                <label htmlFor="cuenta-origen" className={claseEtiquetaCampo}>Medio de origen</label>
-                <select id="cuenta-origen" className={claseCampoTexto} value={borrador.medioId ?? ''} aria-describedby="ayuda-origen-pago" onChange={(e) => setBorrador((p) => (p ? { ...p, medioId: e.target.value || null } : p))}>
+                <div className="flex items-center gap-1.5">
+                  <label htmlFor="cuenta-origen" className={claseEtiquetaCampo}>Medio de origen</label>
+                  <AyudaInfo
+                    etiqueta="Información sobre medio de origen"
+                    texto="Cuenta personal aporta al dueño del medio; Cuenta común no genera aporte individual."
+                  />
+                </div>
+                <select id="cuenta-origen" className={claseCampoTexto} value={borrador.medioId ?? ''} onChange={(e) => setBorrador((p) => (p ? { ...p, medioId: e.target.value || null } : p))}>
                   {medios.length === 0 ? <option value="">Sin medios disponibles</option> : null}
                   {medios.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
                 </select>
-                <p id="ayuda-origen-pago" className={claseAyudaCampo}>Cuenta personal aporta al dueño del medio; Cuenta común no genera aporte individual.</p>
               </div>
               <div className="flex min-w-0 flex-col gap-1.5">
-                <label htmlFor="fecha-pago" className={claseEtiquetaCampo}>Fecha de pago</label>
-                <input id="fecha-pago" className={claseCampoTexto} type="date" value={borrador.fecha} aria-describedby="ayuda-fecha-pago" onChange={(e) => setBorrador((p) => (p ? { ...p, fecha: e.target.value } : p))} />
-                <p id="ayuda-fecha-pago" className={claseAyudaCampo}>Define el saldo causado a esa fecha.</p>
+                <div className="flex items-center gap-1.5">
+                  <label htmlFor="fecha-pago" className={claseEtiquetaCampo}>Fecha de pago</label>
+                  <AyudaInfo
+                    etiqueta="Información sobre fecha de pago"
+                    texto="Define el saldo causado a esa fecha."
+                  />
+                </div>
+                <input id="fecha-pago" className={claseCampoTexto} type="date" value={borrador.fecha} onChange={(e) => setBorrador((p) => (p ? { ...p, fecha: e.target.value } : p))} />
               </div>
             </div>
 
