@@ -5,7 +5,7 @@ export function PantallaConfigurarSupabase() {
   return (
     <ShellApp
       titulo="Configura Supabase"
-      subtitulo="hogar-app · Entorno local"
+      subtitulo="MeperHome · Entorno local"
       marcaInicio
       accionDerecha={<Insignia variante="primario">Fundación</Insignia>}
       pie="Montos enteros en COP · Offline-first"

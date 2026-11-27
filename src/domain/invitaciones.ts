@@ -45,7 +45,7 @@ export function construirMensajeInvitacion({
 }): string {
   const destino = nota?.trim() ? ` (${nota.trim()})` : ''
   return (
-    `¡Hola! Estoy usando hogar-app para organizar los gastos de ${hogarNombre} `
+    `¡Hola! Estoy usando MeperHome para organizar los gastos de ${hogarNombre} `
     + `de forma clara y tranquila.${destino ? ` Esta invitación es${destino}.` : ''} `
     + `Si te gustaría sumarte y llevar el hogar juntos, entra con este enlace `
     + `(válido por 7 días): ${enlace}`

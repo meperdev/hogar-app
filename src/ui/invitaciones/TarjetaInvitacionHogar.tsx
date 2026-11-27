@@ -171,7 +171,7 @@ export function TarjetaInvitacionHogar({
             className="m-0 text-base font-extrabold tracking-[-0.02em] text-hogar-primario-fuerte"
           >
             {esPrimerMiembro
-              ? '¿Te está gustando usar hogar-app?'
+              ? '¿Te está gustando usar MeperHome?'
               : `¿Quieres invitar a alguien más a ${hogar.nombre}?`}
           </h2>
           <p className="m-0 text-sm leading-relaxed text-hogar-tinta">

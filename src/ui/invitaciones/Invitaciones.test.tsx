@@ -107,7 +107,7 @@ describe('UI Invitación de miembros', () => {
     })
     await esperar()
 
-    expect(contenedor.textContent).toContain('¿Te está gustando usar hogar-app?')
+    expect(contenedor.textContent).toContain('¿Te está gustando usar MeperHome?')
     expect(contenedor.textContent).not.toMatch(/urgente|obligatorio/i)
 
     const btnAbrir = Array.from(contenedor.querySelectorAll('button')).find((b) =>
@@ -166,7 +166,7 @@ describe('UI Invitación de miembros', () => {
     })
     await esperar()
 
-    expect(contenedor.textContent).not.toContain('¿Te está gustando usar hogar-app?')
+    expect(contenedor.textContent).not.toContain('¿Te está gustando usar MeperHome?')
   })
 
   it('conserva token en /unirme durante OTP y canjea para entrar al hogar', async () => {

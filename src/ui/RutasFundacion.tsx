@@ -116,7 +116,7 @@ function Ingreso({ auth }: { auth: AuthPort }) {
 
   return (
     <ShellApp
-      titulo="Ingresa a hogar-app"
+      titulo="Ingresa a MeperHome"
       subtitulo="Sin contraseña · Código por correo"
       marcaInicio
       accionDerecha={<Insignia variante="primario">Fundación</Insignia>}
@@ -825,7 +825,7 @@ export function RutasFundacion({ servicios }: { servicios: Servicios }) {
   if (sesion === undefined) {
     return (
       <ShellApp
-        titulo="hogar-app"
+        titulo="MeperHome"
         subtitulo="Verificando tu sesión"
         marcaInicio
         accionDerecha={<Insignia variante="primario">Fundación</Insignia>}

@@ -115,12 +115,12 @@ export function ShellApp({
               ←
             </Link>
           ) : marcaInicio ? (
-            <span
-              className="grid size-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-b from-[#136e56] to-[#0c4e3d] text-white shadow-[0_4px_10px_-3px_rgba(15,92,72,0.4)]"
+            <img
+              src="/icons/icon-192.png"
+              alt=""
               aria-hidden="true"
-            >
-              <IconoHogar className="size-5" />
-            </span>
+              className="size-10 shrink-0 rounded-2xl object-cover shadow-[0_4px_10px_-3px_rgba(16,24,20,0.22)]"
+            />
           ) : mostrarAccesoPerfil ? (
             <Link
               to="/hogar"
