@@ -2,12 +2,14 @@ import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { crearControladorBalance } from '../app/controladorBalance'
 import { crearControladorCompraRapida } from '../app/controladorCompraRapida'
+import { crearControladorGastos } from '../app/controladorGastos'
 import { crearControladorMascotas } from '../app/controladorMascotas'
 import { crearControladorObligaciones } from '../app/controladorObligaciones'
 import { ErrorFundacion, type Servicios } from '../app/fundacion'
 import { crearPuertoBalance, crearRemotoBalance } from './balance'
 import { crearPuertoCompraRapida, crearRemotoSupabase } from './compraRapida'
 import { AdministradorBaseActor } from './db'
+import { crearPuertoGastos, crearRemotoGastos } from './gastos'
 import { crearPuertoInvitaciones } from './invitaciones'
 import { crearPuertoMascotas, crearRemotoMascotas } from './mascotas'
 import { crearMediosDePagoSupabase } from './mediosDePago'
@@ -151,6 +153,15 @@ export function conectarSupabase(url: unknown, clavePublica: unknown): Servicios
         alcance,
         ahora: () => new Date(),
         nuevoId: () => uuidV7(),
+      }),
+    gastos: (alcance) =>
+      crearControladorGastos({
+        port: crearPuertoGastos({
+          base: () => bases.abrir(alcance),
+          remoto: crearRemotoGastos(cliente),
+          alcance,
+        }),
+        alcance,
       }),
   }
 }

@@ -73,6 +73,34 @@ export function PantallaCompraVacia({ hogar }: { hogar: Hogar }) {
   )
 }
 
+export function PantallaGastosVacia({ hogar }: { hogar: Hogar }) {
+  return (
+    <ShellApp
+      titulo="Gastos generales"
+      subtitulo={`${hogar.nombre} · $0 este mes`}
+      accionDerecha={
+        <Link to="/compra" className={`${claseBotonPequenoSecundario} no-underline`}>
+          + Compra
+        </Link>
+      }
+      mostrarNavegacion
+    >
+      <Tarjeta acento="primario">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">
+            Resumen por categoría
+          </h2>
+          <span className="hogar-cop font-extrabold text-hogar-tinta">$0</span>
+        </div>
+        <p className="m-0 text-sm text-hogar-tinta-suave">
+          Aquí verás cuánto gastan al mes en Mercado, Transporte, Hogar y cada categoría, sin
+          contar dos veces las compras a cuotas.
+        </p>
+      </Tarjeta>
+    </ShellApp>
+  )
+}
+
 export function PantallaObligacionesVacia({ hogar }: { hogar: Hogar }) {
   return (
     <ShellApp

@@ -59,4 +59,10 @@ describe('conectarSupabase', () => {
 
     expect(servicios?.mediosDePago).toBeDefined()
   })
+
+  it('conecta el controlador de gastos generales por actor', () => {
+    const servicios = conectarSupabase('http://127.0.0.1:54321', CLAVE_PUBLICA)
+
+    expect(typeof servicios?.gastos).toBe('function')
+  })
 })

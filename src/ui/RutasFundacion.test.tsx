@@ -279,6 +279,7 @@ describe('Shell autenticado, navegación e invitaciones', () => {
 
     const casos: Array<[string, string]> = [
       ['Compra', 'Compra rápida'],
+      ['Gastos', 'Gastos generales'],
       ['Obligaciones', 'Obligaciones del mes'],
       ['Balance', 'Balance de pareja'],
       ['Mascotas', 'Despensa de mascotas'],
