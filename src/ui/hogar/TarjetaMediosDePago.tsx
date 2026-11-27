@@ -26,6 +26,12 @@ import {
   claseEtiquetaCampo,
 } from '../ComponentesBase'
 import { ATAJOS_MEDIOS_SUGERIDOS, identidadMedio } from '../marcas'
+import {
+  calcularDesplazamientoHermano,
+  calcularIndiceDestino,
+  limitarNumero,
+  moverElemento,
+} from './reordenarLista'
 
 export function TarjetaMediosDePago({
   hogar,
@@ -45,7 +51,13 @@ export function TarjetaMediosDePago({
   const [guardando, setGuardando] = useState(false)
   const [cambiandoId, setCambiandoId] = useState<string | null>(null)
   const [reordenando, setReordenando] = useState(false)
-  const [arrastre, setArrastre] = useState<{ id: string; offsetY: number } | null>(null)
+  const [arrastre, setArrastre] = useState<{
+    id: string
+    offsetY: number
+    indiceOrigen: number
+    indiceDestino: number
+    pasoPx: number
+  } | null>(null)
   const [error, setError] = useState('')
   const [exito, setExito] = useState('')
   const listaActivosRef = useRef<HTMLUListElement>(null)
@@ -53,9 +65,13 @@ export function TarjetaMediosDePago({
   const arrastreRef = useRef<{
     id: string
     pointerId: number
-    baseY: number
-    ordenInicial: string[]
-    snapshotMedios: MedioDePagoItem[]
+    inicioY: number
+    indiceOrigen: number
+    indiceDestino: number
+    centrosSlots: number[]
+    pasoPx: number
+    minOffset: number
+    maxOffset: number
   } | null>(null)
   mediosRef.current = medios
 
@@ -189,54 +205,67 @@ export function TarjetaMediosDePago({
   function iniciarArrastre(e: PointerEvent<HTMLButtonElement>, medioId: string) {
     if (reordenando || activos.length < 2) return
     if (e.pointerType === 'mouse' && e.button !== 0) return
-    e.currentTarget.setPointerCapture?.(e.pointerId)
+    const ul = listaActivosRef.current
+    if (!ul) return
+    const nodos = [...ul.querySelectorAll<HTMLLIElement>('li[data-medio-id]')]
+    const rects = nodos.map((n) => n.getBoundingClientRect())
+    const indiceOrigen = activos.findIndex((m) => m.id === medioId)
+    if (indiceOrigen === -1 || rects.length !== activos.length) return
+
+    e.preventDefault()
+    try {
+      e.currentTarget.setPointerCapture?.(e.pointerId)
+    } catch {
+      // Algunos navegadores ignoran captura sintética en tests.
+    }
+
+    const centrosSlots = rects.map((r) => r.top + r.height / 2)
+    const pasoPx =
+      rects.length > 1
+        ? (rects[rects.length - 1]!.top - rects[0]!.top) / (rects.length - 1)
+        : (rects[0]?.height ?? 64) + 8
+    const minOffset = (centrosSlots[0] ?? 0) - (centrosSlots[indiceOrigen] ?? 0)
+    const maxOffset =
+      (centrosSlots[centrosSlots.length - 1] ?? 0) - (centrosSlots[indiceOrigen] ?? 0)
+
     arrastreRef.current = {
       id: medioId,
       pointerId: e.pointerId,
-      baseY: e.clientY,
-      ordenInicial: activos.map((m) => m.id),
-      snapshotMedios: medios,
+      inicioY: e.clientY,
+      indiceOrigen,
+      indiceDestino: indiceOrigen,
+      centrosSlots,
+      pasoPx,
+      minOffset,
+      maxOffset,
     }
-    setArrastre({ id: medioId, offsetY: 0 })
+    setArrastre({
+      id: medioId,
+      offsetY: 0,
+      indiceOrigen,
+      indiceDestino: indiceOrigen,
+      pasoPx,
+    })
   }
 
   function moverArrastre(e: PointerEvent<HTMLButtonElement>) {
     const estado = arrastreRef.current
     if (!estado || estado.pointerId !== e.pointerId) return
-    const ul = listaActivosRef.current
-    if (ul) {
-      const nodos = [...ul.querySelectorAll<HTMLLIElement>('li[data-medio-id]')]
-      const actuales = mediosRef.current.filter((m) => m.activo)
-      const idx = actuales.findIndex((m) => m.id === estado.id)
-      const rectActual = idx !== -1 ? nodos[idx]?.getBoundingClientRect() : undefined
-      if (rectActual && rectActual.height > 0) {
-        if (idx < actuales.length - 1) {
-          const rectSig = nodos[idx + 1]?.getBoundingClientRect()
-          if (rectSig && rectActual.top + rectActual.height / 2 > rectSig.top + rectSig.height / 2) {
-            const paso = rectSig.top - rectActual.top
-            const siguientes = actuales.map((m) => m.id)
-            ;[siguientes[idx], siguientes[idx + 1]] = [siguientes[idx + 1]!, siguientes[idx]!]
-            setMedios((prev) => aplicarNuevoOrdenActivos(prev, siguientes))
-            estado.baseY += paso
-            setArrastre({ id: estado.id, offsetY: e.clientY - estado.baseY })
-            return
-          }
-        }
-        if (idx > 0) {
-          const rectPrev = nodos[idx - 1]?.getBoundingClientRect()
-          if (rectPrev && rectActual.top + rectActual.height / 2 < rectPrev.top + rectPrev.height / 2) {
-            const paso = rectActual.top - rectPrev.top
-            const siguientes = actuales.map((m) => m.id)
-            ;[siguientes[idx - 1], siguientes[idx]] = [siguientes[idx]!, siguientes[idx - 1]!]
-            setMedios((prev) => aplicarNuevoOrdenActivos(prev, siguientes))
-            estado.baseY -= paso
-            setArrastre({ id: estado.id, offsetY: e.clientY - estado.baseY })
-            return
-          }
-        }
-      }
-    }
-    setArrastre({ id: estado.id, offsetY: e.clientY - estado.baseY })
+    const offsetY = limitarNumero(e.clientY - estado.inicioY, estado.minOffset, estado.maxOffset)
+    const centroArrastrado = (estado.centrosSlots[estado.indiceOrigen] ?? 0) + offsetY
+    const indiceDestino = calcularIndiceDestino(
+      estado.indiceOrigen,
+      centroArrastrado,
+      estado.centrosSlots,
+    )
+    estado.indiceDestino = indiceDestino
+    setArrastre({
+      id: estado.id,
+      offsetY,
+      indiceOrigen: estado.indiceOrigen,
+      indiceDestino,
+      pasoPx: estado.pasoPx,
+    })
   }
 
   function finalizarArrastre(e: PointerEvent<HTMLButtonElement>) {
@@ -244,10 +273,13 @@ export function TarjetaMediosDePago({
     if (!estado || estado.pointerId !== e.pointerId) return
     arrastreRef.current = null
     setArrastre(null)
-    const ordenFinal = mediosRef.current.filter((m) => m.activo).map((m) => m.id)
-    if (ordenFinal.some((id, i) => id !== estado.ordenInicial[i])) {
-      void guardarOrden(ordenFinal, estado.snapshotMedios)
-    }
+    if (estado.indiceDestino === estado.indiceOrigen) return
+    const actual = mediosRef.current
+    const activosActuales = actual.filter((m) => m.activo)
+    const reordenados = moverElemento(activosActuales, estado.indiceOrigen, estado.indiceDestino)
+    const nuevosIds = reordenados.map((m) => m.id)
+    setMedios(aplicarNuevoOrdenActivos(actual, nuevosIds))
+    void guardarOrden(nuevosIds, actual)
   }
 
   function manejarTeclaOrden(e: KeyboardEvent<HTMLButtonElement>, idx: number) {
@@ -401,15 +433,27 @@ export function TarjetaMediosDePago({
               const idVisual = identidadMedio(medio.nombre, medio.tipo)
               const { Logo } = idVisual
               const siendoArrastrado = arrastre?.id === medio.id
+              const desplazamientoHermano =
+                arrastre && !siendoArrastrado
+                  ? calcularDesplazamientoHermano(
+                      indice,
+                      arrastre.indiceOrigen,
+                      arrastre.indiceDestino,
+                      arrastre.pasoPx,
+                    )
+                  : 0
               return (
                 <li
                   key={medio.id}
                   data-medio-id={medio.id}
-                  className={siendoArrastrado ? 'relative z-10' : undefined}
+                  className={siendoArrastrado ? 'relative z-20' : undefined}
                   style={
                     siendoArrastrado
-                      ? { transform: `translateY(${arrastre.offsetY}px) scale(1.015)` }
-                      : undefined
+                      ? { transform: `translateY(${arrastre.offsetY}px) scale(1.02)` }
+                      : {
+                          transform: `translateY(${desplazamientoHermano}px)`,
+                          transition: arrastre ? 'transform 160ms ease' : undefined,
+                        }
                   }
                 >
                   <Tarjeta
@@ -428,37 +472,46 @@ export function TarjetaMediosDePago({
                           onPointerMove={moverArrastre}
                           onPointerUp={finalizarArrastre}
                           onPointerCancel={finalizarArrastre}
+                          onLostPointerCapture={finalizarArrastre}
                           onKeyDown={(e) => manejarTeclaOrden(e, indice)}
                           className="inline-flex min-h-11 min-w-8 shrink-0 touch-none cursor-grab select-none items-center justify-center rounded-xl border-0 bg-transparent px-1 text-base font-extrabold tracking-[-0.15em] text-hogar-tinta-suave hover:bg-hogar-superficie-suave active:cursor-grabbing disabled:opacity-50"
                         >
                           <span aria-hidden="true">⋮⋮</span>
                         </button>
                       ) : null}
-                      <span
-                        className="grid size-10 shrink-0 place-items-center rounded-2xl shadow-[0_3px_8px_-2px_rgba(16,24,20,0.24)]"
-                        style={{ background: idVisual.gradiente, color: idVisual.texto }}
-                        aria-hidden="true"
+                      <div
+                        className={`flex min-w-0 flex-1 items-center gap-2 ${
+                          arrastre ? 'pointer-events-none select-none' : ''
+                        }`.trim()}
                       >
-                        <Logo className="size-5" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="m-0 text-sm font-extrabold text-hogar-tinta break-words">
-                          {medio.nombre}
-                        </p>
-                        <div className="mt-1 flex flex-wrap gap-1.5">
-                          <Insignia variante={medio.ownerTipo === 'hogar' ? 'primario' : 'indigo'}>
-                            {etiquetaDueno(medio)}
-                          </Insignia>
-                          <Insignia variante="neutral">
-                            {medio.tipo === 'efectivo' ? 'Efectivo' : 'Cuenta'}
-                          </Insignia>
+                        <span
+                          className="grid size-10 shrink-0 place-items-center rounded-2xl shadow-[0_3px_8px_-2px_rgba(16,24,20,0.24)]"
+                          style={{ background: idVisual.gradiente, color: idVisual.texto }}
+                          aria-hidden="true"
+                        >
+                          <Logo className="size-5" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="m-0 text-sm font-extrabold text-hogar-tinta break-words">
+                            {medio.nombre}
+                          </p>
+                          <div className="mt-1 flex flex-wrap gap-1.5">
+                            <Insignia variante={medio.ownerTipo === 'hogar' ? 'primario' : 'indigo'}>
+                              {etiquetaDueno(medio)}
+                            </Insignia>
+                            <Insignia variante="neutral">
+                              {medio.tipo === 'efectivo' ? 'Efectivo' : 'Cuenta'}
+                            </Insignia>
+                          </div>
                         </div>
                       </div>
                     </div>
                     {puedeModificar(medio) ? (
                       <button
                         type="button"
-                        className={claseBotonPequenoSecundario}
+                        className={`${claseBotonPequenoSecundario} ${
+                          arrastre ? 'pointer-events-none' : ''
+                        }`.trim()}
                         disabled={cambiandoId === medio.id || reordenando}
                         onClick={() => void alternarActivo(medio)}
                       >

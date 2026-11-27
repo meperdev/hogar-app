@@ -38,6 +38,48 @@ export const ATAJOS_MEDIOS_SUGERIDOS: readonly AtajoMedioSugerido[] = [
   { nombre: 'Efectivo', tipo: 'efectivo' },
 ]
 
+export const ATAJOS_ENTIDADES_FINANCIERAS: readonly string[] = [
+  'Bancolombia',
+  'Davivienda',
+  'Banco de Bogotá',
+  'BBVA',
+  'Nu',
+  'Scotiabank Colpatria',
+  'Banco de Occidente',
+  'AV Villas',
+  'Banco Caja Social',
+  'Falabella',
+  'Itaú',
+  'Lulo Bank',
+  'RappiPay',
+  'Nequi',
+]
+
+export type IdentidadComercio = {
+  fondo: string
+  texto: string
+  acento: string
+  sombra: string
+  Logo: (props: { className?: string }) => ReactNode
+}
+
+export const ATAJOS_COMERCIOS_SUGERIDOS: readonly {
+  nombre: string
+  categoriaSugerida: string
+}[] = [
+  { nombre: 'D1', categoriaSugerida: 'mercado' },
+  { nombre: 'Éxito', categoriaSugerida: 'mercado' },
+  { nombre: 'Ara', categoriaSugerida: 'mercado' },
+  { nombre: 'Carulla', categoriaSugerida: 'mercado' },
+  { nombre: 'Jumbo', categoriaSugerida: 'mercado' },
+  { nombre: 'Dollarcity', categoriaSugerida: 'hogar' },
+  { nombre: 'Rappi', categoriaSugerida: 'mercado' },
+  { nombre: 'Uber', categoriaSugerida: 'transporte' },
+  { nombre: 'Farmatodo', categoriaSugerida: 'salud' },
+  { nombre: 'Laika', categoriaSugerida: 'mascotas' },
+  { nombre: 'Juan Valdez', categoriaSugerida: 'entretenimiento' },
+]
+
 function normalizar(texto: string): string {
   return texto
     .toLowerCase()
@@ -319,6 +361,90 @@ export function identidadMedio(nombre: string, tipo: TipoMedioVisual): Identidad
       Logo: LogoBogota,
     }
   }
+  if (n.includes('colpatria') || n.includes('scotiabank')) {
+    return {
+      fondo: '#EC111A',
+      gradiente: 'linear-gradient(135deg, #F02830 0%, #9E0910 100%)',
+      texto: '#FFFFFF',
+      bordeActivo: '#FECACA',
+      acento: '#FECACA',
+      brillo: 'rgba(236, 17, 26, 0.30)',
+      sombra: '0 10px 22px -6px rgba(236, 17, 26, 0.45), 0 0 0 2px #FECACA',
+      Logo: LogoCuentaGenerica,
+    }
+  }
+  if (n.includes('occidente')) {
+    return {
+      fondo: '#004A98',
+      gradiente: 'linear-gradient(135deg, #0A61BD 0%, #002E61 100%)',
+      texto: '#FFFFFF',
+      bordeActivo: '#7DD3FC',
+      acento: '#7DD3FC',
+      brillo: 'rgba(125, 211, 252, 0.28)',
+      sombra: '0 10px 22px -6px rgba(0, 74, 152, 0.45), 0 0 0 2px #7DD3FC',
+      Logo: LogoCuentaGenerica,
+    }
+  }
+  if (n.includes('av villas') || n.includes('avvillas')) {
+    return {
+      fondo: '#003B73',
+      gradiente: 'linear-gradient(135deg, #00519E 0%, #002247 100%)',
+      texto: '#FFFFFF',
+      bordeActivo: '#FCA5A5',
+      acento: '#FCA5A5',
+      brillo: 'rgba(252, 165, 165, 0.26)',
+      sombra: '0 10px 22px -6px rgba(0, 59, 115, 0.45), 0 0 0 2px #FCA5A5',
+      Logo: LogoCuentaGenerica,
+    }
+  }
+  if (n.includes('caja social')) {
+    return {
+      fondo: '#0062B8',
+      gradiente: 'linear-gradient(135deg, #0C79D9 0%, #00417D 100%)',
+      texto: '#FFFFFF',
+      bordeActivo: '#BAE6FD',
+      acento: '#BAE6FD',
+      brillo: 'rgba(186, 230, 253, 0.26)',
+      sombra: '0 10px 22px -6px rgba(0, 98, 184, 0.45), 0 0 0 2px #BAE6FD',
+      Logo: LogoCuentaGenerica,
+    }
+  }
+  if (n.includes('falabella')) {
+    return {
+      fondo: '#2F7D18',
+      gradiente: 'linear-gradient(135deg, #3D9C21 0%, #1F570E 100%)',
+      texto: '#FFFFFF',
+      bordeActivo: '#BEF264',
+      acento: '#BEF264',
+      brillo: 'rgba(190, 242, 100, 0.28)',
+      sombra: '0 10px 22px -6px rgba(47, 125, 24, 0.45), 0 0 0 2px #BEF264',
+      Logo: LogoCuentaGenerica,
+    }
+  }
+  if (n.includes('itau')) {
+    return {
+      fondo: '#EC7000',
+      gradiente: 'linear-gradient(135deg, #FF8314 0%, #B85200 100%)',
+      texto: '#FFFFFF',
+      bordeActivo: '#FEF08A',
+      acento: '#FEF08A',
+      brillo: 'rgba(254, 240, 138, 0.30)',
+      sombra: '0 10px 22px -6px rgba(236, 112, 0, 0.46), 0 0 0 2px #FEF08A',
+      Logo: LogoCuentaGenerica,
+    }
+  }
+  if (n.includes('lulo')) {
+    return {
+      fondo: '#0F172A',
+      gradiente: 'linear-gradient(135deg, #1E293B 0%, #090D16 100%)',
+      texto: '#D9F99D',
+      bordeActivo: '#A3E635',
+      acento: '#A3E635',
+      brillo: 'rgba(163, 230, 53, 0.28)',
+      sombra: '0 10px 22px -6px rgba(15, 23, 42, 0.48), 0 0 0 2px #A3E635',
+      Logo: LogoCuentaGenerica,
+    }
+  }
   if (n.includes('visa')) {
     return {
       fondo: '#1A1F71',
@@ -467,6 +593,23 @@ function LogoTaza({ className = 'size-4' }: { className?: string }) {
   )
 }
 
+function LogoBolsaComercio({ className = 'size-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      <path d="M6 8h12l1 12H5L6 8z" />
+      <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+    </svg>
+  )
+}
+
+const PALETA_COMERCIO_CUSTOM = [
+  { fondo: '#0F5C48', texto: '#FFFFFF', acento: '#9BE8D0', sombra: '0 6px 16px -4px rgba(15, 92, 72, 0.42)' },
+  { fondo: '#2D4387', texto: '#FFFFFF', acento: '#C7D2FE', sombra: '0 6px 16px -4px rgba(45, 67, 135, 0.42)' },
+  { fondo: '#7C2D12', texto: '#FFF7ED', acento: '#FDBA74', sombra: '0 6px 16px -4px rgba(124, 45, 18, 0.42)' },
+  { fondo: '#4C1D95', texto: '#FFFFFF', acento: '#DDD6FE', sombra: '0 6px 16px -4px rgba(76, 29, 149, 0.42)' },
+  { fondo: '#0E7490', texto: '#FFFFFF', acento: '#A5F3FC', sombra: '0 6px 16px -4px rgba(14, 116, 144, 0.42)' },
+] as const
+
 export const COMERCIOS_RAPIDOS: readonly ComercioRapido[] = [
   { id: 'd1', nombre: 'D1', fondo: '#D61F26', texto: '#FFFFFF', acento: '#FCA5A5', sombra: '0 6px 16px -4px rgba(214, 31, 38, 0.45)', categoriaSugerida: 'mercado', Logo: LogoCanasta },
   { id: 'exito', nombre: 'Éxito', fondo: '#FFE600', texto: '#161E1B', acento: '#161E1B', sombra: '0 6px 16px -4px rgba(234, 179, 8, 0.45)', categoriaSugerida: 'mercado', Logo: LogoEstrella },
@@ -478,6 +621,39 @@ export const COMERCIOS_RAPIDOS: readonly ComercioRapido[] = [
   { id: 'laika', nombre: 'Laika', fondo: '#6D28D9', texto: '#FFFFFF', acento: '#DDD6FE', sombra: '0 6px 16px -4px rgba(109, 40, 217, 0.45)', categoriaSugerida: 'mascotas', Logo: LogoHuella },
   { id: 'juan-valdez', nombre: 'Juan Valdez', fondo: '#4E2A1E', texto: '#FFF7ED', acento: '#FDBA74', sombra: '0 6px 16px -4px rgba(78, 42, 30, 0.45)', categoriaSugerida: 'entretenimiento', Logo: LogoTaza },
 ]
+
+export function identidadComercio(nombre: string): IdentidadComercio {
+  const n = normalizar(nombre)
+  if (n === 'd1' || n.includes('tiendas d1')) return COMERCIOS_RAPIDOS[0]!
+  if (n.includes('exito')) return COMERCIOS_RAPIDOS[1]!
+  if (n === 'ara' || n.includes('tiendas ara')) return COMERCIOS_RAPIDOS[2]!
+  if (n.includes('carulla')) return COMERCIOS_RAPIDOS[3]!
+  if (n.includes('rappi')) return COMERCIOS_RAPIDOS[4]!
+  if (n.includes('uber')) return COMERCIOS_RAPIDOS[5]!
+  if (n.includes('farmatodo') || n.includes('cruz verde')) {
+    return n.includes('cruz verde')
+      ? { fondo: '#00843D', texto: '#FFFFFF', acento: '#BBF7D0', sombra: '0 6px 16px -4px rgba(0, 132, 61, 0.45)', Logo: LogoCruz }
+      : COMERCIOS_RAPIDOS[6]!
+  }
+  if (n.includes('laika')) return COMERCIOS_RAPIDOS[7]!
+  if (n.includes('juan valdez') || n.includes('tostao')) {
+    return n.includes('tostao')
+      ? { fondo: '#F59E0B', texto: '#161E1B', acento: '#161E1B', sombra: '0 6px 16px -4px rgba(245, 158, 11, 0.45)', Logo: LogoTaza }
+      : COMERCIOS_RAPIDOS[8]!
+  }
+  if (n.includes('jumbo') || n.includes('makro')) {
+    return { fondo: '#15803D', texto: '#FFFFFF', acento: '#BBF7D0', sombra: '0 6px 16px -4px rgba(21, 128, 61, 0.45)', Logo: LogoCanasta }
+  }
+  if (n.includes('olimpica') || n.includes('dollarcity') || n.includes('homecenter')) {
+    return { fondo: '#C81E1E', texto: '#FFFFFF', acento: '#FECACA', sombra: '0 6px 16px -4px rgba(200, 30, 30, 0.45)', Logo: LogoBolsaComercio }
+  }
+  let hash = 0
+  for (let i = 0; i < n.length; i += 1) {
+    hash = (hash * 31 + n.charCodeAt(i)) >>> 0
+  }
+  const paleta = PALETA_COMERCIO_CUSTOM[hash % PALETA_COMERCIO_CUSTOM.length]!
+  return { ...paleta, Logo: LogoBolsaComercio }
+}
 
 export function IconoCategoria({
   nombre,

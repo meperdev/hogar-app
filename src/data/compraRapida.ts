@@ -5,6 +5,7 @@ import type {
   Ambito,
   CatalogoCompra,
   CategoriaOpcion,
+  ComercioOpcion,
   MedioOpcion,
   TasaPasivo,
 } from '../app/compraRapida'
@@ -36,6 +37,14 @@ export type FilaMedio = {
   id: string
   nombre: string
   tipo: 'efectivo' | 'cuenta'
+  activo: boolean
+  orden?: number | undefined
+}
+
+export type FilaComercio = {
+  id: string
+  nombre: string
+  categoria_sugerida_id: string | null
   activo: boolean
   orden?: number | undefined
 }
@@ -77,6 +86,7 @@ export type FilasCatalogo = {
   tarjetas: FilaTarjeta[]
   desembolsos: FilaDesembolso[]
   comprasVinculadas: FilaCompraVinculada[]
+  comercios?: FilaComercio[] | undefined
 }
 
 export type ResultadoPush =
@@ -184,9 +194,22 @@ export function armarCatalogo(f: FilasCatalogo): CatalogoCompra {
     })
   }
 
+  const comercios: ComercioOpcion[] | undefined = f.comercios
+    ? f.comercios
+        .filter((comercio) => comercio.activo)
+        .slice()
+        .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0) || a.nombre.localeCompare(b.nombre, 'es'))
+        .map((comercio) => ({
+          id: comercio.id,
+          nombre: comercio.nombre,
+          categoriaSugeridaId: comercio.categoria_sugerida_id,
+        }))
+    : undefined
+
   return {
     categorias,
     medios: [...medios, ...tarjetas.sort(porNombre), ...prestamos.sort(porNombre)],
+    ...(comercios !== undefined ? { comercios } : {}),
   }
 }
 
@@ -426,6 +449,14 @@ const esquemaCompraPorCufe = z.object({
   descripcion: z.string(),
 })
 
+const esquemaComercio = z.object({
+  id: z.uuid(),
+  nombre: z.string(),
+  categoria_sugerida_id: z.uuid().nullable(),
+  activo: z.boolean(),
+  orden: z.number().int().optional(),
+})
+
 const esquemaResultadoPush = z.discriminatedUnion('estado', [
   z.object({
     estado: z.literal('aplicado'),
@@ -443,7 +474,7 @@ const esquemaResultadoPush = z.discriminatedUnion('estado', [
 export function crearRemotoSupabase(cliente: SupabaseClient): RemotoCompraRapida {
   return {
     async leerCatalogo(hogarId) {
-      const [categorias, medios, pasivos, tarjetas, desembolsos, compras] =
+      const [categorias, medios, pasivos, tarjetas, desembolsos, compras, comercios] =
         await Promise.all([
           cliente.from('categoria').select('id,nombre,icono,orden,activa')
             .eq('hogar_id', hogarId).is('eliminado_en', null),
@@ -458,9 +489,11 @@ export function crearRemotoSupabase(cliente: SupabaseClient): RemotoCompraRapida
           cliente.from('compra').select('financiada_por_pasivo_id,monto_total')
             .eq('hogar_id', hogarId).not('financiada_por_pasivo_id', 'is', null)
             .is('eliminado_en', null),
+          cliente.from('comercio_frecuente').select('id,nombre,categoria_sugerida_id,activo,orden')
+            .eq('hogar_id', hogarId).is('eliminado_en', null),
         ])
 
-      for (const respuesta of [categorias, medios, pasivos, tarjetas, desembolsos, compras]) {
+      for (const respuesta of [categorias, medios, pasivos, tarjetas, desembolsos, compras, comercios]) {
         if (respuesta.error) throw respuesta.error
       }
 
@@ -471,6 +504,7 @@ export function crearRemotoSupabase(cliente: SupabaseClient): RemotoCompraRapida
         tarjetas: z.array(esquemaTarjeta).parse(tarjetas.data),
         desembolsos: z.array(esquemaDesembolso).parse(desembolsos.data),
         comprasVinculadas: z.array(esquemaCompraVinculada).parse(compras.data),
+        comercios: z.array(esquemaComercio).parse(comercios.data),
       }
     },
 

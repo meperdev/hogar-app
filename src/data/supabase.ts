@@ -7,6 +7,7 @@ import { crearControladorMascotas } from '../app/controladorMascotas'
 import { crearControladorObligaciones } from '../app/controladorObligaciones'
 import { ErrorFundacion, type Servicios } from '../app/fundacion'
 import { crearPuertoBalance, crearRemotoBalance } from './balance'
+import { crearComerciosSupabase } from './comercios'
 import { crearPuertoCompraRapida, crearRemotoSupabase } from './compraRapida'
 import { AdministradorBaseActor } from './db'
 import { crearPuertoGastos, crearRemotoGastos } from './gastos'
@@ -107,6 +108,7 @@ export function conectarSupabase(url: unknown, clavePublica: unknown): Servicios
     },
     invitaciones: crearPuertoInvitaciones(cliente),
     mediosDePago: crearMediosDePagoSupabase(cliente),
+    comercios: crearComerciosSupabase(cliente),
     compras: (alcance) =>
       crearControladorCompraRapida({
         port: crearPuertoCompraRapida({

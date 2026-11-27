@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { AlcanceCompra, ControladorCompraRapida } from './compraRapida'
 import type { ControladorBalance } from './balance'
+import type { ComerciosPort } from './comercios'
 import type { ControladorGastos } from './gastos'
 import type { InvitacionesPort } from './invitaciones'
 import type { ControladorMascotas } from './mascotas'
@@ -42,6 +43,7 @@ export type Servicios = {
   hogares: HogarPort
   invitaciones?: InvitacionesPort
   mediosDePago?: MediosDePagoPort
+  comercios?: ComerciosPort
   /** Núcleo 1: controlador de compra rápida por actor (ver `compraRapida.ts`). */
   compras?: (alcance: AlcanceCompra) => ControladorCompraRapida
   /** Núcleo 2: controlador de Obligaciones del mes (ver `obligaciones.ts`). */

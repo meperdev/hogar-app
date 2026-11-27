@@ -199,11 +199,6 @@ export function PantallaBalanceVacia({ hogar }: { hogar: Hogar }) {
     <ShellApp
       titulo="Balance de pareja"
       subtitulo={hogar.nombre}
-      accionDerecha={
-        <Link to="/ajustes" className={`${claseBotonPequenoSecundario} no-underline`}>
-          Ajustes
-        </Link>
-      }
       mostrarNavegacion
       barraAccion={
         <Link to="/hogar" className={`${claseBotonPrimario} w-full no-underline`} data-sin-scroll>

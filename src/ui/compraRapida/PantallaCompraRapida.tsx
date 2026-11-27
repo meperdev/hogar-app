@@ -15,7 +15,7 @@ import {
 } from '../ComponentesBase'
 import { IconoQr } from '../Iconos'
 import { ShellApp } from '../ShellApp'
-import { identidadMedio, type ComercioRapido } from '../marcas'
+import { identidadMedio } from '../marcas'
 import { useCompraRapida, type DatosRecompra } from './ContextoCompraRapida'
 import {
   CarruselComercios,
@@ -23,6 +23,7 @@ import {
   ChipsCuotas,
   GrillaCategorias,
   SelectorAmbito,
+  type ComercioSeleccionado,
 } from './PiezasCompra'
 import { aplicarTeclaCop, formatearFechaCortaEs, parsearDigitosCop } from './formatoCop'
 
@@ -136,20 +137,28 @@ export function PantallaCompraRapida() {
     }
   }
 
-  function elegirComercio(comercio: ComercioRapido) {
+  function elegirComercio(comercio: ComercioSeleccionado) {
     setErrorValidacion(null)
     const yaActivo = borrador.descripcion.trim().toLowerCase() === comercio.nombre.toLowerCase()
     const nuevaDescripcion = yaActivo ? '' : comercio.nombre
     let siguienteCategoriaId = borrador.categoriaId
     if (!yaActivo && !borrador.categoriaId) {
-      const cat = categorias.find((c) =>
-        c.nombre
-          .toLowerCase()
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .includes(comercio.categoriaSugerida),
-      )
-      if (cat) siguienteCategoriaId = cat.id
+      if (
+        comercio.categoriaSugeridaId &&
+        categorias.some((c) => c.id === comercio.categoriaSugeridaId)
+      ) {
+        siguienteCategoriaId = comercio.categoriaSugeridaId
+      } else if (comercio.categoriaSugerida) {
+        const clave = comercio.categoriaSugerida
+        const cat = categorias.find((c) =>
+          c.nombre
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .includes(clave),
+        )
+        if (cat) siguienteCategoriaId = cat.id
+      }
     }
     setBorrador((p) => ({
       ...p,
@@ -477,7 +486,11 @@ export function PantallaCompraRapida() {
         <h2 id="comercios-heading" className="m-0 text-[0.875rem] font-extrabold text-hogar-tinta">
           Comercio
         </h2>
-        <CarruselComercios descripcionActual={borrador.descripcion} onElegir={elegirComercio} />
+        <CarruselComercios
+          comercios={catalogo?.comercios}
+          descripcionActual={borrador.descripcion}
+          onElegir={elegirComercio}
+        />
       </section>
 
       <section aria-labelledby="teclado-heading">

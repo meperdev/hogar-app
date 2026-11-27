@@ -75,11 +75,6 @@ export function PantallaBalance() {
     <ShellApp
       titulo="Balance de pareja"
       subtitulo={hogar.nombre}
-      accionDerecha={
-        <Link to="/ajustes" className={`${claseBotonPequenoSecundario} no-underline`}>
-          Ajustes
-        </Link>
-      }
       mostrarNavegacion
       etiquetaBarraAccion="Acción principal de balance de pareja"
       barraAccion={

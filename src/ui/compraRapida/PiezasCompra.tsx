@@ -4,6 +4,7 @@ import {
   CHIPS_CUOTAS,
   type Ambito,
   type CategoriaOpcion,
+  type ComercioOpcion,
   type MedioOpcion,
 } from '../../app/compraRapida'
 import { claseBotonSecundario } from '../ComponentesBase'
@@ -12,8 +13,8 @@ import {
   IconoCategoria,
   IconoCheckSvg,
   MotivoTarjetaSvg,
+  identidadComercio,
   identidadMedio,
-  type ComercioRapido,
 } from '../marcas'
 
 function vibrarSuave(ms = 6) {
@@ -230,19 +231,46 @@ export function CarruselMedios({
   )
 }
 
+export type ComercioSeleccionado = {
+  nombre: string
+  categoriaSugeridaId?: string | null | undefined
+  categoriaSugerida?: string | undefined
+}
+
 export function CarruselComercios({
+  comercios,
   descripcionActual,
   onElegir,
 }: {
+  comercios?: ComercioOpcion[] | undefined
   descripcionActual: string
-  onElegir: (comercio: ComercioRapido) => void
+  onElegir: (comercio: ComercioSeleccionado) => void
 }) {
   const actual = descripcionActual.trim().toLowerCase()
+  const items: Array<{
+    id: string
+    nombre: string
+    categoriaSugeridaId?: string | null | undefined
+    categoriaSugerida?: string | undefined
+  }> =
+    comercios !== undefined
+      ? comercios.map((c) => ({
+          id: c.id,
+          nombre: c.nombre,
+          categoriaSugeridaId: c.categoriaSugeridaId,
+        }))
+      : COMERCIOS_RAPIDOS.map((c) => ({
+          id: c.id,
+          nombre: c.nombre,
+          categoriaSugerida: c.categoriaSugerida,
+        }))
+
   return (
     <div className="hogar-carrusel" role="group" aria-label="Comercios frecuentes">
-      {COMERCIOS_RAPIDOS.map((c) => {
+      {items.map((c) => {
         const activo = actual === c.nombre.toLowerCase()
-        const { Logo } = c
+        const idVisual = identidadComercio(c.nombre)
+        const { Logo } = idVisual
         return (
           <button
             key={c.id}
@@ -251,15 +279,19 @@ export function CarruselComercios({
               activo ? '-translate-y-0.5 ring-2 ring-hogar-primario ring-offset-1' : 'opacity-95 hover:opacity-100'
             }`}
             style={{
-              backgroundColor: c.fondo,
-              color: c.texto,
+              backgroundColor: idVisual.fondo,
+              color: idVisual.texto,
               borderColor: activo ? '#ffffff' : 'transparent',
-              boxShadow: activo ? c.sombra : '0 2px 6px -2px rgba(16, 24, 20, 0.14)',
+              boxShadow: activo ? idVisual.sombra : '0 2px 6px -2px rgba(16, 24, 20, 0.14)',
             }}
             aria-pressed={activo}
             onClick={() => {
               vibrarSuave()
-              onElegir(c)
+              onElegir({
+                nombre: c.nombre,
+                categoriaSugeridaId: c.categoriaSugeridaId,
+                categoriaSugerida: c.categoriaSugerida,
+              })
             }}
           >
             <Logo className="size-4 shrink-0" />
@@ -268,6 +300,16 @@ export function CarruselComercios({
           </button>
         )
       })}
+      <Link
+        to="/hogar#comercios"
+        className="inline-flex min-h-11 shrink-0 snap-start items-center gap-1.5 rounded-full border border-dashed border-hogar-borde-fuerte bg-hogar-superficie px-3.5 py-2 text-[0.8125rem] font-bold text-hogar-tinta-suave no-underline transition-colors hover:border-hogar-primario hover:text-hogar-primario"
+        aria-label="Administrar comercios frecuentes"
+      >
+        <svg className="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" aria-hidden="true" focusable="false">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        <span>Nuevo</span>
+      </Link>
     </div>
   )
 }

@@ -260,6 +260,11 @@ describe('Obligaciones del mes UI', () => {
     await act(async () => contenedor.querySelector<HTMLInputElement>('#ambito-personal')?.click())
     expect(contenedor.querySelector<HTMLInputElement>('#titular-hogar')?.disabled).toBe(true)
 
+    await act(async () => contenedor.querySelector<HTMLInputElement>('#tipo-credito')?.click())
+    await act(async () => botonPorTexto(contenedor, 'Bancolombia')?.click())
+    expect((contenedor.querySelector('#entidad-credito') as HTMLInputElement).value).toBe('Bancolombia')
+
+    await act(async () => contenedor.querySelector<HTMLInputElement>('#tipo-deuda')?.click())
     await act(async () => contenedor.querySelector<HTMLInputElement>('#ambito-hogar')?.click())
     await act(async () => contenedor.querySelector<HTMLInputElement>('#titular-hogar')?.click())
     await act(async () => escribir(contenedor.querySelector('#nombre-tarjeta')!, 'Préstamo cocina'))
