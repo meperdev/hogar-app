@@ -337,4 +337,27 @@ describe('Compra rápida UI (controlador real)', () => {
     expect(btnAmbito?.className).toContain('min-w-0')
     expect(btnAmbito?.className).toContain('overflow-hidden')
   })
+
+  it('abre el modal de comentario a nivel de shell sin quedar cortado dentro de main', async () => {
+    const { controlador } = crearControladorReal(hogarDePrueba())
+    const { contenedor } = await montarApp({ controlador })
+
+    const btnComentario = contenedor.querySelector<HTMLButtonElement>(
+      'button[aria-controls="panel-comentario-compra"]',
+    )!
+    expect(btnComentario).not.toBeNull()
+
+    const fondoInicial = contenedor.querySelector<HTMLElement>('[data-modal-fondo="comentario-compra"]')!
+    expect(fondoInicial.className).toContain('hidden')
+    expect(contenedor.querySelector('main #panel-comentario-compra')).toBeNull()
+
+    await act(async () => btnComentario.click())
+    expect(fondoInicial.className).not.toContain('hidden')
+    expect(fondoInicial.className).toContain('inset-0')
+    expect(contenedor.querySelector('.hogar-shell #panel-comentario-compra')).not.toBeNull()
+    expect(document.activeElement?.id).toBe('nota-compra')
+
+    await act(async () => boton(contenedor, 'Listo')?.click())
+    expect(fondoInicial.className).toContain('hidden')
+  })
 })

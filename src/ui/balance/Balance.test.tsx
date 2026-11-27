@@ -238,6 +238,9 @@ describe('UI del Núcleo 3 (Balance de pareja y exportación)', () => {
     expect(contenedor.querySelector('#toggle-pct-ingreso')).toBeNull()
     const switchPers = contenedor.querySelector('#toggle-personales') as HTMLInputElement
     expect(switchPers.checked).toBe(false)
+    const tarjetaCabecera = switchPers.closest('.overflow-hidden')
+    expect(tarjetaCabecera?.className).toContain('shrink-0')
+    expect(tarjetaCabecera?.querySelector('[aria-label="Cambiar mes calendario del balance"]')).not.toBeNull()
   })
 
   it('enciende Mis personales en Balance y Mostrar % de su ingreso desde Ajustes', async () => {
