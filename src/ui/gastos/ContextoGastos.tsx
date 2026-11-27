@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -58,10 +59,14 @@ export function ProveedorGastos({
   const [errorCarga, setErrorCarga] = useState('')
   const [toast, setToast] = useState('')
   const [revision, setRevision] = useState(0)
+  const vistaRef = useRef<VistaGastosMes | null>(null)
+  vistaRef.current = vista
 
   useEffect(() => {
     let vigente = true
-    setCargando(true)
+    if (!vistaRef.current) {
+      setCargando(true)
+    }
     setErrorCarga('')
     void controlador
       .cargarMes(periodo, ambito)
@@ -85,6 +90,15 @@ export function ProveedorGastos({
   const recargar = useCallback(() => {
     setRevision((actual) => actual + 1)
   }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const manejarActualizacion = () => recargar()
+    window.addEventListener('hogar:compras-actualizadas', manejarActualizacion)
+    return () => {
+      window.removeEventListener('hogar:compras-actualizadas', manejarActualizacion)
+    }
+  }, [recargar])
 
   const limpiarToast = useCallback(() => {
     setToast('')

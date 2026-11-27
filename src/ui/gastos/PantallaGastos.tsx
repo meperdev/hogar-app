@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { formatearPesos } from '../../domain/pesos'
 import {
   Aviso,
+  AyudaInfo,
   Insignia,
   Tarjeta,
   claseAyudaCampo,
@@ -47,6 +48,13 @@ export function PantallaGastos() {
   const [busqueda, setBusqueda] = useState('')
   const [movSeleccionadoId, setMovSeleccionadoId] = useState<string | null>(null)
   const primeraCargaRef = useRef(true)
+  const yaCargadoRef = useRef(vista !== null)
+
+  useEffect(() => {
+    if (yaCargadoRef.current) {
+      recargar()
+    }
+  }, [recargar])
 
   useEffect(() => {
     if (primeraCargaRef.current) {
@@ -171,13 +179,19 @@ export function PantallaGastos() {
       <Tarjeta acento="primario" className="flex flex-col gap-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
-            <p className="m-0 text-xs font-bold uppercase tracking-wide text-hogar-tinta-suave">
-              {ambito === 'hogar'
-                ? 'Gasto del hogar'
-                : ambito === 'personal'
-                  ? 'Tus gastos personales'
-                  : 'Hogar + tus personales'}
-            </p>
+            <div className="flex items-center gap-1.5">
+              <p className="m-0 text-xs font-bold uppercase tracking-wide text-hogar-tinta-suave">
+                {ambito === 'hogar'
+                  ? 'Gasto del hogar'
+                  : ambito === 'personal'
+                    ? 'Tus gastos personales'
+                    : 'Hogar + tus personales'}
+              </p>
+              <AyudaInfo
+                etiqueta="Información del cálculo de gastos"
+                texto="Se agrupa por fecha de compra y cada compra cuenta una sola vez, incluso si se paga a cuotas."
+              />
+            </div>
             <p className="hogar-cop m-0 mt-0.5 text-2xl font-extrabold tracking-tight text-hogar-tinta">
               {formatearPesos(total)}
             </p>
@@ -203,12 +217,11 @@ export function PantallaGastos() {
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-hogar-borde pt-2.5 text-xs text-hogar-tinta-suave">
           <span>
-            Promedio:{' '}
+            Promedio por compra:{' '}
             <strong className="hogar-cop text-hogar-tinta">
               {formatearPesos(promedioPorCompra)}
             </strong>
           </span>
-          <span>Por fecha de compra · Sin doble conteo</span>
         </div>
       </Tarjeta>
 

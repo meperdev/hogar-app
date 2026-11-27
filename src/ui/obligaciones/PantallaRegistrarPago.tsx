@@ -247,7 +247,7 @@ function PagoCuota({ cuotaId }: { cuotaId: string }) {
               <ListaDesglose filas={filasDesglose} />
             </Tarjeta>
 
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 items-end gap-2.5">
               <div className="flex min-w-0 flex-col gap-1.5">
                 <label htmlFor="cuenta-origen" className={claseEtiquetaCampo}>Medio de origen</label>
                 <select id="cuenta-origen" className={claseCampoTexto} value={borrador.medioId ?? ''} aria-describedby="ayuda-origen-pago" onChange={(e) => setBorrador((p) => (p ? { ...p, medioId: e.target.value || null } : p))}>
