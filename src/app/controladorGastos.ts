@@ -43,12 +43,24 @@ export type DatosGastos = {
     id: string
     nombre: string
     tipo: 'tarjeta' | 'credito' | 'deuda'
+    ambito?: 'hogar' | 'personal' | undefined
+    owner_miembro_id?: string | null | undefined
   }>
   planes: Array<{
     compra_id: string | null
     pasivo_id: string
     n_cuotas: number | null
   }>
+  pagosDeuda?: Array<{
+    id: string
+    pasivo_id: string
+    tipo: 'abono' | 'saldo_a_favor'
+    monto: number
+    fecha: string
+    medio_de_pago_id: string | null
+    registrado_por: string
+    nota: string | null
+  }> | undefined
   miembros: Array<{
     id: string
     nombre: string
@@ -68,6 +80,25 @@ export function crearControladorGastos(d: {
   return {
     async cargarMes(periodo: string, ambito: FiltroAmbitoGastos): Promise<VistaGastosMes> {
       const { datos, sinConexion } = await d.port.cargar()
+      const pasivosPorId = new Map(datos.pasivos.map((p) => [p.id, p]))
+      const pagosDeuda = (datos.pagosDeuda ?? []).flatMap((pg) => {
+        const pasivo = pasivosPorId.get(pg.pasivo_id)
+        if (!pasivo) return []
+        return [{
+          id: pg.id,
+          pasivoId: pg.pasivo_id,
+          pasivoNombre: pasivo.nombre,
+          pasivoTipo: pasivo.tipo,
+          pasivoAmbito: pasivo.ambito ?? 'hogar',
+          pasivoOwnerMiembroId: pasivo.owner_miembro_id ?? null,
+          tipo: pg.tipo,
+          monto: pg.monto,
+          fecha: pg.fecha,
+          medioDePagoId: pg.medio_de_pago_id,
+          registradoPor: pg.registrado_por,
+          nota: pg.nota,
+        }]
+      })
       const resumen = calcularResumenGastos({
         periodo,
         actorId: d.alcance.miembroId,
@@ -96,6 +127,7 @@ export function crearControladorGastos(d: {
             : [],
         ),
         miembros: datos.miembros,
+        pagosDeuda,
       })
       return { ...resumen, sinConexion }
     },

@@ -99,6 +99,7 @@ export type ResultadoEnvio =
 export interface ObligacionesPort {
   cargar(): Promise<DatosObligaciones>
   enviar(lote: LoteObligaciones): Promise<ResultadoEnvio>
+  eliminarPasivo(pasivoId: string): Promise<{ accion: 'eliminado' | 'archivado' }>
   leerPreferencia(clave: string): Promise<string | null>
   guardarPreferencia(clave: string, valor: string): Promise<void>
 }
@@ -298,6 +299,18 @@ export function crearControladorObligaciones(dep: DependenciasObligaciones): Con
         })
       }
       items.sort((a, b) => a.fechaVencimiento.localeCompare(b.fechaVencimiento))
+      const cuotasAbiertasPorPasivo = new Map<string, number>()
+      for (const item of items) {
+        if (item.tipo === 'cuota' && item.estado !== 'pagada') {
+          cuotasAbiertasPorPasivo.set(
+            item.pasivoId,
+            (cuotasAbiertasPorPasivo.get(item.pasivoId) ?? 0) + 1,
+          )
+        }
+      }
+      for (const pasivoSaldo of pasivosSaldo) {
+        pasivoSaldo.cuotasAbiertasMes = cuotasAbiertasPorPasivo.get(pasivoSaldo.pasivoId) ?? 0
+      }
       pasivosSaldo.sort((a, b) => b.saldoPendiente - a.saldoPendiente || a.nombre.localeCompare(b.nombre))
       const agenda: AgendaMes = { resumen: { periodo, ...resumen }, vencidas: [], pendientes: [], pagadas: [], pasivos: pasivosSaldo }
       for (const item of items) {
@@ -340,13 +353,12 @@ export function crearControladorObligaciones(dep: DependenciasObligaciones): Con
       const d = await vigentes()
       const pasivo = d.pasivos.find((p) => p.id === pasivoId)
       if (!pasivo) throw new ErrorObligaciones('pasivo', 'El pasivo no existe o no lo puedes ver')
-      const saldoPendiente = Math.max(0, recorrerLibro(libroDe(d, pasivoId), null).saldo)
       return {
         pasivoId,
         cuotaId: null,
         medioId: null,
         fecha: hoy(),
-        capital: saldoPendiente,
+        capital: 0,
         interes: null,
         nota: '',
       }
@@ -410,7 +422,19 @@ export function crearControladorObligaciones(dep: DependenciasObligaciones): Con
 
     async crearPasivo(b) {
       const l = construirLotePasivo({ ...b, hogarId: alcance.hogarId }, dep.nuevoId)
-      return enviar(l, `Pasivo creado: ${b.nombre.trim()}`)
+      return enviar(l, `Obligación creada: ${b.nombre.trim()}`)
+    },
+
+    async eliminarPasivo(pasivoId) {
+      const { accion } = await port.eliminarPasivo(pasivoId)
+      await cargar()
+      return {
+        accion,
+        resumen:
+          accion === 'archivado'
+            ? 'Obligación archivada (conserva sus compras)'
+            : 'Obligación eliminada',
+      }
     },
   }
 }

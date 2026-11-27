@@ -24,6 +24,12 @@ export function parsearPorcentajeEs(texto: string): number | null {
   return Number.isFinite(valor) && valor >= 0 ? valor : null
 }
 
+export function etiquetaTipoPasivo(tipo: 'tarjeta' | 'credito' | 'deuda'): string {
+  if (tipo === 'tarjeta') return 'Tarjeta de crédito'
+  if (tipo === 'credito') return 'Crédito libre'
+  return 'Deuda externa'
+}
+
 export function etiquetaAmbitoTitular(ambito: Ambito, titular: Titular): string {
   return `${ambito === 'hogar' ? 'Hogar' : 'Personal'} · titular ${titular.tipo === 'hogar' ? 'Hogar' : titular.nombre}`
 }

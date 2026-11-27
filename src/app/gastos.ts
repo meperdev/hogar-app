@@ -1,4 +1,5 @@
 import type {
+  AbonoDeudaGasto,
   CategoriaGasto,
   CategoriaResumenGasto,
   ComparativaMesAnterior,
@@ -9,6 +10,7 @@ import type {
 } from '../domain/gastos'
 
 export type {
+  AbonoDeudaGasto,
   CategoriaGasto,
   CategoriaResumenGasto,
   ComparativaMesAnterior,

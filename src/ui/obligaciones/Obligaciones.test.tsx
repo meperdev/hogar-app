@@ -72,7 +72,11 @@ function crearControladorMock(overrides?: Partial<ControladorObligaciones>) {
       : { pasivoId: 'pas-visa', cuotaId, medioId: 'med-nequi', fecha: '2026-11-25', capital: 100_000, interes: 6_299, nota: '' },
   )
   const prepararPagoPasivo = vi.fn(async (pasivoId: string): Promise<BorradorPago> => ({
-    pasivoId, cuotaId: null, medioId: 'med-nequi', fecha: '2026-11-27', capital: 1_426_000, interes: null, nota: '',
+    pasivoId, cuotaId: null, medioId: 'med-nequi', fecha: '2026-11-27', capital: 0, interes: null, nota: '',
+  }))
+  const eliminarPasivo = vi.fn(async () => ({
+    accion: 'eliminado' as const,
+    resumen: 'Obligación eliminada',
   }))
   const evaluarPago = vi.fn(async (b: BorradorPago): Promise<EvaluacionPago> => {
     const monto = b.capital + (b.interes ?? 0)
@@ -98,9 +102,9 @@ function crearControladorMock(overrides?: Partial<ControladorObligaciones>) {
   const controlador: ControladorObligaciones = {
     cargarMes, leerIncluirPersonales: vi.fn(async () => incluirPersonales), guardarIncluirPersonales,
     medios: vi.fn(async () => MEDIOS), prepararPagoCuota, prepararPagoPasivo, evaluarPago, registrarPago,
-    registrarPagoObligacion, equivalenciaTasa, validarPasivo, crearPasivo, ...overrides,
+    registrarPagoObligacion, equivalenciaTasa, validarPasivo, crearPasivo, eliminarPasivo, ...overrides,
   }
-  return { controlador, espias: { cargarMes, guardarIncluirPersonales, registrarPago, registrarPagoObligacion, equivalenciaTasa, crearPasivo } }
+  return { controlador, espias: { cargarMes, guardarIncluirPersonales, registrarPago, registrarPagoObligacion, equivalenciaTasa, crearPasivo, eliminarPasivo } }
 }
 
 async function montar(opts?: { rutaInicial?: string; controlador?: ControladorObligaciones }) {
@@ -171,7 +175,8 @@ describe('Obligaciones del mes UI', () => {
 
     const cta = contenedor.querySelector<HTMLAnchorElement>('a[data-sin-scroll]')
     expect(cta?.className).toContain('min-h-11')
-    expect(cta?.textContent).toContain('Registrar pago · Cuota 1/2 ($50.000)')
+    expect(cta?.textContent).toContain('+ Nueva obligación')
+    expect(cta?.getAttribute('href')).toBe('/obligaciones/nuevo-pasivo')
 
     await act(async () => { contenedor.querySelector<HTMLInputElement>('#toggle-incluir-personales')?.click() })
     expect(espias.guardarIncluirPersonales).toHaveBeenCalledWith(true)
@@ -187,14 +192,13 @@ describe('Obligaciones del mes UI', () => {
 
     expect(contenedor.querySelector('nav.hogar-bottom-nav')).toBeNull()
     expect(contenedor.querySelector('.hogar-action-bar--fondo')).not.toBeNull()
-    expect(contenedor.textContent).toContain('Aporte libre')
-    expect(contenedor.textContent).toContain('Camila ($106.299)')
+    expect(contenedor.textContent).toContain('Aporte de Camila')
 
     const inputInteres = contenedor.querySelector<HTMLInputElement>('#pago-intereses')!
     await act(async () => escribir(inputInteres, '7100'))
     await act(async () => { await Promise.resolve() })
     expect(inputInteres.value).toBe('$7.100')
-    expect(contenedor.textContent).toContain('origen manual')
+    expect(contenedor.textContent).toContain('Interés editado manualmente')
 
     await act(async () => cambiarSelect(contenedor.querySelector('#cuenta-origen')!, 'med-comun'))
     await act(async () => { await Promise.resolve() })
@@ -208,7 +212,7 @@ describe('Obligaciones del mes UI', () => {
 
     const sinTasa = await montar({ rutaInicial: '/obligaciones/pagar/cuota/cuota-vencida', controlador })
     expect(sinTasa.contenedor.querySelector<HTMLInputElement>('#pago-intereses')?.value).toBe('')
-    expect(sinTasa.contenedor.textContent).toContain('Este pasivo está en Sin tasa')
+    expect(sinTasa.contenedor.textContent).toContain('Solo si tu extracto cobra intereses')
   })
 
   it('rechaza duplicado de cuota_id y permite adelanto sin cuota', async () => {
@@ -220,10 +224,10 @@ describe('Obligaciones del mes UI', () => {
     const { controlador, espias } = crearControladorMock({ evaluarPago })
     const { contenedor } = await montar({ rutaInicial: '/obligaciones/pagar/cuota/cuota-1', controlador })
 
-    expect(contenedor.textContent).toContain('Posible pago duplicado (cuota ya cubierta)')
+    expect(contenedor.textContent).toContain('Cuota ya pagada')
     expect(contenedor.querySelector<HTMLButtonElement>('button[data-sin-scroll]')?.disabled).toBe(true)
 
-    await act(async () => botonPorTexto(contenedor, 'Registrar adelanto sin cuota')?.click())
+    await act(async () => botonPorTexto(contenedor, 'Registrar adelanto libre')?.click())
     await act(async () => { await Promise.resolve() })
     await act(async () => contenedor.querySelector<HTMLButtonElement>('button[data-sin-scroll]')?.click())
     expect(espias.registrarPago).toHaveBeenCalledWith(expect.objectContaining({ cuotaId: null }), { dividirSobrepago: false })
@@ -235,7 +239,7 @@ describe('Obligaciones del mes UI', () => {
 
     await act(async () => escribir(contenedor.querySelector('#pago-capital')!, '350000'))
     await act(async () => { await Promise.resolve() })
-    expect(contenedor.textContent).toContain('Posible pago duplicado o sobrepago')
+    expect(contenedor.textContent).toContain('El abono ($356.299) supera el saldo actual ($306.299)')
 
     await act(async () => contenedor.querySelector<HTMLButtonElement>('button[data-sin-scroll]')?.click())
     expect(espias.registrarPago).not.toHaveBeenCalled()
@@ -287,35 +291,60 @@ describe('Obligaciones del mes UI', () => {
     )
   })
 
-  it('muestra pasivos sin calendario en Obligaciones y prepara su abono libre en /obligaciones/pagar/pasivo/:id', async () => {
+  it('muestra pasivos sin calendario, evita duplicar botón con cuotas abiertas, permite eliminar y prepara abono desde $0', async () => {
     const agendaConPasivo: AgendaMes = {
       ...agendaBase('2026-11'),
-      pasivos: [{
-        pasivoId: 'pas-kiroi',
-        nombre: 'Cuenta pendiente Kiroi',
-        tipo: 'deuda',
-        ambito: 'hogar',
-        titular: { tipo: 'hogar' },
-        saldoPendiente: 1_426_000,
-        tieneSinCalendario: true,
-      }],
+      pasivos: [
+        {
+          pasivoId: 'pas-kiroi',
+          nombre: 'Cuenta pendiente Kiroi',
+          tipo: 'deuda',
+          ambito: 'hogar',
+          titular: { tipo: 'hogar' },
+          saldoPendiente: 1_426_000,
+          tieneSinCalendario: true,
+          cuotasAbiertasMes: 0,
+        },
+        {
+          pasivoId: 'pas-visa',
+          nombre: 'Visa ••4521',
+          tipo: 'tarjeta',
+          ambito: 'hogar',
+          titular: { tipo: 'miembro', miembroId: 'm-santiago', nombre: 'Santiago' },
+          saldoPendiente: 150_000,
+          tieneSinCalendario: false,
+          cuotasAbiertasMes: 2,
+        },
+      ],
     }
-    const { controlador } = crearControladorMock({
+    const { controlador, espias } = crearControladorMock({
       cargarMes: vi.fn(async () => agendaConPasivo),
     })
     const { contenedor } = await montar({ rutaInicial: '/obligaciones', controlador })
 
-    expect(contenedor.textContent).toContain('Tarjetas, créditos y deudas')
+    expect(contenedor.textContent).toContain('Deudas, tarjetas y créditos')
     expect(contenedor.textContent).toContain('Cuenta pendiente Kiroi')
+    expect(contenedor.textContent).toContain('Deuda externa')
+    expect(contenedor.textContent).toContain('Tarjeta de crédito')
     expect(contenedor.textContent).toContain('Abonos libres')
     expect(contenedor.textContent).toContain('$1.426.000')
     expect(contenedor.querySelector('a[href="/obligaciones/pagar/pasivo/pas-kiroi"]')).not.toBeNull()
+    expect(contenedor.querySelector('a[href="/obligaciones/pagar/pasivo/pas-visa"]')).toBeNull()
+
+    await act(async () => {
+      contenedor.querySelector<HTMLButtonElement>('button[aria-label="Eliminar Cuenta pendiente Kiroi"]')?.click()
+    })
+    expect(contenedor.textContent).toContain('¿Eliminar «Cuenta pendiente Kiroi»?')
+    await act(async () => botonPorTexto(contenedor, 'Sí, eliminar')?.click())
+    expect(espias.eliminarPasivo).toHaveBeenCalledWith('pas-kiroi')
 
     const { contenedor: contAbono } = await montar({
       rutaInicial: '/obligaciones/pagar/pasivo/pas-kiroi',
       controlador,
     })
-    expect(contAbono.textContent).toContain('Abono libre · Cuenta pendiente Kiroi')
+    expect(contAbono.textContent).toContain('Cuenta pendiente Kiroi')
+    expect(contAbono.querySelector<HTMLInputElement>('#pago-capital')?.value).toBe('')
+    await act(async () => botonPorTexto(contAbono, 'Pagar todo ($1.426.000)')?.click())
     expect(contAbono.querySelector<HTMLInputElement>('#pago-capital')?.value).toBe('$1.426.000')
   })
 })

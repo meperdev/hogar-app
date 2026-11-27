@@ -26,6 +26,7 @@ import type { BaseActorDexie } from './db'
 export interface RemotoObligaciones {
   leer(hogarId: string): Promise<DatosObligaciones>
   enviar(lote: LoteObligaciones): Promise<ResultadoEnvio>
+  eliminarPasivo(pasivoId: string): Promise<{ accion: 'eliminado' | 'archivado' }>
 }
 
 // ---------------------------------------------------------------------------
@@ -136,6 +137,11 @@ const esquemaResultado = z.discriminatedUnion('estado', [
   }),
 ])
 
+const esquemaEliminarPasivo = z.object({
+  id: z.uuid(),
+  accion: z.enum(['eliminado', 'archivado']),
+})
+
 export function crearRemotoObligaciones(cliente: SupabaseClient): RemotoObligaciones {
   return {
     async leer(hogarId) {
@@ -199,6 +205,13 @@ export function crearRemotoObligaciones(cliente: SupabaseClient): RemotoObligaci
         ? { estado: 'rechazado', motivo: resultado.motivo }
         : { estado: 'rechazado', motivo: resultado.motivo, detalle: resultado.detalle }
     },
+
+    async eliminarPasivo(pasivoId) {
+      const { data, error } = await cliente.rpc('eliminar_pasivo', { p_pasivo_id: pasivoId })
+      if (error) throw error
+      const resultado = esquemaEliminarPasivo.parse(data)
+      return { accion: resultado.accion }
+    },
   }
 }
 
@@ -242,6 +255,10 @@ export function crearPuertoObligaciones(d: DependenciasPuertoObligaciones): Obli
       // El pago necesita el bloqueo del servidor (I20): sin outbox, el error
       // del remoto se propaga tal cual.
       return d.remoto.enviar(lote)
+    },
+
+    eliminarPasivo(pasivoId) {
+      return d.remoto.eliminarPasivo(pasivoId)
     },
 
     async leerPreferencia(clave) {

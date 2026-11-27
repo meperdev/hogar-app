@@ -5,12 +5,12 @@ import { hoyCivil } from '../../domain/fechas'
 import { formatearPesos } from '../../domain/pesos'
 import {
   Aviso, AyudaInfo, CampoMontoCop, Insignia, Tarjeta, claseAyudaCampo, claseBotonPequenoSecundario,
-  claseBotonPrimario, claseBotonSecundario, claseCampoTexto, claseEtiquetaCampo,
+  claseBotonPrimario, claseCampoTexto, claseEtiquetaCampo,
 } from '../ComponentesBase'
 import { ShellApp } from '../ShellApp'
-import { formatearFechaCortaEs, parsearDigitosCop } from '../compraRapida/formatoCop'
+import { formatearFechaCortaEs } from '../compraRapida/formatoCop'
 import { useObligaciones } from './ContextoObligaciones'
-import { ListaDesglose, TarjetaRadio, etiquetaAmbitoTitular, nombreMesPeriodoEs, type FilaDesglose } from './PiezasObligaciones'
+import { TarjetaRadio, etiquetaAmbitoTitular, nombreMesPeriodoEs } from './PiezasObligaciones'
 
 function PagoCuota({ cuotaId, pasivoId }: { cuotaId?: string; pasivoId?: string }) {
   const navigate = useNavigate()
@@ -55,7 +55,7 @@ function PagoCuota({ cuotaId, pasivoId }: { cuotaId?: string; pasivoId?: string 
         if (!vigente) return
         setErrorAccion(
           pasivoId
-            ? 'No pudimos preparar el abono de este pasivo.'
+            ? 'No pudimos preparar el abono de esta obligación.'
             : 'No pudimos preparar el pago de esta cuota.',
         )
         setCargando(false)
@@ -87,8 +87,8 @@ function PagoCuota({ cuotaId, pasivoId }: { cuotaId?: string; pasivoId?: string 
 
   const montoMostrado = (borrador?.capital ?? 0) + (borrador?.interes ?? 0)
   const interesEditado = borrador !== null && borrador.interes !== interesInicial
-  const fechaCorta = borrador ? formatearFechaCortaEs(borrador.fecha) : ''
   const aporteEvaluado = evaluacion && 'aporte' in evaluacion ? evaluacion.aporte : undefined
+  const saldoDisponible = pasivoInfo?.saldoPendiente ?? 0
 
   async function ejecutarRegistro(dividirSobrepago: boolean) {
     if (!borradorEfectivo || guardando) return
@@ -106,64 +106,42 @@ function PagoCuota({ cuotaId, pasivoId }: { cuotaId?: string; pasivoId?: string 
     }
   }
 
+  const verboBoton = pasivoId ? 'Confirmar abono' : 'Confirmar pago'
   const ctaBarra = !borradorEfectivo || !evaluacion ? (
-    <button type="button" className={`${claseBotonPrimario} w-full`} disabled data-sin-scroll>Preparando pago…</button>
+    <button type="button" className={`${claseBotonPrimario} w-full`} disabled data-sin-scroll>Preparando…</button>
   ) : evaluacion.estado === 'duplicado' ? (
-    <button type="button" className={`${claseBotonPrimario} w-full`} disabled data-sin-scroll>Pago duplicado rechazado</button>
+    <button type="button" className={`${claseBotonPrimario} w-full`} disabled data-sin-scroll>Pago duplicado</button>
   ) : evaluacion.estado === 'sobrepago' ? (
     <button type="button" className={`${claseBotonPrimario} w-full`} onClick={() => sobrepagoRef.current?.focus()} data-sin-scroll>
       Revisar sobrepago ({formatearPesos(evaluacion.monto)})
     </button>
   ) : evaluacion.estado === 'invalido' ? (
-    <button type="button" className={`${claseBotonPrimario} w-full`} disabled data-sin-scroll>Confirmar pago ({formatearPesos(montoMostrado)})</button>
+    <button type="button" className={`${claseBotonPrimario} w-full`} disabled data-sin-scroll>{verboBoton} ({formatearPesos(montoMostrado)})</button>
   ) : (
     <button type="button" className={`${claseBotonPrimario} w-full`} disabled={guardando} onClick={() => void ejecutarRegistro(false)} data-sin-scroll>
-      {guardando ? 'Registrando…' : `Confirmar pago (${formatearPesos(evaluacion.monto)})`}
+      {guardando ? 'Registrando…' : `${verboBoton} (${formatearPesos(evaluacion.monto)})`}
     </button>
   )
 
-  const filasDesglose: FilaDesglose[] = !borradorEfectivo
-    ? []
-    : evaluacion?.estado === 'valido'
-      ? [
-          { etiqueta: `Saldo causado al ${fechaCorta} (tope único del abono)`, valor: formatearPesos(evaluacion.saldoAntes) },
-          { etiqueta: 'Capital aplicado (no suma al consumo)', valor: formatearPesos(evaluacion.capitalAplicado) },
-          { etiqueta: `Interés ligado a la cuota (${interesEditado ? 'manual' : 'Costo financiero'})`, valor: borradorEfectivo.interes !== null ? formatearPesos(borradorEfectivo.interes) : '$0 (sin tasa)' },
-          { etiqueta: `Abono total el ${fechaCorta} (PagoDeDeuda)`, valor: formatearPesos(evaluacion.monto), total: true },
-          { etiqueta: 'Saldo derivado después del pago', valor: formatearPesos(evaluacion.saldoDespues) },
-          {
-            etiqueta: 'Aporte individual (solo cuenta personal en pasivo hogar)',
-            valor: evaluacion.aporte ? `${formatearPesos(evaluacion.aporte.monto)} · ${nombreMiembro(evaluacion.aporte.miembroId)}` : '$0 (sin aporte individual)',
-          },
-        ]
-      : evaluacion?.estado === 'sobrepago'
-        ? [
-            { etiqueta: `Tope de abono al ${fechaCorta} (saldo causado)`, valor: formatearPesos(evaluacion.tope) },
-            { etiqueta: 'Excedente a saldo a favor', valor: formatearPesos(evaluacion.excedente) },
-            { etiqueta: 'Total a dividir con confirmación', valor: formatearPesos(evaluacion.monto), total: true },
-          ]
-        : [
-            { etiqueta: 'Capital ingresado', valor: formatearPesos(borradorEfectivo.capital) },
-            { etiqueta: 'Interés ingresado', valor: borradorEfectivo.interes !== null ? formatearPesos(borradorEfectivo.interes) : '$0 (sin tasa)' },
-            { etiqueta: 'Total del abono', valor: formatearPesos(montoMostrado), total: true },
-          ]
-
-  const subtitulo = item ? (item.nCuotas > 0 ? `Cuota ${item.numero}/${item.nCuotas} · ${item.descripcion}` : item.descripcion) : 'Pago de cuota'
+  const subtitulo = item
+    ? (item.nCuotas > 0 ? `Cuota ${item.numero}/${item.nCuotas} · ${item.descripcion}` : item.descripcion)
+    : pasivoInfo
+      ? pasivoInfo.nombre
+      : 'Abono a obligación'
 
   return (
     <ShellApp
-      titulo="Registrar pago"
+      titulo={pasivoId ? 'Registrar abono' : 'Registrar pago'}
       subtitulo={subtitulo}
       volverA="/obligaciones"
       etiquetaVolver="Volver a Obligaciones del mes"
-      accionDerecha={<Insignia variante="indigo">Pasivo</Insignia>}
       etiquetaBarraAccion="Confirmar pago de obligación"
       barraAccion={ctaBarra}
     >
       {errorAccion ? <Aviso variante="peligro" icono="▲" role="alert"><p>{errorAccion}</p></Aviso> : null}
 
       {cargando || !borrador || !borradorEfectivo ? (
-        <Aviso variante="indigo" icono="◷" role="status"><p className="font-bold">Cargando desglose del pago…</p></Aviso>
+        <Aviso variante="indigo" icono="◷" role="status"><p className="font-bold">Cargando…</p></Aviso>
       ) : (
         <>
           {item ? (
@@ -172,8 +150,8 @@ function PagoCuota({ cuotaId, pasivoId }: { cuotaId?: string; pasivoId?: string 
                 <div className="flex min-w-0 items-center gap-1.5">
                   <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">{item.pasivoNombre} · Vence {formatearFechaCortaEs(item.fechaVencimiento)}</h2>
                   <AyudaInfo
-                    etiqueta="Información sobre el pago de cuotas"
-                    texto="El pago reduce el saldo del pasivo sin volver a sumar al consumo del mes. El interés entra al balde aparte de Costo financiero."
+                    etiqueta="Información sobre el pago"
+                    texto="El abono reduce la deuda sin duplicar compras en tu consumo del mes."
                   />
                 </div>
                 <Insignia variante={item.ambito === 'hogar' ? 'primario' : 'neutral'}>{etiquetaAmbitoTitular(item.ambito, item.titular)}</Insignia>
@@ -183,30 +161,70 @@ function PagoCuota({ cuotaId, pasivoId }: { cuotaId?: string; pasivoId?: string 
             <Tarjeta acento="indigo">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-1.5">
-                  <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">Abono libre · {pasivoInfo.nombre}</h2>
+                  <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">{pasivoInfo.nombre}</h2>
                   <AyudaInfo
-                    etiqueta="Información sobre abono libre"
-                    texto="El abono reduce el saldo del pasivo sin volver a sumar al consumo del mes. El interés entra al balde aparte de Costo financiero."
+                    etiqueta="Información sobre abonos"
+                    texto="El abono reduce el saldo de esta obligación sin duplicar compras a cuotas."
                   />
                 </div>
                 <Insignia variante={pasivoInfo.ambito === 'hogar' ? 'primario' : 'neutral'}>{etiquetaAmbitoTitular(pasivoInfo.ambito, pasivoInfo.titular)}</Insignia>
               </div>
               <p className={`${claseAyudaCampo} mt-1`}>
-                Saldo pendiente actual: <strong className="hogar-cop text-hogar-tinta">{formatearPesos(pasivoInfo.saldoPendiente)}</strong>
+                Saldo pendiente: <strong className="hogar-cop text-hogar-tinta">{formatearPesos(pasivoInfo.saldoPendiente)}</strong>
               </p>
             </Tarjeta>
           ) : null}
 
-          {!enlazarCuota && !pasivoId ? (
-            <Aviso variante="indigo" icono="ℹ" role="status">
-              <p><strong className="text-hogar-tinta">Modo adelanto sin cuota:</strong> este pago se evaluará sin <code>cuota_id</code>, sujeto al tope del saldo causado a la fecha.</p>
-            </Aviso>
-          ) : null}
-
           <div className="flex flex-col gap-3.5">
-            {miembrosActivos.length > 0 ? (
+            <Tarjeta className="flex flex-col gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label htmlFor="pago-capital" className={claseEtiquetaCampo}>
+                  {pasivoId ? 'Monto a abonar (COP)' : 'Monto a capital (COP)'}
+                </label>
+                {pasivoId && saldoDisponible > 0 ? (
+                  <button
+                    type="button"
+                    className="cursor-pointer rounded-full border border-hogar-primario/30 bg-hogar-primario-suave px-2.5 py-1 text-xs font-bold text-hogar-primario hover:brightness-95"
+                    onClick={() => {
+                      setErrorAccion('')
+                      setBorrador((p) => (p ? { ...p, capital: saldoDisponible } : p))
+                    }}
+                  >
+                    Pagar todo ({formatearPesos(saldoDisponible)})
+                  </button>
+                ) : null}
+              </div>
+
+              <CampoMontoCop
+                inputRef={capitalRef}
+                id="pago-capital"
+                className="text-2xl font-extrabold"
+                placeholder="$0"
+                valor={borrador.capital}
+                onCambiar={(capital) => {
+                  setErrorAccion('')
+                  setBorrador((p) => (p ? { ...p, capital } : p))
+                }}
+              />
+
+              {evaluacion?.estado === 'valido' ? (
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-hogar-borde pt-2 text-xs text-hogar-tinta-suave">
+                  <span>
+                    Saldo restante:{' '}
+                    <strong className="hogar-cop text-hogar-tinta">{formatearPesos(evaluacion.saldoDespues)}</strong>
+                  </span>
+                  <span>
+                    {aporteEvaluado
+                      ? `Aporte de ${nombreMiembro(aporteEvaluado.miembroId)}`
+                      : 'Sin aporte individual ($0)'}
+                  </span>
+                </div>
+              ) : null}
+            </Tarjeta>
+
+            {miembrosActivos.length > 1 ? (
               <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-                <legend className={claseEtiquetaCampo}>¿Quién realiza este pago?</legend>
+                <legend className={claseEtiquetaCampo}>¿Quién paga?</legend>
                 <div className="grid grid-cols-2 gap-2">
                   {miembrosActivos.map((miembro) => {
                     const medioDelMiembro = medios.find((m) => m.duenoMiembroId === miembro.id)
@@ -220,134 +238,77 @@ function PagoCuota({ cuotaId, pasivoId }: { cuotaId?: string; pasivoId?: string 
               </fieldset>
             ) : null}
 
-            {aporteEvaluado ? (
-              <Aviso variante="primario" icono="✓">
-                <p>
-                  <strong className="text-hogar-tinta">Aporte libre{item ? ` (${etiquetaAmbitoTitular(item.ambito, item.titular)})` : ''}:</strong>{' '}
-                  este abono cuenta como aporte individual de <strong className="text-hogar-tinta">{nombreMiembro(aporteEvaluado.miembroId)} ({formatearPesos(aporteEvaluado.monto)})</strong> sin generar deuda entre ustedes. Desde <strong>«Cuenta común · Hogar»</strong> no hay aporte individual.
-                </p>
-              </Aviso>
-            ) : aporteEvaluado === null ? (
-              <Aviso variante="indigo" icono="ℹ">
-                <p>
-                  <strong className="text-hogar-tinta">Sin aporte individual ($0):</strong>{' '}
-                  {item?.ambito === 'personal'
-                    ? 'es un pasivo personal y sus pagos no suman al balance del hogar.'
-                    : 'salida del fondo común o libro personal; no suma aporte individual.'}
-                </p>
-              </Aviso>
-            ) : null}
-
-            <Tarjeta className="flex flex-col gap-3.5">
-              <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">Desglose del pago (COP enteros · {fechaCorta})</h2>
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="pago-capital" className={claseEtiquetaCampo}>Capital aplicado {pasivoId ? 'al pasivo' : 'a la cuota'} (no suma al consumo)</label>
-                <CampoMontoCop
-                  inputRef={capitalRef}
-                  id="pago-capital"
-                  className="text-xl font-extrabold"
-                  valor={borrador.capital}
-                  aria-describedby="ayuda-capital"
-                  onCambiar={(capital) => {
-                    setErrorAccion('')
-                    setBorrador((p) => (p ? { ...p, capital } : p))
-                  }}
-                />
-                <p id="ayuda-capital" className={claseAyudaCampo}>
-                  {pasivoId
-                    ? `Saldo pendiente sugerido: ${formatearPesos(capitalInicial)}. Puedes abonar parcial o totalmente.`
-                    : borrador.capital > 0 && borrador.capital < capitalInicial
-                      ? 'Pago parcial: se registrará sin enlazar la cuota (FIFO).'
-                      : `Capital sugerido de la cuota: ${formatearPesos(capitalInicial)}. Editable si haces abono parcial o extraordinario.`}
-                </p>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="pago-intereses" className={claseEtiquetaCampo}>Interés ligado a la cuota · Costo financiero (cargado al pasivo)</label>
-                <input
-                  id="pago-intereses"
-                  className={`${claseCampoTexto} hogar-cop text-xl font-extrabold`}
-                  type="text"
-                  inputMode="numeric"
-                  value={borrador.interes !== null ? formatearPesos(borrador.interes) : ''}
-                  placeholder="$0 (opcional)"
-                  aria-describedby="ayuda-intereses"
-                  onChange={(e) => {
-                    setErrorAccion('')
-                    const limpio = e.target.value.replace(/\D+/g, '')
-                    const siguiente = limpio ? parsearDigitosCop(limpio) : null
-                    setBorrador((p) => (p ? { ...p, interes: siguiente !== null && siguiente > 0 ? siguiente : null } : p))
-                  }}
-                />
-                <p id="ayuda-intereses" className={claseAyudaCampo}>
-                  {interesEditado
-                    ? 'Interés editado contra el extracto: se enviará tal cual para guardarse con origen manual.'
-                    : interesInicial === null
-                      ? 'Este pasivo está en Sin tasa. Ingresa intereses o comisiones solo si tu extracto los cobra.'
-                      : 'Estimación editable contra el extracto real (balde aparte Costo financiero). Si lo corriges, quedará como manual.'}
-                </p>
-              </div>
-              <ListaDesglose filas={filasDesglose} />
-            </Tarjeta>
-
             <div className="grid grid-cols-2 items-end gap-2.5">
               <div className="flex min-w-0 flex-col gap-1.5">
-                <div className="flex items-center gap-1.5">
-                  <label htmlFor="cuenta-origen" className={claseEtiquetaCampo}>Medio de origen</label>
-                  <AyudaInfo
-                    etiqueta="Información sobre medio de origen"
-                    texto="Cuenta personal aporta al dueño del medio; Cuenta común no genera aporte individual."
-                  />
-                </div>
+                <label htmlFor="cuenta-origen" className={claseEtiquetaCampo}>Medio de pago</label>
                 <select id="cuenta-origen" className={claseCampoTexto} value={borrador.medioId ?? ''} onChange={(e) => setBorrador((p) => (p ? { ...p, medioId: e.target.value || null } : p))}>
-                  {medios.length === 0 ? <option value="">Sin medios disponibles</option> : null}
+                  {medios.length === 0 ? <option value="">Sin medios</option> : null}
                   {medios.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
                 </select>
               </div>
               <div className="flex min-w-0 flex-col gap-1.5">
-                <div className="flex items-center gap-1.5">
-                  <label htmlFor="fecha-pago" className={claseEtiquetaCampo}>Fecha de pago</label>
-                  <AyudaInfo
-                    etiqueta="Información sobre fecha de pago"
-                    texto="Define el saldo causado a esa fecha."
-                  />
-                </div>
+                <label htmlFor="fecha-pago" className={claseEtiquetaCampo}>Fecha</label>
                 <input id="fecha-pago" className={claseCampoTexto} type="date" value={borrador.fecha} onChange={(e) => setBorrador((p) => (p ? { ...p, fecha: e.target.value } : p))} />
               </div>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="nota-pago" className={claseEtiquetaCampo}>Nota (opcional)</label>
-              <input id="nota-pago" className={claseCampoTexto} type="text" placeholder="Ej. Comprobante o referencia bancaria" value={borrador.nota} onChange={(e) => setBorrador((p) => (p ? { ...p, nota: e.target.value } : p))} />
-            </div>
+            <details
+              open={interesInicial !== null}
+              className="rounded-2xl border border-hogar-borde bg-hogar-superficie px-3.5 py-2.5 shadow-[var(--hogar-shadow-card)]"
+            >
+              <summary className="cursor-pointer select-none text-sm font-bold text-hogar-tinta">
+                Intereses o nota (opcional)
+              </summary>
+              <div className="mt-3 flex flex-col gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="pago-intereses" className={claseEtiquetaCampo}>Intereses / costo financiero</label>
+                  <CampoMontoCop
+                    id="pago-intereses"
+                    className="text-lg font-extrabold"
+                    placeholder="$0 (opcional)"
+                    valor={borrador.interes ?? 0}
+                    aria-describedby="ayuda-intereses"
+                    onCambiar={(siguiente) => {
+                      setErrorAccion('')
+                      setBorrador((p) => (p ? { ...p, interes: siguiente > 0 ? siguiente : null } : p))
+                    }}
+                  />
+                  <p id="ayuda-intereses" className={claseAyudaCampo}>
+                    {interesEditado
+                      ? 'Interés editado manualmente.'
+                      : 'Solo si tu extracto cobra intereses o comisiones.'}
+                  </p>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="nota-pago" className={claseEtiquetaCampo}>Nota</label>
+                  <input id="nota-pago" className={claseCampoTexto} type="text" placeholder="Ej. Comprobante o referencia" value={borrador.nota} onChange={(e) => setBorrador((p) => (p ? { ...p, nota: e.target.value } : p))} />
+                </div>
+              </div>
+            </details>
 
-            {evaluacion?.estado === 'invalido' ? <Aviso variante="peligro" icono="▲" role="alert"><p>{evaluacion.mensaje}</p></Aviso> : null}
+            {evaluacion?.estado === 'invalido' && montoMostrado > 0 ? (
+              <Aviso variante="peligro" icono="▲" role="alert"><p>{evaluacion.mensaje}</p></Aviso>
+            ) : null}
 
             {evaluacion?.estado === 'duplicado' ? (
               <Tarjeta acento="peligro" className="flex flex-col gap-2.5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">Protección contra pago duplicado</h2>
-                  <Insignia variante="peligro">▲ Rechazado</Insignia>
-                </div>
                 <Aviso variante="peligro" icono="▲" role="alert">
-                  <p><strong className="text-hogar-tinta">Posible pago duplicado (cuota ya cubierta).</strong></p>
-                  <p>Ya existe un abono registrado el <strong>{formatearFechaCortaEs(evaluacion.existente.fecha)}</strong> por <strong className="hogar-cop">{formatearPesos(evaluacion.existente.monto)}</strong> ({evaluacion.existente.registradoPor}). No se puede confirmar ni dividir.</p>
+                  <p><strong className="text-hogar-tinta">Cuota ya pagada</strong> el {formatearFechaCortaEs(evaluacion.existente.fecha)} por <strong className="hogar-cop">{formatearPesos(evaluacion.existente.monto)}</strong>.</p>
                 </Aviso>
                 <div className="flex flex-wrap gap-2">
-                  <Link to="/obligaciones" className={`${claseBotonPequenoSecundario} flex-1 basis-[130px] no-underline`}>Cancelar y revisar pagos</Link>
-                  <button type="button" className={`${claseBotonPequenoSecundario} flex-1 basis-[130px]`} onClick={() => { setEnlazarCuota(false); capitalRef.current?.focus() }}>Registrar adelanto sin cuota</button>
+                  <Link to="/obligaciones" className={`${claseBotonPequenoSecundario} flex-1 basis-[130px] no-underline`}>Volver</Link>
+                  <button type="button" className={`${claseBotonPequenoSecundario} flex-1 basis-[130px]`} onClick={() => { setEnlazarCuota(false); capitalRef.current?.focus() }}>Registrar adelanto libre</button>
                 </div>
               </Tarjeta>
             ) : null}
 
             {evaluacion?.estado === 'sobrepago' ? (
               <Tarjeta acento="ambar" className="flex flex-col gap-2.5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">Sobrepago sobre el saldo causado</h2>
-                  <Insignia variante="ambar">▲ Confirmación</Insignia>
-                </div>
                 <Aviso variante="ambar" icono="▲" role="alert">
-                  <p><strong className="text-hogar-tinta">Posible pago duplicado o sobrepago (monto mayor al saldo causado).</strong></p>
-                  <p>El monto ({formatearPesos(evaluacion.monto)}) supera el saldo causado ({formatearPesos(evaluacion.tope)}). Con confirmación explícita se registrará en el mismo lote un <em>abono</em> de {formatearPesos(evaluacion.tope)} y un <em>saldo a favor</em> de {formatearPesos(evaluacion.excedente)} (no reduce capital ni costos ni aporta hasta cubrir un cargo futuro del hogar).</p>
+                  <p>
+                    El abono ({formatearPesos(evaluacion.monto)}) supera el saldo actual ({formatearPesos(evaluacion.tope)}).
+                    Si confirmas, {formatearPesos(evaluacion.excedente)} quedará como saldo a favor.
+                  </p>
                 </Aviso>
                 <div className="flex flex-wrap gap-2">
                   <Link to="/obligaciones" className={`${claseBotonPequenoSecundario} flex-1 basis-[130px] no-underline`}>Cancelar</Link>
@@ -357,8 +318,6 @@ function PagoCuota({ cuotaId, pasivoId }: { cuotaId?: string; pasivoId?: string 
                 </div>
               </Tarjeta>
             ) : null}
-
-            <Link to="/obligaciones" className={`${claseBotonSecundario} w-full no-underline`}>Cancelar</Link>
           </div>
         </>
       )}
@@ -387,7 +346,7 @@ function PagoObligacionRecurrente({ obligacionId }: { obligacionId: string }) {
   async function confirmar() {
     if (guardando) return
     if (monto <= 0) return setError('Ingresa un monto mayor a $0.')
-    if (!medioId) return setError('Elige un medio de origen para registrar el pago.')
+    if (!medioId) return setError('Elige un medio de pago.')
     setGuardando(true)
     setError('')
     try {
@@ -396,7 +355,7 @@ function PagoObligacionRecurrente({ obligacionId }: { obligacionId: string }) {
       recargar()
       navigate('/obligaciones')
     } catch (causa) {
-      setError(causa instanceof Error && causa.message ? causa.message : 'No pudimos registrar el pago de la obligación.')
+      setError(causa instanceof Error && causa.message ? causa.message : 'No pudimos registrar el pago.')
     } finally {
       setGuardando(false)
     }
@@ -405,45 +364,48 @@ function PagoObligacionRecurrente({ obligacionId }: { obligacionId: string }) {
   return (
     <ShellApp
       titulo="Registrar pago"
-      subtitulo={item ? `${item.nombre} · ${item.categoriaNombre}` : 'Obligación recurrente'}
+      subtitulo={item ? `${item.nombre} · ${item.categoriaNombre}` : 'Obligación del mes'}
       volverA="/obligaciones"
       etiquetaVolver="Volver a Obligaciones del mes"
-      accionDerecha={<Insignia variante="primario">Obligación</Insignia>}
       etiquetaBarraAccion="Confirmar pago de obligación recurrente"
       barraAccion={<button type="button" className={`${claseBotonPrimario} w-full`} disabled={guardando} onClick={() => void confirmar()} data-sin-scroll>{guardando ? 'Registrando…' : `Confirmar pago (${formatearPesos(monto)})`}</button>}
     >
       {error ? <Aviso variante="peligro" icono="▲" role="alert"><p>{error}</p></Aviso> : null}
       <Tarjeta acento="primario">
-        <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">{item ? item.nombre : 'Obligación del hogar'}</h2>
-          <Insignia variante="neutral">{item ? `Periodo ${nombreMesPeriodoEs(item.periodo)}` : 'Obligación del hogar'}</Insignia>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <h2 className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">{item ? item.nombre : 'Obligación del hogar'}</h2>
+            <AyudaInfo
+              etiqueta="Información sobre pago recurrente"
+              texto={`Al pagarla se registra también un gasto en ${item?.categoriaNombre ?? 'su categoría'}.`}
+            />
+          </div>
+          <Insignia variante="neutral">{item ? nombreMesPeriodoEs(item.periodo) : 'Hogar'}</Insignia>
         </div>
-        <p className={claseAyudaCampo}>Al pagarla se crea una Compra en <strong>{item?.categoriaNombre ?? 'su categoría'}</strong> para este periodo. Cierra la agenda del periodo y suma al gasto real en la fecha de pago.</p>
       </Tarjeta>
       <Tarjeta className="flex flex-col gap-3.5">
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="pago-obligacion-monto" className={claseEtiquetaCampo}>Monto pagado en COP (enteros)</label>
+          <label htmlFor="pago-obligacion-monto" className={claseEtiquetaCampo}>Monto pagado (COP)</label>
           <CampoMontoCop
             id="pago-obligacion-monto"
-            className="text-xl font-extrabold"
+            className="text-2xl font-extrabold"
             valor={monto}
             onCambiar={(m) => { setError(''); setMonto(m) }}
           />
         </div>
         <div className="grid grid-cols-2 gap-2.5">
           <div className="flex min-w-0 flex-col gap-1.5">
-            <label htmlFor="cuenta-origen-obligacion" className={claseEtiquetaCampo}>Medio de origen</label>
+            <label htmlFor="cuenta-origen-obligacion" className={claseEtiquetaCampo}>Medio de pago</label>
             <select id="cuenta-origen-obligacion" className={claseCampoTexto} value={medioId ?? ''} onChange={(e) => setMedioId(e.target.value || null)}>
               {medios.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
             </select>
           </div>
           <div className="flex min-w-0 flex-col gap-1.5">
-            <label htmlFor="fecha-pago-obligacion" className={claseEtiquetaCampo}>Fecha de pago</label>
+            <label htmlFor="fecha-pago-obligacion" className={claseEtiquetaCampo}>Fecha</label>
             <input id="fecha-pago-obligacion" className={claseCampoTexto} type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
           </div>
         </div>
       </Tarjeta>
-      <Link to="/obligaciones" className={`${claseBotonSecundario} w-full no-underline`}>Cancelar</Link>
     </ShellApp>
   )
 }
@@ -453,7 +415,7 @@ export function PantallaRegistrarPago() {
   if (!id) {
     return (
       <ShellApp titulo="Registrar pago" volverA="/obligaciones" etiquetaVolver="Volver a Obligaciones del mes">
-        <Aviso variante="ambar" icono="▲" role="alert"><p>Elige una cuota u obligación desde la agenda del mes para registrar su pago.</p></Aviso>
+        <Aviso variante="ambar" icono="▲" role="alert"><p>Elige una obligación para registrar su pago.</p></Aviso>
         <Link to="/obligaciones" className={`${claseBotonPrimario} w-full no-underline`} data-sin-scroll>Volver a Obligaciones</Link>
       </ShellApp>
     )

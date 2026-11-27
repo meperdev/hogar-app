@@ -66,6 +66,7 @@ export type ItemPasivoSaldo = {
   titular: Titular
   saldoPendiente: number
   tieneSinCalendario: boolean
+  cuotasAbiertasMes?: number | undefined
 }
 
 /** Las tres tarjetas: derivadas, nunca guardadas ni sumadas entre sí. */
@@ -191,4 +192,5 @@ export interface ControladorObligaciones {
   equivalenciaTasa(tasa: { tipo: 'EA' | 'MV'; porcentaje: number }): { ea: number; mv: number }
   validarPasivo(borrador: BorradorPasivo): ErrorFormulario | null
   crearPasivo(borrador: BorradorPasivo): Promise<ResultadoRegistro>
+  eliminarPasivo(pasivoId: string): Promise<{ accion: 'eliminado' | 'archivado'; resumen: string }>
 }

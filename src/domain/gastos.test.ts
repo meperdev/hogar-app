@@ -176,4 +176,71 @@ describe('dominio gastos generales', () => {
     expect(todos.total).toBe(525_000)
     expect(todos.movimientos.map((m) => m.id)).toEqual(['c4', 'c3', 'c2', 'c1'])
   })
+
+  it('lista abonos a obligaciones del mes aparte sin sumarlos al consumo real ni categorías', () => {
+    const res = calcularResumenGastos({
+      ...baseEntrada({ ambito: 'hogar' }),
+      pagosDeuda: [
+        {
+          id: 'pg-hogar',
+          pasivoId: 'pas-visa',
+          pasivoNombre: 'Visa ••4521',
+          pasivoTipo: 'tarjeta',
+          pasivoAmbito: 'hogar',
+          pasivoOwnerMiembroId: 'santiago',
+          tipo: 'abono',
+          monto: 150_000,
+          fecha: '2026-11-26',
+          medioDePagoId: 'mp-nequi',
+          registradoPor: 'santiago',
+          nota: 'Abono mensual',
+        },
+        {
+          id: 'pg-personal-otro',
+          pasivoId: 'pas-otro',
+          pasivoNombre: 'Deuda Camila',
+          pasivoTipo: 'deuda',
+          pasivoAmbito: 'personal',
+          pasivoOwnerMiembroId: 'laura',
+          tipo: 'abono',
+          monto: 90_000,
+          fecha: '2026-11-26',
+          medioDePagoId: 'mp-nequi',
+          registradoPor: 'laura',
+          nota: null,
+        },
+        {
+          id: 'pg-saldo-favor',
+          pasivoId: 'pas-visa',
+          pasivoNombre: 'Visa ••4521',
+          pasivoTipo: 'tarjeta',
+          pasivoAmbito: 'hogar',
+          pasivoOwnerMiembroId: 'santiago',
+          tipo: 'saldo_a_favor',
+          monto: 20_000,
+          fecha: '2026-11-26',
+          medioDePagoId: 'mp-nequi',
+          registradoPor: 'santiago',
+          nota: null,
+        },
+      ],
+    })
+
+    expect(res.total).toBe(500_000)
+    expect(res.totalAbonosDeuda).toBe(150_000)
+    expect(res.abonosDeuda).toEqual([
+      {
+        id: 'pg-hogar',
+        fecha: '2026-11-26',
+        pasivoNombre: 'Visa ••4521',
+        pasivoTipo: 'tarjeta',
+        ambito: 'hogar',
+        monto: 150_000,
+        medioNombre: 'Nequi',
+        medioTipo: 'cuenta',
+        registradoPorNombre: 'Santiago',
+        nota: 'Abono mensual',
+      },
+    ])
+  })
 })

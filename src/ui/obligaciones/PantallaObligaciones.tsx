@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { ItemAgenda, ItemCuota } from '../../app/obligaciones'
 import { hoyCivil } from '../../domain/fechas'
@@ -8,31 +9,24 @@ import {
 } from '../ComponentesBase'
 import { ShellApp } from '../ShellApp'
 import { useObligaciones } from './ContextoObligaciones'
-import { TarjetaItemAgenda, etiquetaAmbitoTitular, montoPendienteItem } from './PiezasObligaciones'
+import {
+  TarjetaItemAgenda,
+  etiquetaAmbitoTitular,
+  etiquetaTipoPasivo,
+  montoPendienteItem,
+} from './PiezasObligaciones'
 import { formatearPeriodoEs, nombreMesPeriodoEs } from '../periodos'
-
-function ctaParaItem(item: ItemAgenda): { destino: string; etiqueta: string } {
-  if (item.tipo === 'cuota') {
-    const prefijo = item.nCuotas > 0 ? `Cuota ${item.numero}/${item.nCuotas}` : item.descripcion
-    return {
-      destino: `/obligaciones/pagar/cuota/${encodeURIComponent(item.cuotaId)}`,
-      etiqueta: `Registrar pago · ${prefijo} (${formatearPesos(item.restante)})`,
-    }
-  }
-  const monto = item.montoEstimado !== null ? ` (${formatearPesos(item.montoEstimado)})` : ''
-  return {
-    destino: `/obligaciones/pagar/obligacion/${encodeURIComponent(item.obligacionId)}`,
-    etiqueta: `Registrar pago · ${item.nombre}${monto}`,
-  }
-}
 
 const claveItem = (item: ItemAgenda) => (item.tipo === 'cuota' ? `c-${item.cuotaId}` : `o-${item.obligacionId}`)
 
 export function PantallaObligaciones() {
   const {
-    periodo, agenda, incluirPersonales, cargando, errorCarga,
-    cambiarPeriodo, alternarIncluirPersonales, recargar,
+    controlador, periodo, agenda, incluirPersonales, cargando, errorCarga,
+    cambiarPeriodo, alternarIncluirPersonales, recargar, mostrarToast,
   } = useObligaciones()
+
+  const [confirmarEliminarId, setConfirmarEliminarId] = useState<string | null>(null)
+  const [eliminandoId, setEliminandoId] = useState<string | null>(null)
 
   const hoy = hoyCivil(new Date())
   const vencidas = agenda?.vencidas ?? []
@@ -50,41 +44,34 @@ export function PantallaObligaciones() {
   const interesPend = [...vencidas, ...pendientes].filter((i): i is ItemCuota => i.tipo === 'cuota').reduce((acc, c) => acc + (c.interes ?? 0), 0)
   const notaCosto = interesPag > 0 || interesPend > 0 ? `${formatearPesos(interesPag)} pag. · ${formatearPesos(interesPend)} pend.` : 'Balde aparte'
 
-  const primerPendiente = vencidas[0] ?? pendientes[0] ?? null
-  const primerPasivoConSaldo = pasivos.find((p) => p.saldoPendiente > 0) ?? null
-  const ctaPrincipal = primerPendiente
-    ? ctaParaItem(primerPendiente)
-    : primerPasivoConSaldo
-      ? {
-          destino: `/obligaciones/pagar/pasivo/${encodeURIComponent(primerPasivoConSaldo.pasivoId)}`,
-          etiqueta: `Registrar abono · ${primerPasivoConSaldo.nombre} (${formatearPesos(primerPasivoConSaldo.saldoPendiente)})`,
-        }
-      : { destino: '/obligaciones/nuevo-pasivo', etiqueta: '+ Agregar tarjeta, crédito o deuda' }
-
   const mesTexto = nombreMesPeriodoEs(periodo)
   const subtituloMes = `${formatearPeriodoEs(periodo)} · ${abiertasCount === 0 ? 'Al día' : abiertasCount === 1 ? '1 pendiente' : `${abiertasCount} pendientes`}`
+
+  async function confirmarEliminarPasivo(pasivoId: string) {
+    if (eliminandoId) return
+    setEliminandoId(pasivoId)
+    try {
+      const res = await controlador.eliminarPasivo(pasivoId)
+      setConfirmarEliminarId(null)
+      mostrarToast(res.resumen)
+      recargar()
+    } catch (causa) {
+      mostrarToast(causa instanceof Error && causa.message ? causa.message : 'No se pudo eliminar la obligación.')
+    } finally {
+      setEliminandoId(null)
+    }
+  }
 
   return (
     <ShellApp
       titulo="Obligaciones del mes"
       subtitulo={subtituloMes}
       mostrarNavegacion
-      etiquetaBarraAccion="Acción principal de obligaciones"
+      etiquetaBarraAccion="Crear nueva obligación"
       barraAccion={
-        primerPendiente || primerPasivoConSaldo ? (
-          <div className="flex items-center gap-2">
-            <Link to={ctaPrincipal.destino} className={`${claseBotonPrimario} flex-1 no-underline`} data-sin-scroll>
-              {ctaPrincipal.etiqueta}
-            </Link>
-            <Link to="/obligaciones/nuevo-pasivo" className={`${claseBotonPequenoSecundario} shrink-0 no-underline`}>
-              + Pasivo
-            </Link>
-          </div>
-        ) : (
-          <Link to="/obligaciones/nuevo-pasivo" className={`${claseBotonPrimario} w-full no-underline`} data-sin-scroll>
-            + Agregar tarjeta, crédito o deuda
-          </Link>
-        )
+        <Link to="/obligaciones/nuevo-pasivo" className={`${claseBotonPrimario} w-full no-underline`} data-sin-scroll>
+          + Nueva obligación
+        </Link>
       }
     >
       {errorCarga ? (
@@ -145,7 +132,7 @@ export function PantallaObligaciones() {
             id="toggle-incluir-personales"
             checked={incluirPersonales}
             onChange={(v) => void alternarIncluirPersonales(v)}
-            ayuda="Apagado por defecto. Incluye tus pasivos y compras personales sin mezclarlos con el hogar."
+            ayuda="Incluye tus pasivos y compras personales sin mezclarlos con el hogar."
             etiquetaAyuda="Información sobre gastos personales en obligaciones"
           />
         }
@@ -165,71 +152,116 @@ export function PantallaObligaciones() {
         </section>
       ) : null}
 
-      <section aria-labelledby="pendientes-heading" className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="pendientes-heading" className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">Pendientes este mes</h2>
-          <span className="hogar-cop text-[0.8125rem] font-bold text-hogar-tinta-suave">{formatearPesos(totalPendientes)} por pagar</span>
-        </div>
-        {pendientes.length > 0 ? (
-          <ul className="m-0 flex list-none flex-col gap-2.5 p-0">{pendientes.map((item) => <TarjetaItemAgenda key={claveItem(item)} item={item} hoy={hoy} />)}</ul>
-        ) : vencidas.length === 0 && !cargando ? (
-          <Tarjeta suave>
-            <p className="m-0 text-sm font-bold text-hogar-tinta">✓ Sin pagos pendientes en {mesTexto}</p>
-          </Tarjeta>
-        ) : null}
-      </section>
+      {pendientes.length > 0 || (vencidas.length === 0 && pasivos.every((p) => p.saldoPendiente === 0) && !cargando) ? (
+        <section aria-labelledby="pendientes-heading" className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 id="pendientes-heading" className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">Pendientes este mes</h2>
+            <span className="hogar-cop text-[0.8125rem] font-bold text-hogar-tinta-suave">{formatearPesos(totalPendientes)} por pagar</span>
+          </div>
+          {pendientes.length > 0 ? (
+            <ul className="m-0 flex list-none flex-col gap-2.5 p-0">{pendientes.map((item) => <TarjetaItemAgenda key={claveItem(item)} item={item} hoy={hoy} />)}</ul>
+          ) : (
+            <Tarjeta suave>
+              <p className="m-0 text-sm font-bold text-hogar-tinta">✓ Sin pagos pendientes en {mesTexto}</p>
+            </Tarjeta>
+          )}
+        </section>
+      ) : null}
 
       {pasivos.length > 0 ? (
         <section aria-labelledby="pasivos-activos-heading" className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 id="pasivos-activos-heading" className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta">
-              Tarjetas, créditos y deudas
+              Deudas, tarjetas y créditos
             </h2>
             <span className="hogar-cop text-[0.8125rem] font-bold text-hogar-tinta-suave">
               {totalSaldoPasivos > 0 ? `${formatearPesos(totalSaldoPasivos)} saldo` : 'Al día'}
             </span>
           </div>
           <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
-            {pasivos.map((p) => (
-              <li key={p.pasivoId}>
-                <Tarjeta
-                  acento={p.saldoPendiente > 0 ? 'indigo' : 'ninguno'}
-                  className="flex flex-col gap-2.5"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta break-words">
-                        {p.nombre}
-                      </p>
-                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                        <Insignia variante={p.ambito === 'hogar' ? 'primario' : 'neutral'}>
-                          {etiquetaAmbitoTitular(p.ambito, p.titular)}
-                        </Insignia>
-                        {p.tieneSinCalendario && p.saldoPendiente > 0 ? (
-                          <Insignia variante="indigo">Abonos libres</Insignia>
-                        ) : null}
+            {pasivos.map((p) => {
+              const confirmando = confirmarEliminarId === p.pasivoId
+              const eliminando = eliminandoId === p.pasivoId
+              const mostrarBotonAbono = p.saldoPendiente > 0 && (p.cuotasAbiertasMes ?? 0) === 0
+              return (
+                <li key={p.pasivoId}>
+                  <Tarjeta
+                    acento={p.saldoPendiente > 0 ? 'indigo' : 'ninguno'}
+                    className="flex flex-col gap-2.5"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta break-words">
+                          {p.nombre}
+                        </p>
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                          <Insignia variante="indigo">{etiquetaTipoPasivo(p.tipo)}</Insignia>
+                          <Insignia variante={p.ambito === 'hogar' ? 'primario' : 'neutral'}>
+                            {etiquetaAmbitoTitular(p.ambito, p.titular)}
+                          </Insignia>
+                          {p.tieneSinCalendario && p.saldoPendiente > 0 ? (
+                            <Insignia variante="neutral">Abonos libres</Insignia>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <span className="block text-[0.6875rem] font-bold uppercase tracking-wide text-hogar-tinta-suave">
+                          Saldo
+                        </span>
+                        <span className="hogar-cop text-base font-extrabold text-hogar-tinta">
+                          {formatearPesos(p.saldoPendiente)}
+                        </span>
                       </div>
                     </div>
-                    <div className="shrink-0 text-right">
-                      <span className="block text-[0.6875rem] font-bold uppercase tracking-wide text-hogar-tinta-suave">
-                        Saldo
-                      </span>
-                      <span className="hogar-cop text-base font-extrabold text-hogar-tinta">
-                        {formatearPesos(p.saldoPendiente)}
-                      </span>
-                    </div>
-                  </div>
-                  {p.saldoPendiente > 0 ? (
-                    <Link
-                      to={`/obligaciones/pagar/pasivo/${encodeURIComponent(p.pasivoId)}`}
-                      className={`${claseBotonPequenoPrimario} w-full no-underline`}
-                    >
-                      Registrar abono
-                    </Link>
-                  ) : null}
-                </Tarjeta>
-              </li>
-            ))}
+
+                    {confirmando ? (
+                      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-hogar-peligro/25 bg-hogar-peligro-suave px-3 py-2">
+                        <span className="text-xs font-bold text-hogar-peligro">
+                          ¿Eliminar «{p.nombre}»?
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            className="inline-flex min-h-11 cursor-pointer items-center rounded-xl border border-hogar-borde-fuerte bg-hogar-superficie px-3 text-xs font-bold text-hogar-tinta"
+                            disabled={eliminando}
+                            onClick={() => setConfirmarEliminarId(null)}
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            className="inline-flex min-h-11 cursor-pointer items-center rounded-xl border-0 bg-hogar-peligro px-3 text-xs font-bold text-white disabled:opacity-60"
+                            disabled={eliminando}
+                            onClick={() => void confirmarEliminarPasivo(p.pasivoId)}
+                          >
+                            {eliminando ? 'Eliminando…' : 'Sí, eliminar'}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        {mostrarBotonAbono ? (
+                          <Link
+                            to={`/obligaciones/pagar/pasivo/${encodeURIComponent(p.pasivoId)}`}
+                            className={`${claseBotonPequenoPrimario} flex-1 no-underline`}
+                          >
+                            Registrar abono
+                          </Link>
+                        ) : null}
+                        <button
+                          type="button"
+                          aria-label={`Eliminar ${p.nombre}`}
+                          className={`${claseBotonPequenoSecundario} ${mostrarBotonAbono ? 'shrink-0' : 'ml-auto'} text-hogar-peligro hover:bg-hogar-peligro-suave`}
+                          onClick={() => setConfirmarEliminarId(p.pasivoId)}
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    )}
+                  </Tarjeta>
+                </li>
+              )
+            })}
           </ul>
         </section>
       ) : null}
