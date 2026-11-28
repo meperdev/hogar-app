@@ -208,7 +208,10 @@ export function crearRemotoObligaciones(cliente: SupabaseClient): RemotoObligaci
 
     async eliminarPasivo(pasivoId) {
       const { data, error } = await cliente.rpc('eliminar_pasivo', { p_pasivo_id: pasivoId })
-      if (error) throw error
+      if (error) {
+        if (error instanceof Error) throw error
+        throw new Error((error as { message?: string }).message || 'No se pudo eliminar la obligación.')
+      }
       const resultado = esquemaEliminarPasivo.parse(data)
       return { accion: resultado.accion }
     },
