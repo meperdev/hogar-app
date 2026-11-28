@@ -2,13 +2,15 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import type { AlcanceCompra } from '../app/compraRapida'
 import type { DatosGastos, GastosPort } from '../app/controladorGastos'
-import { ErrorGastos, type EditarCompraEntrada } from '../app/gastos'
+import { ErrorGastos, type EditarCompraEntrada, type EditarPagoEntrada } from '../app/gastos'
 import type { BaseActorDexie, EntradaOutbox } from './db'
 
 export interface RemotoGastos {
   leer(hogarId: string): Promise<DatosGastos>
   editarCompra(entrada: EditarCompraEntrada): Promise<void>
   anularCompra(compraId: string): Promise<void>
+  editarAbono?(entrada: EditarPagoEntrada): Promise<void>
+  eliminarAbono?(pagoId: string): Promise<void>
 }
 
 const esquemaCompra = z.object({
@@ -40,6 +42,7 @@ const esquemaMedio = z.object({
   id: z.uuid(),
   nombre: z.string(),
   tipo: z.enum(['efectivo', 'cuenta']),
+  owner_miembro_id: z.uuid().nullable().optional(),
   activo: z.boolean(),
   orden: z.number().int().optional(),
 })
@@ -61,6 +64,9 @@ const esquemaPagoDeuda = z.object({
   medio_de_pago_id: z.uuid().nullable(),
   registrado_por: z.uuid(),
   nota: z.string().nullable(),
+  incluir_en_gastos: z.boolean().optional(),
+  categoria_gasto_id: z.uuid().nullable().optional(),
+  creado_en: z.string().optional(),
 })
 
 const esquemaPlan = z.object({
@@ -85,8 +91,14 @@ function mapearErrorRpc(error: { code?: string; message?: string }, porDefecto: 
   if (msg.includes('categoría de una obligación')) {
     return new ErrorGastos('La categoría de un pago de obligación no se puede cambiar.')
   }
-  if (msg.includes('no encontrada')) {
-    return new ErrorGastos('No encontramos esa compra o ya fue anulada.')
+  if (msg.includes('saldo causado')) {
+    return new ErrorGastos('El abono supera el saldo de la obligación a esa fecha.')
+  }
+  if (msg.includes('saldo a favor')) {
+    return new ErrorGastos('No puedes editar o eliminar este abono porque afecta un saldo a favor posterior.')
+  }
+  if (msg.includes('no encontrada') || msg.includes('no encontrado')) {
+    return new ErrorGastos('No encontramos ese registro o ya fue eliminado.')
   }
   if (error.code === '22023') {
     return new ErrorGastos('Revisa los datos ingresados e intenta de nuevo.')
@@ -97,7 +109,7 @@ function mapearErrorRpc(error: { code?: string; message?: string }, porDefecto: 
 export function crearRemotoGastos(cliente: SupabaseClient): RemotoGastos {
   return {
     async leer(hogarId) {
-      const [compras, categorias, medios, pasivos, planes, pagosDeuda, miembros] = await Promise.all([
+      const [compras, categorias, medios, pasivos, planes, pagosDeudaRes, miembros] = await Promise.all([
         cliente
           .from('compra')
           .select(
@@ -112,7 +124,7 @@ export function crearRemotoGastos(cliente: SupabaseClient): RemotoGastos {
           .is('eliminado_en', null),
         cliente
           .from('medio_de_pago')
-          .select('id,nombre,tipo,activo,orden')
+          .select('id,nombre,tipo,owner_miembro_id,activo,orden')
           .eq('hogar_id', hogarId)
           .is('eliminado_en', null),
         cliente
@@ -128,7 +140,7 @@ export function crearRemotoGastos(cliente: SupabaseClient): RemotoGastos {
           .is('eliminado_en', null),
         cliente
           .from('pago_de_deuda')
-          .select('id,pasivo_id,tipo,monto,fecha,medio_de_pago_id,registrado_por,nota')
+          .select('id,pasivo_id,tipo,monto,fecha,medio_de_pago_id,registrado_por,nota,incluir_en_gastos,categoria_gasto_id,creado_en')
           .eq('hogar_id', hogarId)
           .is('eliminado_en', null),
         cliente
@@ -138,9 +150,22 @@ export function crearRemotoGastos(cliente: SupabaseClient): RemotoGastos {
           .is('eliminado_en', null),
       ])
 
-      for (const r of [compras, categorias, medios, pasivos, planes, pagosDeuda, miembros]) {
+      let pagosDeudaData: unknown = pagosDeudaRes.data
+      let pagosDeudaError = pagosDeudaRes.error
+      if (pagosDeudaError && pagosDeudaError.code === '42703') {
+        const respaldo = await cliente
+          .from('pago_de_deuda')
+          .select('id,pasivo_id,tipo,monto,fecha,medio_de_pago_id,registrado_por,nota,creado_en')
+          .eq('hogar_id', hogarId)
+          .is('eliminado_en', null)
+        pagosDeudaData = respaldo.data
+        pagosDeudaError = respaldo.error
+      }
+
+      for (const r of [compras, categorias, medios, pasivos, planes, miembros]) {
         if (r.error) throw r.error
       }
+      if (pagosDeudaError) throw pagosDeudaError
 
       return {
         compras: z.array(esquemaCompra).parse(compras.data),
@@ -148,7 +173,7 @@ export function crearRemotoGastos(cliente: SupabaseClient): RemotoGastos {
         medios: z.array(esquemaMedio).parse(medios.data),
         pasivos: z.array(esquemaPasivo).parse(pasivos.data),
         planes: z.array(esquemaPlan).parse(planes.data),
-        pagosDeuda: z.array(esquemaPagoDeuda).parse(pagosDeuda.data),
+        pagosDeuda: z.array(esquemaPagoDeuda).parse(pagosDeudaData),
         miembros: z.array(esquemaMiembro).parse(miembros.data),
       }
     },
@@ -173,6 +198,30 @@ export function crearRemotoGastos(cliente: SupabaseClient): RemotoGastos {
       })
       if (error) {
         throw mapearErrorRpc(error, 'No se pudo anular la compra.')
+      }
+    },
+
+    async editarAbono(entrada) {
+      const { error } = await cliente.rpc('editar_pago_de_deuda', {
+        p_pago_id: entrada.pagoId,
+        p_monto: entrada.monto,
+        p_fecha: entrada.fecha,
+        p_medio_de_pago_id: entrada.medioId,
+        p_nota: entrada.nota.trim() || null,
+        p_incluir_en_gastos: entrada.incluirEnGastos,
+        p_categoria_gasto_id: entrada.incluirEnGastos ? entrada.categoriaGastoId : null,
+      })
+      if (error) {
+        throw mapearErrorRpc(error, 'No se pudo actualizar el abono.')
+      }
+    },
+
+    async eliminarAbono(pagoId) {
+      const { error } = await cliente.rpc('eliminar_pago_de_deuda', {
+        p_pago_id: pagoId,
+      })
+      if (error) {
+        throw mapearErrorRpc(error, 'No se pudo eliminar el abono.')
       }
     },
   }
@@ -292,6 +341,30 @@ export function crearPuertoGastos(d: {
       } catch (causa) {
         if (causa instanceof ErrorGastos) throw causa
         throw new ErrorGastos('Se necesita conexión para anular esta compra.')
+      }
+    },
+
+    async editarAbono(entrada) {
+      if (!d.remoto.editarAbono) {
+        throw new ErrorGastos('Edición de abonos no disponible.')
+      }
+      try {
+        await d.remoto.editarAbono(entrada)
+      } catch (causa) {
+        if (causa instanceof ErrorGastos) throw causa
+        throw new ErrorGastos('Se necesita conexión para editar este abono.')
+      }
+    },
+
+    async eliminarAbono(pagoId) {
+      if (!d.remoto.eliminarAbono) {
+        throw new ErrorGastos('Eliminación de abonos no disponible.')
+      }
+      try {
+        await d.remoto.eliminarAbono(pagoId)
+      } catch (causa) {
+        if (causa instanceof ErrorGastos) throw causa
+        throw new ErrorGastos('Se necesita conexión para eliminar este abono.')
       }
     },
   }

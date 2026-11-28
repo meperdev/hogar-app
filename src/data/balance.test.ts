@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto'
 import { describe, expect, it, vi } from 'vitest'
 import {
+  combinarPendientesBalance,
   crearPuertoBalance,
   crearRemotoBalance,
   type RemotoBalance,
@@ -172,5 +173,66 @@ describe('adaptador de datos de balance y exportación', () => {
     const exp = await remoto.exportar('2026-11-25', HOGAR)
     expect(exp.hogar.alcance).toBe('hogar')
     expect(exp.personal.alcance).toBe('personal')
+  })
+
+  it('fusiona compras pendientes del outbox al instante en Balance online y offline sin duplicar', async () => {
+    const baseAna = await abrirBaseActor({ hogarId: HOGAR, miembroId: ANA })
+    await baseAna.delete()
+    const base = await abrirBaseActor({ hogarId: HOGAR, miembroId: ANA })
+
+    let seq = 1
+    const lote = construirLoteCompra(
+      {
+        hogarId: HOGAR,
+        actorId: ANA,
+        fecha: '2026-11-25',
+        descripcion: 'Mercado',
+        monto: 90_000,
+        categoriaId: '01950000-0000-7000-8000-000000000099',
+        ambito: 'hogar',
+        pago: {
+          tipo: 'medio',
+          medioDePagoId: '01950000-0000-7000-8000-000000000011',
+        },
+        factura: null,
+        alias: null,
+      },
+      () => `01950000-0000-7000-8000-${String(seq++).padStart(12, '0')}`,
+    )
+    const entradaOutbox = {
+      loteId: lote.lote_id,
+      estado: 'pendiente' as const,
+      creadoEn: '2026-11-25T15:00:00Z',
+      motivo: null,
+      lote,
+    }
+    await base.outbox.put(entradaOutbox)
+
+    const remoto: RemotoBalance = {
+      leer: vi
+        .fn()
+        .mockResolvedValueOnce(datosMuestra())
+        .mockRejectedValueOnce(new Error('sin red')),
+      enviar: vi.fn(async () => ({ estado: 'aplicado' as const })),
+      exportar: vi.fn(async () => ({ hogar: {}, personal: {} }) as never),
+      listarRespaldos: vi.fn(async () => []),
+    }
+
+    const puerto = crearPuertoBalance({
+      base: async () => base,
+      remoto,
+      alcance: { hogarId: HOGAR, miembroId: ANA },
+    })
+
+    const online = await puerto.cargar()
+    expect(online.compras).toHaveLength(1)
+    expect(online.compras[0]?.monto_total).toBe(90_000)
+
+    const offline = await puerto.cargar()
+    expect(offline.compras).toHaveLength(1)
+
+    const sinDuplicar = combinarPendientesBalance(online, [entradaOutbox], HOGAR)
+    expect(sinDuplicar.compras).toHaveLength(1)
+    base.close()
   })
 })

@@ -21,6 +21,7 @@ import type {
   AgendaMes,
   BorradorPago,
   ControladorObligaciones,
+  EditarPagoEntrada,
   EvaluacionPago,
   ItemAgenda,
   ItemCuota,
@@ -70,6 +71,8 @@ export type DatosObligaciones = {
     medio_de_pago_id?: string | null | undefined
     registrado_por: string
     nota?: string | null | undefined
+    incluir_en_gastos?: boolean | undefined
+    categoria_gasto_id?: string | null | undefined
   }[]
   obligaciones: {
     id: string
@@ -101,6 +104,8 @@ export type ResultadoEnvio =
 export interface ObligacionesPort {
   cargar(): Promise<DatosObligaciones>
   enviar(lote: LoteObligaciones): Promise<ResultadoEnvio>
+  editarPago?(entrada: EditarPagoEntrada): Promise<void>
+  eliminarPago?(pagoId: string): Promise<void>
   eliminarPasivo(pasivoId: string): Promise<{ accion: 'eliminado' | 'archivado' }>
   leerPreferencia(clave: string): Promise<string | null>
   guardarPreferencia(clave: string, valor: string): Promise<void>
@@ -242,6 +247,9 @@ export function crearControladorObligaciones(dep: DependenciasObligaciones): Con
           : { tipo: 'miembro', miembroId: pasivo.owner_miembro_id, nombre: nombreMiembro(d, pasivo.owner_miembro_id) }
         const nombrePasivo = pasivo.ultimos_4 ? `${pasivo.nombre} ••${pasivo.ultimos_4}` : pasivo.nombre
         const saldoPendiente = Math.max(0, recorrerLibro(libro, null).saldo)
+        const tieneComprasRegistradas = d.planes.some(
+          (pl) => pl.pasivo_id === pasivo.id && pl.compra_id !== null,
+        )
         const abonosPasivo = d.pagos
           .filter((g) => g.pasivo_id === pasivo.id)
           .slice()
@@ -250,6 +258,7 @@ export function crearControladorObligaciones(dep: DependenciasObligaciones): Con
             id: g.id,
             fecha: g.fecha,
             monto: g.monto,
+            medioDePagoId: g.medio_de_pago_id ?? null,
             medioNombre:
               (g.medio_de_pago_id
                 ? d.medios.find((m) => m.id === g.medio_de_pago_id)?.nombre
@@ -257,6 +266,11 @@ export function crearControladorObligaciones(dep: DependenciasObligaciones): Con
             registradoPor: nombreMiembro(d, g.registrado_por),
             nota: g.nota ?? null,
             tipo: g.tipo,
+            incluirEnGastos: Boolean(g.incluir_en_gastos),
+            categoriaGastoId: g.categoria_gasto_id ?? null,
+            categoriaGastoNombre: g.categoria_gasto_id
+              ? (d.categorias.find((c) => c.id === g.categoria_gasto_id)?.nombre ?? null)
+              : null,
           }))
         pasivosSaldo.push({
           pasivoId: pasivo.id,
@@ -266,6 +280,7 @@ export function crearControladorObligaciones(dep: DependenciasObligaciones): Con
           titular,
           saldoPendiente,
           tieneSinCalendario: libro.planes.some((p) => p.sistema === 'sin_calendario'),
+          tieneComprasRegistradas,
           abonos: abonosPasivo,
         })
         for (const cuota of libro.cuotas) {
@@ -331,7 +346,14 @@ export function crearControladorObligaciones(dep: DependenciasObligaciones): Con
         pasivoSaldo.cuotasAbiertasMes = cuotasAbiertasPorPasivo.get(pasivoSaldo.pasivoId) ?? 0
       }
       pasivosSaldo.sort((a, b) => b.saldoPendiente - a.saldoPendiente || a.nombre.localeCompare(b.nombre))
-      const agenda: AgendaMes = { resumen: { periodo, ...resumen }, vencidas: [], pendientes: [], pagadas: [], pasivos: pasivosSaldo }
+      const agenda: AgendaMes = {
+        resumen: { periodo, ...resumen },
+        vencidas: [],
+        pendientes: [],
+        pagadas: [],
+        pasivos: pasivosSaldo,
+        categorias: d.categorias,
+      }
       for (const item of items) {
         if (item.estado === 'pagada') agenda.pagadas.push(item)
         else if (item.estado === 'vencida' || (item.estado === 'parcial' && item.fechaVencimiento < fechaHoy)) agenda.vencidas.push(item)
@@ -357,6 +379,9 @@ export function crearControladorObligaciones(dep: DependenciasObligaciones): Con
       const plan = d.planes.find((p) => p.id === cuota?.plan_id)
       if (!cuota || !plan) throw new ErrorObligaciones('cuota', 'La cuota no existe o no la puedes ver')
       const costo = d.costos.find((k) => k.cuota_id === cuotaId)
+      const tieneCompras = d.planes.some((p) => p.pasivo_id === plan.pasivo_id && p.compra_id !== null)
+      const catDefecto =
+        d.categorias.find((c) => c.nombre.toLowerCase() === 'otros')?.id ?? d.categorias[0]?.id ?? null
       return {
         pasivoId: plan.pasivo_id,
         cuotaId,
@@ -365,6 +390,9 @@ export function crearControladorObligaciones(dep: DependenciasObligaciones): Con
         capital: cuota.capital,
         interes: costo?.monto ?? null,
         nota: '',
+        ...(!tieneCompras && catDefecto
+          ? { incluirEnGastos: true, categoriaGastoId: catDefecto }
+          : {}),
       }
     },
 
@@ -372,6 +400,9 @@ export function crearControladorObligaciones(dep: DependenciasObligaciones): Con
       const d = await vigentes()
       const pasivo = d.pasivos.find((p) => p.id === pasivoId)
       if (!pasivo) throw new ErrorObligaciones('pasivo', 'El pasivo no existe o no lo puedes ver')
+      const tieneCompras = d.planes.some((p) => p.pasivo_id === pasivoId && p.compra_id !== null)
+      const catDefecto =
+        d.categorias.find((c) => c.nombre.toLowerCase() === 'otros')?.id ?? d.categorias[0]?.id ?? null
       return {
         pasivoId,
         cuotaId: null,
@@ -380,6 +411,9 @@ export function crearControladorObligaciones(dep: DependenciasObligaciones): Con
         capital: 0,
         interes: null,
         nota: '',
+        ...(!tieneCompras && catDefecto
+          ? { incluirEnGastos: true, categoriaGastoId: catDefecto }
+          : {}),
       }
     },
 
@@ -411,8 +445,35 @@ export function crearControladorObligaciones(dep: DependenciasObligaciones): Con
         division: e.estado === 'sobrepago'
           ? { tope: e.tope, cargoCuota: b.cuotaId === null ? null : cargoCuota(libro, b.cuotaId) }
           : null,
+        incluirEnGastos: b.incluirEnGastos,
+        categoriaGastoId: b.categoriaGastoId,
       }, dep.nuevoId)
       return enviar(l, `Pago registrado: ${formatearPesos(e.monto)}`)
+    },
+
+    async editarPago(entrada) {
+      if (!port.editarPago) {
+        throw new ErrorObligaciones('pago', 'Edición de abonos no disponible en este dispositivo.')
+      }
+      if (!Number.isSafeInteger(entrada.monto) || entrada.monto <= 0) {
+        throw new ErrorObligaciones('monto', 'Ingresa un monto entero mayor a $0.')
+      }
+      if (!entrada.medioId) {
+        throw new ErrorObligaciones('medio', 'Elige con qué pagaste.')
+      }
+      if (entrada.incluirEnGastos && !entrada.categoriaGastoId) {
+        throw new ErrorObligaciones('categoriaGasto', 'Elige una categoría para contarlo como gasto.')
+      }
+      await port.editarPago({ ...entrada, nota: entrada.nota.trim() })
+      await cargar()
+    },
+
+    async eliminarPago(pagoId) {
+      if (!port.eliminarPago) {
+        throw new ErrorObligaciones('pago', 'Eliminación de abonos no disponible en este dispositivo.')
+      }
+      await port.eliminarPago(pagoId)
+      await cargar()
     },
 
     async registrarPagoObligacion(b) {

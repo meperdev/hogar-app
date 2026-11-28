@@ -58,12 +58,33 @@ export function crearMediosDePagoSupabase(cliente: SupabaseClient): MediosDePago
 
     async crear(entrada) {
       const validado = validarNuevoMedio(entrada)
-      const { data, error } = await cliente.rpc('crear_medio_de_pago', {
+      const params: Record<string, unknown> = {
         p_nombre: validado.nombre,
         p_tipo: validado.tipo,
         p_owner_tipo: validado.ownerTipo,
-      })
+      }
+      if (validado.ownerMiembroId !== undefined) {
+        params.p_owner_miembro_id = validado.ownerTipo === 'hogar' ? null : validado.ownerMiembroId
+      }
+      const { data, error } = await cliente.rpc('crear_medio_de_pago', params)
       if (error) errorRpcMedio(error, 'No se pudo guardar el medio de pago.')
+      return mapearMedio(esquemaMedio.parse(data))
+    },
+
+    async editar(entrada) {
+      const nombre = validarNuevoMedio({
+        nombre: entrada.nombre,
+        tipo: 'cuenta',
+        ownerTipo: entrada.ownerTipo,
+        ownerMiembroId: entrada.ownerMiembroId,
+      }).nombre
+      const { data, error } = await cliente.rpc('editar_medio_de_pago', {
+        p_medio_id: entrada.medioId,
+        p_nombre: nombre,
+        p_owner_tipo: entrada.ownerTipo,
+        p_owner_miembro_id: entrada.ownerTipo === 'hogar' ? null : (entrada.ownerMiembroId ?? null),
+      })
+      if (error) errorRpcMedio(error, 'No se pudo actualizar el medio de pago.')
       return mapearMedio(esquemaMedio.parse(data))
     },
 

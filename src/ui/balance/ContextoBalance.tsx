@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { ControladorBalance, VistaBalanceMes } from '../../app/balance'
 import type { Hogar } from '../../app/fundacion'
 import { hoyCivil } from '../../domain/fechas'
@@ -41,6 +41,16 @@ export function ProveedorBalance({
   const [toast, setToast] = useState('')
   const [revision, setRevision] = useState(0)
   const notificaciones = useNotificacionesOpcional()
+  const vistaRef = useRef<VistaBalanceMes | null>(null)
+  vistaRef.current = vista
+
+  useEffect(() => {
+    function recargarPorCompras() {
+      setRevision((r) => r + 1)
+    }
+    window.addEventListener('hogar:compras-actualizadas', recargarPorCompras)
+    return () => window.removeEventListener('hogar:compras-actualizadas', recargarPorCompras)
+  }, [])
 
   const recargar = useCallback(() => setRevision((r) => r + 1), [])
   const notificar = useCallback(
@@ -53,7 +63,9 @@ export function ProveedorBalance({
 
   useEffect(() => {
     let vigente = true
-    setCargando(true)
+    if (!vistaRef.current || vistaRef.current.periodo !== periodo) {
+      setCargando(true)
+    }
     setErrorCarga('')
     void controlador.cargarMes(periodo).then(
       (datos) => {

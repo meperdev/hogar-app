@@ -362,4 +362,112 @@ describe('Obligaciones del mes UI', () => {
     await act(async () => botonPorTexto(contAbono, 'Pagar todo ($1.426.000)')?.click())
     expect(contAbono.querySelector<HTMLInputElement>('#pago-capital')?.value).toBe('$1.426.000')
   })
+
+  it('preactiva Contar como gasto del mes en deudas sin compras y permite editar/eliminar abonos inline', async () => {
+    const agendaConAbono: AgendaMes = {
+      ...agendaBase('2026-11'),
+      categorias: [
+        { id: 'cat-otros', nombre: 'Otros' },
+        { id: 'cat-hogar', nombre: 'Hogar' },
+      ],
+      pasivos: [
+        {
+          pasivoId: 'pas-ext',
+          nombre: 'Deuda Sofía',
+          tipo: 'deuda',
+          ambito: 'hogar',
+          titular: { tipo: 'hogar' },
+          saldoPendiente: 500_000,
+          tieneSinCalendario: true,
+          tieneComprasRegistradas: false,
+          cuotasAbiertasMes: 0,
+          abonos: [
+            {
+              id: 'ab-edit-1',
+              fecha: '2026-11-20',
+              monto: 100_000,
+              medioDePagoId: 'med-nequi',
+              medioNombre: 'Nequi · Camila',
+              registradoPor: 'Santiago',
+              nota: 'Primera cuota',
+              tipo: 'abono',
+              incluirEnGastos: true,
+              categoriaGastoId: 'cat-otros',
+              categoriaGastoNombre: 'Otros',
+            },
+          ],
+        },
+      ],
+    }
+
+    const editarPago = vi.fn(async () => {})
+    const eliminarPago = vi.fn(async () => {})
+    const { controlador, espias } = crearControladorMock({
+      cargarMes: vi.fn(async () => agendaConAbono),
+      prepararPagoPasivo: vi.fn(async (pasivoId: string): Promise<BorradorPago> => ({
+        pasivoId,
+        cuotaId: null,
+        medioId: 'med-nequi',
+        fecha: '2026-11-27',
+        capital: 0,
+        interes: null,
+        nota: '',
+        incluirEnGastos: true,
+        categoriaGastoId: 'cat-otros',
+      })),
+      editarPago,
+      eliminarPago,
+    })
+
+    const { contenedor: contPagar } = await montar({
+      rutaInicial: '/obligaciones/pagar/pasivo/pas-ext',
+      controlador,
+    })
+    const chkGasto = contPagar.querySelector<HTMLInputElement>('#pago-incluir-en-gastos')
+    expect(chkGasto?.checked).toBe(true)
+    await act(async () => chkGasto?.click())
+    expect(chkGasto?.checked).toBe(false)
+    await act(async () => chkGasto?.click())
+    expect(chkGasto?.checked).toBe(true)
+
+    const capInput = contPagar.querySelector<HTMLInputElement>('#pago-capital')!
+    await act(async () => escribir(capInput, '150000'))
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    await act(async () => contPagar.querySelector<HTMLButtonElement>('button[data-sin-scroll]')?.click())
+    expect(espias.registrarPago).toHaveBeenCalledWith(
+      expect.objectContaining({
+        incluirEnGastos: true,
+        categoriaGastoId: 'cat-otros',
+      }),
+      { dividirSobrepago: false },
+    )
+
+    const { contenedor: contLista } = await montar({
+      rutaInicial: '/obligaciones',
+      controlador,
+    })
+    expect(contLista.textContent).toContain('En gastos · Otros')
+    const btnEditar = contLista.querySelector<HTMLButtonElement>(
+      'button[aria-label^="Editar abono de"]',
+    )
+    await act(async () => btnEditar?.click())
+
+    const btnGuardarAbono = botonPorTexto(contLista, 'Guardar abono')
+    expect(btnGuardarAbono).toBeDefined()
+    await act(async () => btnGuardarAbono?.click())
+    expect(editarPago).toHaveBeenCalledWith({
+      pagoId: 'ab-edit-1',
+      monto: 100_000,
+      fecha: '2026-11-20',
+      medioId: 'med-nequi',
+      nota: 'Primera cuota',
+      incluirEnGastos: true,
+      categoriaGastoId: 'cat-otros',
+    })
+
+    await act(async () => btnEditar?.click())
+    await act(async () => botonPorTexto(contLista, 'Eliminar abono')?.click())
+    await act(async () => botonPorTexto(contLista, 'Sí, eliminar')?.click())
+    expect(eliminarPago).toHaveBeenCalledWith('ab-edit-1')
+  })
 })

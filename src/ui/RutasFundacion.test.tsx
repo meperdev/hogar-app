@@ -513,4 +513,94 @@ describe('Shell autenticado, navegación e invitaciones', () => {
     })
     expect(reordenar).toHaveBeenCalledWith(['cf-2', 'cf-1'])
   })
+
+  it('permite crear un medio de pago para otro miembro activo (Sofía) y editar su dueño', async () => {
+    const baseHogar = hogarEjemplo('admin')
+    const hogarConSofia: Hogar = {
+      ...baseHogar,
+      miembros: [
+        baseHogar.miembroActual,
+        { id: 'sofia-id', nombre: 'Sofía', rol: 'miembro', activo: true, tieneCuenta: false },
+      ],
+    }
+    const crear = vi.fn(async (entrada: { nombre: string; tipo: 'efectivo' | 'cuenta'; ownerTipo: 'miembro' | 'hogar'; ownerMiembroId?: string | null }) => ({
+      id: 'mp-sofia',
+      nombre: entrada.nombre.trim(),
+      tipo: entrada.tipo,
+      ownerTipo: entrada.ownerTipo,
+      ownerMiembroId: entrada.ownerMiembroId ?? 'ana',
+      activo: true,
+      orden: 0,
+    }))
+    const editar = vi.fn(async (entrada: { medioId: string; nombre: string; ownerTipo: 'miembro' | 'hogar'; ownerMiembroId?: string | null }) => ({
+      id: entrada.medioId,
+      nombre: entrada.nombre.trim(),
+      tipo: 'cuenta' as const,
+      ownerTipo: entrada.ownerTipo,
+      ownerMiembroId: entrada.ownerMiembroId ?? null,
+      activo: true,
+      orden: 0,
+    }))
+
+    const { servicios, notificar } = crearServiciosBase({
+      cargar: vi.fn(async () => hogarConSofia),
+    })
+    servicios.mediosDePago = {
+      listar: vi.fn(async () => []),
+      crear,
+      editar,
+      cambiarActivo: vi.fn(async (id, activo) => ({ id, activo })),
+      reordenar: vi.fn(async () => {}),
+    }
+
+    const { contenedor } = await montar(servicios)
+    await act(async () => notificar({ usuarioId: 'ana' }))
+    await act(async () => {
+      contenedor.querySelector<HTMLAnchorElement>('a[aria-label="Mi perfil, hogar y cerrar sesión"]')?.click()
+    })
+
+    const botonAgregar = [...contenedor.querySelectorAll('button')].find(
+      (b) => b.textContent === '+ Agregar medio',
+    )
+    await act(async () => botonAgregar?.click())
+
+    const inputNombre = contenedor.querySelector<HTMLInputElement>('#medio-nuevo-nombre')!
+    const selectDueno = contenedor.querySelector<HTMLSelectElement>('#medio-nuevo-dueno')!
+    expect([...selectDueno.options].map((o) => o.textContent)).toContain('Sofía')
+
+    await act(async () => {
+      escribirCampo(inputNombre, 'Efectivo Sofía')
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')?.set?.call(selectDueno, 'sofia-id')
+      selectDueno.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    await act(async () => {
+      inputNombre.closest('form')?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(crear).toHaveBeenCalledWith({
+      nombre: 'Efectivo Sofía',
+      tipo: 'cuenta',
+      ownerTipo: 'miembro',
+      ownerMiembroId: 'sofia-id',
+    })
+    expect(contenedor.textContent).toContain('De Sofía')
+
+    const btnEditar = [...contenedor.querySelectorAll('button')].find((b) => b.textContent === 'Editar')
+    await act(async () => btnEditar?.click())
+    const inputEditNombre = contenedor.querySelector<HTMLInputElement>('#editar-medio-nombre-mp-sofia')!
+    await act(async () => {
+      escribirCampo(inputEditNombre, 'Nequi Sofía')
+    })
+    await act(async () => {
+      inputEditNombre.closest('form')?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(editar).toHaveBeenCalledWith({
+      medioId: 'mp-sofia',
+      nombre: 'Nequi Sofía',
+      ownerTipo: 'miembro',
+      ownerMiembroId: 'sofia-id',
+    })
+    expect(contenedor.textContent).toContain('Nequi Sofía')
+  })
 })

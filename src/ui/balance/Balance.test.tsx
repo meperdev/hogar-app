@@ -343,4 +343,24 @@ describe('UI del Núcleo 3 (Balance de pareja y exportación)', () => {
     expect(switchCfg.checked).toBe(false)
     expect(contenedor.querySelector('[role="alert"]')?.textContent).toContain('Otro dispositivo')
   })
+
+  it('recarga en segundo plano sin parpadeo al emitirse hogar:compras-actualizadas', async () => {
+    const port = crearPuertoDePrueba()
+    const cargarEspia = vi.spyOn(port, 'cargar')
+    const { contenedor } = await montar('/balance', port)
+
+    expect(cargarEspia).toHaveBeenCalledTimes(1)
+    expect(contenedor.textContent).toContain('Balance de pareja')
+
+    await act(async () => {
+      window.dispatchEvent(new Event('hogar:compras-actualizadas'))
+    })
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(cargarEspia).toHaveBeenCalledTimes(2)
+    expect(contenedor.textContent).toContain('Balance de pareja')
+    expect(contenedor.textContent).not.toContain('Cargando balance')
+  })
 })

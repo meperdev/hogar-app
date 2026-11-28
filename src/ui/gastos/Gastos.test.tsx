@@ -416,4 +416,89 @@ describe('UI Gastos generales', () => {
     expect(contenedor.textContent).toContain('$200.000')
     expect(contenedor.textContent).toContain('$420.000')
   })
+
+  it('muestra y busca por pagadoPorNombre y permite editar/eliminar abonos inline en Gastos', async () => {
+    const editarAbono = vi.fn(async () => {})
+    const eliminarAbono = vi.fn(async () => {})
+    const cargarMes = vi.fn(async (p: string, a: FiltroAmbitoGastos): Promise<VistaGastosMes> => {
+      const base = vistaDemo(p, a)
+      return {
+        ...base,
+        movimientos: [
+          {
+            ...base.movimientos[0]!,
+            pagadoPorNombre: 'Sofía',
+          },
+          {
+            id: 'ab-en-gasto',
+            fecha: `${p}-26`,
+            descripcion: 'Abono · Deuda externa',
+            montoTotal: 150_000,
+            categoriaId: 'cat-mercado',
+            categoriaNombre: 'Mercado',
+            categoriaIcono: 'mercado',
+            ambito: 'hogar',
+            pagoTipo: 'contado',
+            medioDePagoId: 'm-nequi',
+            financiadaPorPasivoId: null,
+            obligacionId: null,
+            medioNombre: 'Nequi',
+            medioTipo: 'cuenta',
+            cuotas: null,
+            registradoPorNombre: 'Santiago',
+            pagadoPorNombre: 'Sofía',
+            esAbonoDeuda: true,
+            pasivoNombre: 'Deuda externa',
+            nota: 'Cuota 1',
+            origen: 'manual',
+          },
+        ],
+        totalAbonosDeuda: 80_000,
+        abonosDeuda: [
+          {
+            id: 'ab-fuera-gasto',
+            fecha: `${p}-27`,
+            pasivoNombre: 'Tarjeta Banco',
+            pasivoTipo: 'tarjeta',
+            ambito: 'hogar',
+            monto: 80_000,
+            medioDePagoId: 'm-bancolombia',
+            medioNombre: 'Bancolombia',
+            medioTipo: 'cuenta',
+            registradoPorNombre: 'Santiago',
+            pagadoPorNombre: 'Sofía',
+            nota: 'Abono mensual',
+            incluirEnGastos: false,
+            categoriaGastoId: null,
+          },
+        ],
+      }
+    })
+
+    const { contenedor } = await montar({ cargarMes, editarAbono, eliminarAbono })
+    expect(contenedor.textContent).toContain('Sofía')
+    expect(contenedor.textContent).toContain('Abono · Deuda externa')
+
+    await act(async () => botonPorTexto(contenedor, 'Abono · Deuda externa')?.click())
+    const btnGuardarMovAbono = botonPorTexto(contenedor, 'Guardar abono')
+    expect(btnGuardarMovAbono).toBeDefined()
+    await act(async () => btnGuardarMovAbono?.click())
+    expect(editarAbono).toHaveBeenCalledWith({
+      pagoId: 'ab-en-gasto',
+      monto: 150_000,
+      fecha: '2026-11-26',
+      medioId: 'm-nequi',
+      nota: 'Cuota 1',
+      incluirEnGastos: true,
+      categoriaGastoId: 'cat-mercado',
+    })
+
+    const btnEditarSec = contenedor.querySelector<HTMLButtonElement>(
+      'button[aria-label="Editar abono de Tarjeta Banco"]',
+    )
+    await act(async () => btnEditarSec?.click())
+    await act(async () => botonPorTexto(contenedor, 'Eliminar abono')?.click())
+    await act(async () => botonPorTexto(contenedor, 'Sí, eliminar')?.click())
+    expect(eliminarAbono).toHaveBeenCalledWith('ab-fuera-gasto')
+  })
 })

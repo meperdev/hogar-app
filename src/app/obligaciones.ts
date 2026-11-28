@@ -62,10 +62,14 @@ export type AbonoPasivoItem = {
   id: string
   fecha: string
   monto: number
+  medioDePagoId?: string | null | undefined
   medioNombre: string
   registradoPor: string
   nota: string | null
   tipo: 'abono' | 'saldo_a_favor'
+  incluirEnGastos?: boolean | undefined
+  categoriaGastoId?: string | null | undefined
+  categoriaGastoNombre?: string | null | undefined
 }
 
 export type ItemPasivoSaldo = {
@@ -76,6 +80,7 @@ export type ItemPasivoSaldo = {
   titular: Titular
   saldoPendiente: number
   tieneSinCalendario: boolean
+  tieneComprasRegistradas?: boolean | undefined
   cuotasAbiertasMes?: number | undefined
   abonos?: AbonoPasivoItem[] | undefined
 }
@@ -99,6 +104,7 @@ export type AgendaMes = {
   pendientes: ItemAgenda[]
   pagadas: ItemAgenda[]
   pasivos?: ItemPasivoSaldo[] | undefined
+  categorias?: { id: string; nombre: string }[] | undefined
 }
 
 export type MedioPagoOpcion = {
@@ -123,6 +129,18 @@ export type BorradorPago = {
    */
   interes: number | null
   nota: string
+  incluirEnGastos?: boolean | undefined
+  categoriaGastoId?: string | null | undefined
+}
+
+export type EditarPagoEntrada = {
+  pagoId: string
+  monto: number
+  fecha: string
+  medioId: string
+  nota: string
+  incluirEnGastos: boolean
+  categoriaGastoId: string | null
 }
 
 export type Aporte = { miembroId: string; monto: number } | null
@@ -196,6 +214,8 @@ export interface ControladorObligaciones {
   evaluarPago(borrador: BorradorPago): Promise<EvaluacionPago>
   /** `dividirSobrepago` solo tras la confirmación explícita del aviso de sobrepago. */
   registrarPago(borrador: BorradorPago, opciones: { dividirSobrepago: boolean }): Promise<ResultadoRegistro>
+  editarPago?(entrada: EditarPagoEntrada): Promise<void>
+  eliminarPago?(pagoId: string): Promise<void>
 
   registrarPagoObligacion(borrador: BorradorPagoObligacion): Promise<ResultadoRegistro>
 

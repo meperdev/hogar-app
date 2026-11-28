@@ -1,7 +1,15 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { AlcanceCompra } from '../../app/compraRapida'
 import type { Hogar } from '../../app/fundacion'
-import type { AgendaMes, ControladorObligaciones, ItemCuota, ItemObligacion, ItemPasivoSaldo, MedioPagoOpcion } from '../../app/obligaciones'
+import type {
+  AgendaMes,
+  ControladorObligaciones,
+  EditarPagoEntrada,
+  ItemCuota,
+  ItemObligacion,
+  ItemPasivoSaldo,
+  MedioPagoOpcion,
+} from '../../app/obligaciones'
 import { hoyCivil } from '../../domain/fechas'
 import { useNotificacionesOpcional } from '../Notificaciones'
 
@@ -23,6 +31,8 @@ type ValorContextoObligaciones = {
   buscarCuota: (cuotaId: string) => ItemCuota | null
   buscarObligacion: (obligacionId: string) => ItemObligacion | null
   buscarPasivo: (pasivoId: string) => ItemPasivoSaldo | null
+  editarPago: (entrada: EditarPagoEntrada) => Promise<void>
+  eliminarPago: (pagoId: string) => Promise<void>
 }
 
 const ContextoObligaciones = createContext<ValorContextoObligaciones | null>(null)
@@ -47,6 +57,8 @@ export function ProveedorObligaciones({
   const [errorCarga, setErrorCarga] = useState('')
   const [toast, setToast] = useState('')
   const [revision, setRevision] = useState(0)
+  const agendaRef = useRef<AgendaMes | null>(null)
+  agendaRef.current = agenda
   const notificaciones = useNotificacionesOpcional()
   const mostrarToast = useCallback(
     (mensaje: string) => {
@@ -57,8 +69,17 @@ export function ProveedorObligaciones({
   )
 
   useEffect(() => {
+    if (typeof window === 'undefined') return
+    const recargarPorActualizacion = () => setRevision((actual) => actual + 1)
+    window.addEventListener('hogar:compras-actualizadas', recargarPorActualizacion)
+    return () => window.removeEventListener('hogar:compras-actualizadas', recargarPorActualizacion)
+  }, [])
+
+  useEffect(() => {
     let vigente = true
-    setCargando(true)
+    if (!agendaRef.current || agendaRef.current.resumen.periodo !== periodo) {
+      setCargando(true)
+    }
     setErrorCarga('')
     void Promise.all([controlador.cargarMes(periodo), controlador.leerIncluirPersonales(), controlador.medios()])
       .then(([agendaCargada, prefPersonales, mediosCargados]) => {
@@ -101,15 +122,49 @@ export function ProveedorObligaciones({
     [agenda],
   )
 
+  const recargar = useCallback(() => setRevision((actual) => actual + 1), [])
+
+  const editarPago = useCallback(
+    async (entrada: EditarPagoEntrada) => {
+      if (!controlador.editarPago) {
+        throw new Error('La edición de abonos no está disponible.')
+      }
+      await controlador.editarPago(entrada)
+      mostrarToast('Abono actualizado')
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('hogar:compras-actualizadas'))
+      }
+      recargar()
+    },
+    [controlador, mostrarToast, recargar],
+  )
+
+  const eliminarPago = useCallback(
+    async (pagoId: string) => {
+      if (!controlador.eliminarPago) {
+        throw new Error('La eliminación de abonos no está disponible.')
+      }
+      await controlador.eliminarPago(pagoId)
+      mostrarToast('Abono eliminado')
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('hogar:compras-actualizadas'))
+      }
+      recargar()
+    },
+    [controlador, mostrarToast, recargar],
+  )
+
   return (
     <ContextoObligaciones.Provider
       value={{
         hogar, controlador, periodo, agenda, medios, incluirPersonales, cargando, errorCarga, toast,
         cambiarPeriodo: setPeriodo, alternarIncluirPersonales,
-        recargar: () => setRevision((actual) => actual + 1),
+        recargar,
         mostrarToast,
         limpiarToast: () => setToast(''),
         buscarCuota, buscarObligacion, buscarPasivo,
+        editarPago,
+        eliminarPago,
       }}
     >
       {children}

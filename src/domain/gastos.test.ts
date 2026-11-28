@@ -236,10 +236,14 @@ describe('dominio gastos generales', () => {
         pasivoTipo: 'tarjeta',
         ambito: 'hogar',
         monto: 150_000,
+        medioDePagoId: 'mp-nequi',
         medioNombre: 'Nequi',
         medioTipo: 'cuenta',
         registradoPorNombre: 'Santiago',
+        pagadoPorNombre: 'Santiago',
         nota: 'Abono mensual',
+        incluirEnGastos: false,
+        categoriaGastoId: null,
       },
     ])
   })
@@ -284,5 +288,89 @@ describe('dominio gastos generales', () => {
     })
 
     expect(res.movimientos.map((m) => m.id)).toEqual(['c-uber', 'c-arriendo'])
+  })
+
+  it('muestra al dueño real del medio en pagadoPorNombre e incluye abonos marcados en gastos sin duplicar', () => {
+    const entrada = baseEntrada({ ambito: 'hogar' })
+    const res = calcularResumenGastos({
+      ...entrada,
+      miembros: [
+        { id: 'santiago', nombre: 'Santiago' },
+        { id: 'sofia', nombre: 'Sofía' },
+      ],
+      medios: [
+        ...entrada.medios,
+        {
+          id: 'mp-efectivo-sofia',
+          nombre: 'Efectivo Sofía',
+          tipo: 'efectivo',
+          ownerMiembroId: 'sofia',
+        },
+      ],
+      compras: [
+        {
+          id: 'c-sofia',
+          fecha: '2026-11-22',
+          descripcion: 'Mercado',
+          montoTotal: 120_000,
+          categoriaId: 'cat-mercado',
+          ambito: 'hogar',
+          miembroId: null,
+          pagoTipo: 'contado',
+          medioDePagoId: 'mp-efectivo-sofia',
+          financiadaPorPasivoId: null,
+          obligacionId: null,
+          registradoPor: 'santiago',
+          origen: 'manual',
+        },
+      ],
+      pagosDeuda: [
+        {
+          id: 'pg-gasto',
+          pasivoId: 'pas-ext',
+          pasivoNombre: 'Deuda amigo',
+          pasivoTipo: 'deuda',
+          pasivoAmbito: 'hogar',
+          pasivoOwnerMiembroId: null,
+          tipo: 'abono',
+          monto: 200_000,
+          fecha: '2026-11-25',
+          medioDePagoId: 'mp-efectivo-sofia',
+          registradoPor: 'santiago',
+          nota: 'Primer abono',
+          incluirEnGastos: true,
+          categoriaGastoId: 'cat-hogar',
+        },
+        {
+          id: 'pg-solo-abono',
+          pasivoId: 'pas-ext',
+          pasivoNombre: 'Deuda amigo',
+          pasivoTipo: 'deuda',
+          pasivoAmbito: 'hogar',
+          pasivoOwnerMiembroId: null,
+          tipo: 'abono',
+          monto: 80_000,
+          fecha: '2026-11-26',
+          medioDePagoId: 'mp-nequi',
+          registradoPor: 'santiago',
+          nota: null,
+          incluirEnGastos: false,
+          categoriaGastoId: null,
+        },
+      ],
+    })
+
+    expect(res.total).toBe(320_000)
+    expect(res.movimientos.find((m) => m.id === 'c-sofia')?.pagadoPorNombre).toBe('Sofía')
+    const movAbono = res.movimientos.find((m) => m.id === 'pg-gasto')
+    expect(movAbono).toMatchObject({
+      esAbonoDeuda: true,
+      montoTotal: 200_000,
+      categoriaId: 'cat-hogar',
+      pagadoPorNombre: 'Sofía',
+      registradoPorNombre: 'Santiago',
+    })
+    expect(res.abonosDeuda?.map((a) => a.id)).toEqual(['pg-solo-abono'])
+    expect(res.totalAbonosDeuda).toBe(80_000)
   })
 })

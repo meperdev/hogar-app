@@ -5,6 +5,7 @@ import type {
   ObligacionesPort,
   ResultadoEnvio,
 } from '../app/controladorObligaciones'
+import type { EditarPagoEntrada } from '../app/obligaciones'
 import type { LoteObligaciones } from '../domain/loteObligaciones'
 import type { BaseActorDexie } from './db'
 
@@ -26,6 +27,8 @@ import type { BaseActorDexie } from './db'
 export interface RemotoObligaciones {
   leer(hogarId: string): Promise<DatosObligaciones>
   enviar(lote: LoteObligaciones): Promise<ResultadoEnvio>
+  editarPago?(entrada: EditarPagoEntrada): Promise<void>
+  eliminarPago?(pagoId: string): Promise<void>
   eliminarPasivo(pasivoId: string): Promise<{ accion: 'eliminado' | 'archivado' }>
 }
 
@@ -101,6 +104,8 @@ const esquemaPago = z.object({
   medio_de_pago_id: z.uuid().nullable().optional(),
   registrado_por: z.uuid(),
   nota: z.string().nullable().optional(),
+  incluir_en_gastos: z.boolean().optional(),
+  categoria_gasto_id: z.uuid().nullable().optional(),
 })
 
 const esquemaObligacion = z.object({
@@ -144,11 +149,28 @@ const esquemaEliminarPasivo = z.object({
   accion: z.enum(['eliminado', 'archivado']),
 })
 
+function mapearErrorPagoRpc(error: { code?: string; message?: string }, porDefecto: string): Error {
+  const msg = (error.message ?? '').toLowerCase()
+  if (msg.includes('saldo causado')) {
+    return new Error('El abono supera el saldo de la obligación a esa fecha.')
+  }
+  if (msg.includes('saldo a favor')) {
+    return new Error('No puedes editar o eliminar este abono porque afecta un saldo a favor posterior.')
+  }
+  if (msg.includes('no encontrado')) {
+    return new Error('No encontramos ese abono o ya fue eliminado.')
+  }
+  if (error.code === '22023') {
+    return new Error('Revisa los datos del abono e intenta de nuevo.')
+  }
+  return new Error(porDefecto)
+}
+
 export function crearRemotoObligaciones(cliente: SupabaseClient): RemotoObligaciones {
   return {
     async leer(hogarId) {
       // RLS ya acota cada tabla a lo que el actor puede ver.
-      const [miembros, categorias, medios, pasivos, tarjetas, planes, cuotas, costos, pagos, obligaciones, compras] =
+      const [miembros, categorias, medios, pasivos, tarjetas, planes, cuotas, costos, pagosRes, obligaciones, compras] =
         await Promise.all([
           cliente.from('miembro').select('id,nombre')
             .eq('hogar_id', hogarId).eq('activo', true).is('eliminado_en', null),
@@ -166,7 +188,7 @@ export function crearRemotoObligaciones(cliente: SupabaseClient): RemotoObligaci
             .eq('hogar_id', hogarId).is('eliminado_en', null),
           cliente.from('costo_financiero').select('id,pasivo_id,cuota_id,monto,fecha_causacion,origen,seq')
             .eq('hogar_id', hogarId).is('eliminado_en', null),
-          cliente.from('pago_de_deuda').select('id,pasivo_id,tipo,cuota_id,monto,fecha,medio_de_pago_id,registrado_por,nota')
+          cliente.from('pago_de_deuda').select('id,pasivo_id,tipo,cuota_id,monto,fecha,medio_de_pago_id,registrado_por,nota,incluir_en_gastos,categoria_gasto_id')
             .eq('hogar_id', hogarId).is('eliminado_en', null),
           cliente.from('obligacion').select('id,nombre,categoria_id,monto_estimado,dia_vencimiento,periodicidad,mes_inicio,activa')
             .eq('hogar_id', hogarId).is('eliminado_en', null),
@@ -174,9 +196,22 @@ export function crearRemotoObligaciones(cliente: SupabaseClient): RemotoObligaci
             .eq('hogar_id', hogarId).is('eliminado_en', null),
         ])
 
-      for (const respuesta of [miembros, categorias, medios, pasivos, tarjetas, planes, cuotas, costos, pagos, obligaciones, compras]) {
+      let pagosData: unknown = pagosRes.data
+      let pagosError = pagosRes.error
+      if (pagosError && pagosError.code === '42703') {
+        const respaldo = await cliente
+          .from('pago_de_deuda')
+          .select('id,pasivo_id,tipo,cuota_id,monto,fecha,medio_de_pago_id,registrado_por,nota')
+          .eq('hogar_id', hogarId)
+          .is('eliminado_en', null)
+        pagosData = respaldo.data
+        pagosError = respaldo.error
+      }
+
+      for (const respuesta of [miembros, categorias, medios, pasivos, tarjetas, planes, cuotas, costos, obligaciones, compras]) {
         if (respuesta.error) throw respuesta.error
       }
+      if (pagosError) throw pagosError
 
       const filasTarjeta = z.array(esquemaTarjeta).parse(tarjetas.data)
       return {
@@ -192,7 +227,7 @@ export function crearRemotoObligaciones(cliente: SupabaseClient): RemotoObligaci
         planes: z.array(esquemaPlan).parse(planes.data),
         cuotas: z.array(esquemaCuota).parse(cuotas.data),
         costos: z.array(esquemaCosto).parse(costos.data),
-        pagos: z.array(esquemaPago).parse(pagos.data),
+        pagos: z.array(esquemaPago).parse(pagosData),
         obligaciones: z.array(esquemaObligacion).parse(obligaciones.data),
         compras: z.array(esquemaCompra).parse(compras.data),
       }
@@ -206,6 +241,24 @@ export function crearRemotoObligaciones(cliente: SupabaseClient): RemotoObligaci
       return resultado.detalle === undefined
         ? { estado: 'rechazado', motivo: resultado.motivo }
         : { estado: 'rechazado', motivo: resultado.motivo, detalle: resultado.detalle }
+    },
+
+    async editarPago(entrada) {
+      const { error } = await cliente.rpc('editar_pago_de_deuda', {
+        p_pago_id: entrada.pagoId,
+        p_monto: entrada.monto,
+        p_fecha: entrada.fecha,
+        p_medio_de_pago_id: entrada.medioId,
+        p_nota: entrada.nota.trim() || null,
+        p_incluir_en_gastos: entrada.incluirEnGastos,
+        p_categoria_gasto_id: entrada.incluirEnGastos ? entrada.categoriaGastoId : null,
+      })
+      if (error) throw mapearErrorPagoRpc(error, 'No se pudo actualizar el abono.')
+    },
+
+    async eliminarPago(pagoId) {
+      const { error } = await cliente.rpc('eliminar_pago_de_deuda', { p_pago_id: pagoId })
+      if (error) throw mapearErrorPagoRpc(error, 'No se pudo eliminar el abono.')
     },
 
     async eliminarPasivo(pasivoId) {
@@ -260,6 +313,20 @@ export function crearPuertoObligaciones(d: DependenciasPuertoObligaciones): Obli
       // El pago necesita el bloqueo del servidor (I20): sin outbox, el error
       // del remoto se propaga tal cual.
       return d.remoto.enviar(lote)
+    },
+
+    editarPago(entrada) {
+      if (!d.remoto.editarPago) {
+        return Promise.reject(new Error('Edición de abonos no disponible.'))
+      }
+      return d.remoto.editarPago(entrada)
+    },
+
+    eliminarPago(pagoId) {
+      if (!d.remoto.eliminarPago) {
+        return Promise.reject(new Error('Eliminación de abonos no disponible.'))
+      }
+      return d.remoto.eliminarPago(pagoId)
     },
 
     eliminarPasivo(pasivoId) {

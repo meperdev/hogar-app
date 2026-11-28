@@ -6,6 +6,7 @@ import {
   ErrorGastos,
   type ControladorGastos,
   type EditarCompraEntrada,
+  type EditarPagoEntrada,
   type VistaGastosMes,
 } from './gastos'
 
@@ -37,6 +38,7 @@ export type DatosGastos = {
     id: string
     nombre: string
     tipo: 'efectivo' | 'cuenta'
+    owner_miembro_id?: string | null | undefined
     activo: boolean
     orden?: number | undefined
   }>
@@ -61,6 +63,9 @@ export type DatosGastos = {
     medio_de_pago_id: string | null
     registrado_por: string
     nota: string | null
+    incluir_en_gastos?: boolean | undefined
+    categoria_gasto_id?: string | null | undefined
+    creado_en?: string | undefined
   }> | undefined
   miembros: Array<{
     id: string
@@ -72,6 +77,8 @@ export interface GastosPort {
   cargar(): Promise<{ datos: DatosGastos; sinConexion: boolean }>
   editarCompra(entrada: EditarCompraEntrada): Promise<void>
   anularCompra(compraId: string): Promise<void>
+  editarAbono?(entrada: EditarPagoEntrada): Promise<void>
+  eliminarAbono?(pagoId: string): Promise<void>
 }
 
 export function crearControladorGastos(d: {
@@ -98,6 +105,9 @@ export function crearControladorGastos(d: {
           medioDePagoId: pg.medio_de_pago_id,
           registradoPor: pg.registrado_por,
           nota: pg.nota,
+          incluirEnGastos: Boolean(pg.incluir_en_gastos),
+          categoriaGastoId: pg.categoria_gasto_id ?? null,
+          creadoEn: pg.creado_en,
         }]
       })
       const resumen = calcularResumenGastos({
@@ -121,7 +131,14 @@ export function crearControladorGastos(d: {
           origen: c.origen,
         })),
         categorias: datos.categorias,
-        medios: datos.medios,
+        medios: datos.medios.map((m) => ({
+          id: m.id,
+          nombre: m.nombre,
+          tipo: m.tipo,
+          ownerMiembroId: m.owner_miembro_id,
+          activo: m.activo,
+          orden: m.orden,
+        })),
         pasivos: datos.pasivos,
         planes: datos.planes.flatMap((pl) =>
           pl.compra_id
@@ -153,6 +170,32 @@ export function crearControladorGastos(d: {
 
     async anularCompra(compraId: string): Promise<void> {
       await d.port.anularCompra(compraId)
+    },
+
+    async editarAbono(entrada: EditarPagoEntrada): Promise<void> {
+      if (!d.port.editarAbono) {
+        throw new ErrorGastos('Edición de abonos no disponible.')
+      }
+      if (!esPesos(entrada.monto) || entrada.monto <= 0) {
+        throw new ErrorGastos('Ingresa un monto entero mayor a $0.')
+      }
+      if (!esFechaCivil(entrada.fecha)) {
+        throw new ErrorGastos('Selecciona una fecha válida.')
+      }
+      if (!entrada.medioId) {
+        throw new ErrorGastos('Elige un medio de pago.')
+      }
+      if (entrada.incluirEnGastos && !entrada.categoriaGastoId) {
+        throw new ErrorGastos('Elige una categoría para contarlo como gasto.')
+      }
+      await d.port.editarAbono({ ...entrada, nota: entrada.nota.trim() })
+    },
+
+    async eliminarAbono(pagoId: string): Promise<void> {
+      if (!d.port.eliminarAbono) {
+        throw new ErrorGastos('Eliminación de abonos no disponible.')
+      }
+      await d.port.eliminarAbono(pagoId)
     },
   }
 }

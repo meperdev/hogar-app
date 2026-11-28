@@ -60,11 +60,16 @@ export type EntradaPago = {
   nota: string
   /** Sobrepago confirmado explícitamente: `abono` hasta `tope`, `saldo_a_favor` por el resto. */
   division: { tope: number; cargoCuota: number | null } | null
+  incluirEnGastos?: boolean | undefined
+  categoriaGastoId?: string | null | undefined
 }
 
 export function construirLotePago(e: EntradaPago, nuevoId: () => string): LoteObligaciones {
   if (!enteroPositivo(e.monto)) throw new ErrorLoteObligaciones('monto', 'Ingresa un monto mayor a $0')
   if (!esFechaCivil(e.fecha)) throw new ErrorLoteObligaciones('fecha', 'La fecha no es válida')
+  if (e.incluirEnGastos && !e.categoriaGastoId) {
+    throw new ErrorLoteObligaciones('categoriaGasto', 'Elige una categoría para contarlo como gasto.')
+  }
 
   const costos: Record<string, unknown>[] = []
   const i = e.interes
@@ -88,6 +93,9 @@ export function construirLotePago(e: EntradaPago, nuevoId: () => string): LoteOb
   }
 
   const base = { pasivo_id: e.pasivoId, medio_de_pago_id: e.medioId, fecha: e.fecha, nota: e.nota.trim() || null }
+  const extraGasto = e.incluirEnGastos
+    ? { incluir_en_gastos: true, categoria_gasto_id: e.categoriaGastoId ?? null }
+    : {}
   const pagos: Record<string, unknown>[] = []
   if (e.division) {
     const { tope, cargoCuota } = e.division
@@ -95,11 +103,11 @@ export function construirLotePago(e: EntradaPago, nuevoId: () => string): LoteOb
     if (tope > 0) {
       // El abono conserva el enlace solo si sigue cubriendo la cuota completa.
       const cuota = e.cuotaId !== null && cargoCuota !== null && tope >= cargoCuota ? e.cuotaId : null
-      pagos.push({ ...base, id: nuevoId(), tipo: 'abono', cuota_id: cuota, monto: tope })
+      pagos.push({ ...base, ...extraGasto, id: nuevoId(), tipo: 'abono', cuota_id: cuota, monto: tope })
     }
     pagos.push({ ...base, id: nuevoId(), tipo: 'saldo_a_favor', cuota_id: null, monto: e.monto - tope })
   } else {
-    pagos.push({ ...base, id: nuevoId(), tipo: 'abono', cuota_id: e.cuotaId, monto: e.monto })
+    pagos.push({ ...base, ...extraGasto, id: nuevoId(), tipo: 'abono', cuota_id: e.cuotaId, monto: e.monto })
   }
 
   const filas: LoteObligaciones['filas'] = { pago_de_deuda: pagos }

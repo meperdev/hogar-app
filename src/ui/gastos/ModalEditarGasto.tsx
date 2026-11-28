@@ -17,6 +17,7 @@ export function ModalEditarGasto({
   movimiento,
   categorias,
   medios,
+  nombresMiembro,
   onCerrar,
   onGuardar,
   onAnular,
@@ -24,6 +25,7 @@ export function ModalEditarGasto({
   movimiento: MovimientoGasto | null
   categorias: CategoriaGasto[]
   medios: MedioGasto[]
+  nombresMiembro?: Map<string, string> | undefined
   onCerrar: () => void
   onGuardar: (entrada: EditarCompraEntrada) => Promise<void>
   onAnular: (compraId: string) => Promise<void>
@@ -255,11 +257,16 @@ export function ModalEditarGasto({
                 className={claseCampoTexto}
               >
                 <option value="">Sin medio asignado</option>
-                {mediosOpciones.map((medio) => (
-                  <option key={medio.id} value={medio.id}>
-                    {medio.nombre}
-                  </option>
-                ))}
+                {mediosOpciones.map((medio) => {
+                  const dueno = medio.ownerMiembroId
+                    ? nombresMiembro?.get(medio.ownerMiembroId)
+                    : null
+                  return (
+                    <option key={medio.id} value={medio.id}>
+                      {dueno ? `${medio.nombre} (${dueno})` : medio.nombre}
+                    </option>
+                  )
+                })}
               </select>
             )}
           </div>
