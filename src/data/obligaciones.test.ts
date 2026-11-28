@@ -444,5 +444,13 @@ describe('crearRemotoObligaciones · enviar', () => {
       accion: 'archivado',
     })
     expect(rpc).toHaveBeenCalledWith('eliminar_pasivo', { p_pasivo_id: pasivoId })
+
+    const conErrorPlano = clienteFalso(filasRemotas(), {
+      data: null,
+      error: { message: 'pasivo no encontrado', code: '22023' },
+    })
+    await expect(crearRemotoObligaciones(conErrorPlano.cliente).eliminarPasivo(pasivoId)).rejects.toThrow(
+      'pasivo no encontrado',
+    )
   })
 })
