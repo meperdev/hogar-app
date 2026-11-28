@@ -47,12 +47,13 @@ export type TasaPasivo = { tipo: 'EA' | 'MV'; ppm: number }
  * compras del hogar. Un `MedioDePago` sirve para los dos ámbitos.
  */
 export type MedioOpcion =
-  | { tipo: 'medio'; id: string; nombre: string; ambito: null }
+  | { tipo: 'medio'; id: string; nombre: string; ambito: null; ownerMiembroId?: string | null | undefined }
   | {
       tipo: 'tarjeta'
       id: string
       nombre: string
       ambito: Ambito
+      ownerMiembroId?: string | null | undefined
       ultimos4: string | null
       diaCorte: number
       diaPago: number
@@ -64,6 +65,7 @@ export type MedioOpcion =
       id: string
       nombre: string
       ambito: Ambito
+      ownerMiembroId?: string | null | undefined
       /** Capital desembolsado aún no gastado en compras vinculadas (derivado). */
       disponible: number
       /** Fecha del primer giro: una compra anterior se rechaza. */

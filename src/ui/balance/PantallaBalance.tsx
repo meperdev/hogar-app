@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { formatearPesos } from '../../domain/pesos'
 import {
@@ -40,6 +40,13 @@ export function PantallaBalance() {
     notificar,
   } = useBalance()
   const [guardandoRecibo, setGuardandoRecibo] = useState(false)
+  const teniaVistaAlMontarRef = useRef(vista !== null)
+
+  useEffect(() => {
+    if (teniaVistaAlMontarRef.current) {
+      recargar()
+    }
+  }, [recargar])
 
   const mes = nombreMesPeriodoEs(periodo)
 

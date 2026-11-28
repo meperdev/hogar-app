@@ -92,4 +92,64 @@ describe('crearMediosDePagoSupabase', () => {
     ).rejects.toThrow(ErrorMedioDePago)
     await expect(puerto.cambiarActivo(MEDIO_ID, false)).rejects.toThrow(ErrorMedioDePago)
   })
+
+  it('permite crear un medio para otro miembro y editar nombre y dueño', async () => {
+    const SOFIA_ID = '01950000-0000-7000-8000-0000000000aa'
+    const rpc = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: {
+          id: MEDIO_ID,
+          nombre: 'Efectivo Sofía',
+          tipo: 'efectivo',
+          owner_tipo: 'miembro',
+          owner_miembro_id: SOFIA_ID,
+          activo: true,
+          orden: 2,
+        },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: {
+          id: MEDIO_ID,
+          nombre: 'Nequi Sofía',
+          tipo: 'efectivo',
+          owner_tipo: 'miembro',
+          owner_miembro_id: SOFIA_ID,
+          activo: true,
+          orden: 2,
+        },
+        error: null,
+      })
+
+    const puerto = crearMediosDePagoSupabase({ rpc } as unknown as SupabaseClient)
+    const creado = await puerto.crear({
+      nombre: 'Efectivo Sofía',
+      tipo: 'efectivo',
+      ownerTipo: 'miembro',
+      ownerMiembroId: SOFIA_ID,
+    })
+
+    expect(rpc).toHaveBeenCalledWith('crear_medio_de_pago', {
+      p_nombre: 'Efectivo Sofía',
+      p_tipo: 'efectivo',
+      p_owner_tipo: 'miembro',
+      p_owner_miembro_id: SOFIA_ID,
+    })
+    expect(creado.ownerMiembroId).toBe(SOFIA_ID)
+
+    const editado = await puerto.editar!({
+      medioId: MEDIO_ID,
+      nombre: '  Nequi Sofía  ',
+      ownerTipo: 'miembro',
+      ownerMiembroId: SOFIA_ID,
+    })
+    expect(rpc).toHaveBeenCalledWith('editar_medio_de_pago', {
+      p_medio_id: MEDIO_ID,
+      p_nombre: 'Nequi Sofía',
+      p_owner_tipo: 'miembro',
+      p_owner_miembro_id: SOFIA_ID,
+    })
+    expect(editado.nombre).toBe('Nequi Sofía')
+  })
 })

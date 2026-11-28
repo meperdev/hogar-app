@@ -29,6 +29,8 @@ type ValorContextoGastos = {
   recargar: () => void
   editarCompra: ControladorGastos['editarCompra']
   anularCompra: ControladorGastos['anularCompra']
+  editarAbono: NonNullable<ControladorGastos['editarAbono']>
+  eliminarAbono: NonNullable<ControladorGastos['eliminarAbono']>
 }
 
 const ContextoGastos = createContext<ValorContextoGastos | null>(null)
@@ -121,6 +123,9 @@ export function ProveedorGastos({
     async (entrada) => {
       await controlador.editarCompra(entrada)
       mostrarToast('Compra actualizada')
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('hogar:compras-actualizadas'))
+      }
       recargar()
     },
     [controlador, mostrarToast, recargar],
@@ -130,6 +135,39 @@ export function ProveedorGastos({
     async (compraId) => {
       await controlador.anularCompra(compraId)
       mostrarToast('Compra anulada')
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('hogar:compras-actualizadas'))
+      }
+      recargar()
+    },
+    [controlador, mostrarToast, recargar],
+  )
+
+  const editarAbono: NonNullable<ControladorGastos['editarAbono']> = useCallback(
+    async (entrada) => {
+      if (!controlador.editarAbono) {
+        throw new Error('La edición de abonos no está disponible.')
+      }
+      await controlador.editarAbono(entrada)
+      mostrarToast('Abono actualizado')
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('hogar:compras-actualizadas'))
+      }
+      recargar()
+    },
+    [controlador, mostrarToast, recargar],
+  )
+
+  const eliminarAbono: NonNullable<ControladorGastos['eliminarAbono']> = useCallback(
+    async (pagoId) => {
+      if (!controlador.eliminarAbono) {
+        throw new Error('La eliminación de abonos no está disponible.')
+      }
+      await controlador.eliminarAbono(pagoId)
+      mostrarToast('Abono eliminado')
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('hogar:compras-actualizadas'))
+      }
       recargar()
     },
     [controlador, mostrarToast, recargar],
@@ -152,6 +190,8 @@ export function ProveedorGastos({
         recargar,
         editarCompra,
         anularCompra,
+        editarAbono,
+        eliminarAbono,
       }}
     >
       {children}

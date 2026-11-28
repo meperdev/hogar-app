@@ -14,7 +14,8 @@ import { TarjetaRadio, etiquetaAmbitoTitular, nombreMesPeriodoEs } from './Pieza
 
 function PagoCuota({ cuotaId, pasivoId }: { cuotaId?: string; pasivoId?: string }) {
   const navigate = useNavigate()
-  const { hogar, controlador, medios, buscarCuota, buscarPasivo, recargar, mostrarToast } = useObligaciones()
+  const { hogar, controlador, agenda, medios, buscarCuota, buscarPasivo, recargar, mostrarToast } = useObligaciones()
+  const categoriasGasto = useMemo(() => agenda?.categorias ?? [], [agenda?.categorias])
   const item = cuotaId ? buscarCuota(cuotaId) : null
   const pasivoInfo = pasivoId ? buscarPasivo(pasivoId) : null
 
@@ -97,6 +98,9 @@ function PagoCuota({ cuotaId, pasivoId }: { cuotaId?: string; pasivoId?: string 
     try {
       const res = await controlador.registrarPago(borradorEfectivo, { dividirSobrepago })
       mostrarToast(res.resumen)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('hogar:compras-actualizadas'))
+      }
       recargar()
       navigate('/obligaciones')
     } catch (causa) {
@@ -252,6 +256,63 @@ function PagoCuota({ cuotaId, pasivoId }: { cuotaId?: string; pasivoId?: string 
               </div>
             </div>
 
+            <div className="flex flex-col gap-2 rounded-2xl border border-hogar-borde bg-hogar-superficie px-3.5 py-2.5 shadow-[var(--hogar-shadow-card)]">
+              <label className="flex min-h-9 cursor-pointer items-center justify-between gap-2 text-sm font-bold text-hogar-tinta">
+                <span>Contar como gasto del mes</span>
+                <input
+                  id="pago-incluir-en-gastos"
+                  type="checkbox"
+                  className="size-4 accent-hogar-primario"
+                  checked={Boolean(borrador.incluirEnGastos)}
+                  onChange={(e) => {
+                    const activar = e.target.checked
+                    const defectoCat =
+                      borrador.categoriaGastoId ??
+                      categoriasGasto.find((c) => c.nombre.trim().toLowerCase() === 'otros')?.id ??
+                      categoriasGasto[0]?.id ??
+                      null
+                    setBorrador((p) =>
+                      p
+                        ? {
+                            ...p,
+                            incluirEnGastos: activar,
+                            categoriaGastoId: activar ? defectoCat : null,
+                          }
+                        : p,
+                    )
+                  }}
+                />
+              </label>
+              {borrador.incluirEnGastos && categoriasGasto.length > 0 ? (
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="pago-categoria-gasto" className={claseEtiquetaCampo}>
+                    Categoría del gasto
+                  </label>
+                  <select
+                    id="pago-categoria-gasto"
+                    className={claseCampoTexto}
+                    value={
+                      borrador.categoriaGastoId ??
+                      categoriasGasto.find((c) => c.nombre.trim().toLowerCase() === 'otros')?.id ??
+                      categoriasGasto[0]?.id ??
+                      ''
+                    }
+                    onChange={(e) =>
+                      setBorrador((p) =>
+                        p ? { ...p, categoriaGastoId: e.target.value || null } : p,
+                      )
+                    }
+                  >
+                    {categoriasGasto.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+            </div>
+
             <details
               open={interesInicial !== null}
               className="rounded-2xl border border-hogar-borde bg-hogar-superficie px-3.5 py-2.5 shadow-[var(--hogar-shadow-card)]"
@@ -352,6 +413,9 @@ function PagoObligacionRecurrente({ obligacionId }: { obligacionId: string }) {
     try {
       const res = await controlador.registrarPagoObligacion({ obligacionId, periodo: item?.periodo ?? periodo, medioId, fecha, monto })
       mostrarToast(res.resumen)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('hogar:compras-actualizadas'))
+      }
       recargar()
       navigate('/obligaciones')
     } catch (causa) {

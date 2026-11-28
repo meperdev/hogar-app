@@ -17,11 +17,20 @@ export type NuevoMedioEntrada = {
   nombre: string
   tipo: TipoMedioPago
   ownerTipo: DuenoMedioPago
+  ownerMiembroId?: string | null | undefined
+}
+
+export type EditarMedioEntrada = {
+  medioId: string
+  nombre: string
+  ownerTipo: DuenoMedioPago
+  ownerMiembroId?: string | null | undefined
 }
 
 export interface MediosDePagoPort {
   listar(hogarId: string): Promise<MedioDePagoItem[]>
   crear(entrada: NuevoMedioEntrada): Promise<MedioDePagoItem>
+  editar?(entrada: EditarMedioEntrada): Promise<MedioDePagoItem>
   cambiarActivo(medioId: string, activo: boolean): Promise<{ id: string; activo: boolean }>
   reordenar(ids: string[]): Promise<void>
 }
@@ -32,6 +41,7 @@ const esquemaNuevoMedio = z.object({
   nombre: z.string().trim().min(1).max(80),
   tipo: z.enum(['efectivo', 'cuenta']),
   ownerTipo: z.enum(['miembro', 'hogar']),
+  ownerMiembroId: z.string().uuid().nullable().optional(),
 })
 
 export function validarNuevoMedio(entrada: NuevoMedioEntrada): NuevoMedioEntrada {

@@ -38,6 +38,7 @@ export type FilaMedio = {
   id: string
   nombre: string
   tipo: 'efectivo' | 'cuenta'
+  owner_miembro_id?: string | null | undefined
   activo: boolean
   orden?: number | undefined
 }
@@ -63,6 +64,7 @@ export type FilaPasivo = {
   tipo: 'tarjeta' | 'credito' | 'deuda'
   nombre: string
   ambito: Ambito
+  owner_miembro_id?: string | null | undefined
   tasa_tipo: 'EA' | 'MV' | null
   tasa_ppm: number | null
   activo: boolean
@@ -160,7 +162,13 @@ export function armarCatalogo(f: FilasCatalogo): CatalogoCompra {
     .filter((medio) => medio.activo)
     .slice()
     .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0) || a.nombre.localeCompare(b.nombre, 'es'))
-    .map((medio) => ({ tipo: 'medio', id: medio.id, nombre: medio.nombre, ambito: null }))
+    .map((medio) => ({
+      tipo: 'medio',
+      id: medio.id,
+      nombre: medio.nombre,
+      ambito: null,
+      ownerMiembroId: medio.owner_miembro_id ?? null,
+    }))
 
   const tarjetas: MedioOpcion[] = []
   const prestamos: MedioOpcion[] = []
@@ -176,6 +184,7 @@ export function armarCatalogo(f: FilasCatalogo): CatalogoCompra {
           ? `${pasivo.nombre} ••${tarjeta.ultimos_4}`
           : pasivo.nombre,
         ambito: pasivo.ambito,
+        ownerMiembroId: pasivo.owner_miembro_id ?? null,
         ultimos4: tarjeta.ultimos_4,
         diaCorte: tarjeta.dia_corte,
         diaPago: tarjeta.dia_pago,
@@ -194,6 +203,7 @@ export function armarCatalogo(f: FilasCatalogo): CatalogoCompra {
       id: pasivo.id,
       nombre: pasivo.nombre,
       ambito: pasivo.ambito,
+      ownerMiembroId: pasivo.owner_miembro_id ?? null,
       disponible: disponiblePrestamo(
         desembolsos.map((fila) => fila.capital),
         vinculadas.map((fila) => fila.monto_total),
@@ -429,6 +439,7 @@ const esquemaMedio = z.object({
   id: z.uuid(),
   nombre: z.string(),
   tipo: z.enum(['efectivo', 'cuenta']),
+  owner_miembro_id: z.uuid().nullable().optional(),
   activo: z.boolean(),
   orden: z.number().int().optional(),
 })
@@ -438,6 +449,7 @@ const esquemaPasivo = z.object({
   tipo: z.enum(['tarjeta', 'credito', 'deuda']),
   nombre: z.string(),
   ambito: z.enum(['hogar', 'personal']),
+  owner_miembro_id: z.uuid().nullable().optional(),
   tasa_tipo: z.enum(['EA', 'MV']).nullable(),
   tasa_ppm: z.number().int().nullable(),
   activo: z.boolean(),
@@ -513,9 +525,9 @@ export function crearRemotoSupabase(cliente: SupabaseClient): RemotoCompraRapida
         await Promise.all([
           cliente.from('categoria').select('id,nombre,icono,orden,activa')
             .eq('hogar_id', hogarId).is('eliminado_en', null),
-          cliente.from('medio_de_pago').select('id,nombre,tipo,activo,orden')
+          cliente.from('medio_de_pago').select('id,nombre,tipo,owner_miembro_id,activo,orden')
             .eq('hogar_id', hogarId).is('eliminado_en', null),
-          cliente.from('pasivo').select('id,tipo,nombre,ambito,tasa_tipo,tasa_ppm,activo')
+          cliente.from('pasivo').select('id,tipo,nombre,ambito,owner_miembro_id,tasa_tipo,tasa_ppm,activo')
             .eq('hogar_id', hogarId).is('eliminado_en', null),
           cliente.from('tarjeta').select('pasivo_id,ultimos_4,dia_corte,dia_pago')
             .eq('hogar_id', hogarId).is('eliminado_en', null),

@@ -9,7 +9,6 @@ import {
 import type { Hogar } from '../../app/fundacion'
 import {
   ErrorMedioDePago,
-  type DuenoMedioPago,
   type MedioDePagoItem,
   type MediosDePagoPort,
   type TipoMedioPago,
@@ -48,7 +47,11 @@ export function TarjetaMediosDePago({
   const [abierto, setAbierto] = useState(false)
   const [nombre, setNombre] = useState('')
   const [tipo, setTipo] = useState<TipoMedioPago>('cuenta')
-  const [ownerTipo, setOwnerTipo] = useState<DuenoMedioPago>('miembro')
+  const [duenoSeleccionado, setDuenoSeleccionado] = useState<string>(hogar.miembroActual.id)
+  const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [editNombre, setEditNombre] = useState('')
+  const [editDueno, setEditDueno] = useState<string>(hogar.miembroActual.id)
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [cambiandoId, setCambiandoId] = useState<string | null>(null)
   const [reordenando, setReordenando] = useState(false)
@@ -107,6 +110,7 @@ export function TarjetaMediosDePago({
     }
   }, [hogar.id, mediosDePago])
 
+  const miembrosActivos = hogar.miembros.filter((m) => m.activo)
   const nombresMiembro = new Map(hogar.miembros.map((m) => [m.id, m.nombre]))
 
   function etiquetaDueno(medio: MedioDePagoItem): string {
@@ -129,11 +133,18 @@ export function TarjetaMediosDePago({
     setExito('')
     setGuardando(true)
     try {
-      const creado = await mediosDePago.crear({ nombre, tipo, ownerTipo })
+      const esHogar = duenoSeleccionado === 'hogar'
+      const esOtroMiembro = !esHogar && duenoSeleccionado !== hogar.miembroActual.id
+      const creado = await mediosDePago.crear(
+        esOtroMiembro
+          ? { nombre, tipo, ownerTipo: 'miembro', ownerMiembroId: duenoSeleccionado }
+          : { nombre, tipo, ownerTipo: esHogar ? 'hogar' : 'miembro' },
+      )
       setMedios((prev) =>
         [...prev, creado].sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre, 'es')),
       )
       setNombre('')
+      setDuenoSeleccionado(hogar.miembroActual.id)
       setAbierto(false)
       mostrarExito(`Agregamos "${creado.nombre}" a tus medios de pago.`)
       onCambio?.()
@@ -145,6 +156,48 @@ export function TarjetaMediosDePago({
       )
     } finally {
       setGuardando(false)
+    }
+  }
+
+  function abrirEdicion(medio: MedioDePagoItem) {
+    setError('')
+    setExito('')
+    setEditandoId(medio.id)
+    setEditNombre(medio.nombre)
+    setEditDueno(
+      medio.ownerTipo === 'hogar' ? 'hogar' : (medio.ownerMiembroId ?? hogar.miembroActual.id),
+    )
+  }
+
+  async function guardarEdicion(e: FormEvent<HTMLFormElement>, medio: MedioDePagoItem) {
+    e.preventDefault()
+    if (!mediosDePago.editar || guardandoEdicion) return
+    setError('')
+    setExito('')
+    setGuardandoEdicion(true)
+    try {
+      const esHogar = editDueno === 'hogar'
+      const actualizado = await mediosDePago.editar(
+        esHogar
+          ? { medioId: medio.id, nombre: editNombre, ownerTipo: 'hogar', ownerMiembroId: null }
+          : { medioId: medio.id, nombre: editNombre, ownerTipo: 'miembro', ownerMiembroId: editDueno },
+      )
+      setMedios((prev) =>
+        prev
+          .map((item) => (item.id === medio.id ? actualizado : item))
+          .sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre, 'es')),
+      )
+      setEditandoId(null)
+      mostrarExito(`Actualizamos "${actualizado.nombre}".`)
+      onCambio?.()
+    } catch (causa) {
+      setError(
+        causa instanceof ErrorMedioDePago
+          ? causa.message
+          : 'No pudimos actualizar el medio de pago.',
+      )
+    } finally {
+      setGuardandoEdicion(false)
     }
   }
 
@@ -402,11 +455,15 @@ export function TarjetaMediosDePago({
                 <select
                   id="medio-nuevo-dueno"
                   className={claseCampoTexto}
-                  value={ownerTipo}
-                  onChange={(e) => setOwnerTipo(e.target.value as DuenoMedioPago)}
+                  value={duenoSeleccionado}
+                  onChange={(e) => setDuenoSeleccionado(e.target.value)}
                   disabled={guardando}
                 >
-                  <option value="miembro">Mío ({hogar.miembroActual.nombre})</option>
+                  {miembrosActivos.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.id === hogar.miembroActual.id ? `Mío (${m.nombre})` : m.nombre}
+                    </option>
+                  ))}
                   <option value="hogar">Del hogar (fondo común)</option>
                 </select>
               </div>
@@ -513,16 +570,101 @@ export function TarjetaMediosDePago({
                       </div>
                     </div>
                     {puedeModificar(medio) ? (
-                      <button
-                        type="button"
-                        className={`${claseBotonPequenoSecundario} ${
-                          arrastre ? 'pointer-events-none' : ''
-                        }`.trim()}
-                        disabled={cambiandoId === medio.id || reordenando}
-                        onClick={() => void alternarActivo(medio)}
+                      <div className="flex items-center gap-1.5">
+                        {mediosDePago.editar ? (
+                          <button
+                            type="button"
+                            className={`${claseBotonPequenoSecundario} ${
+                              arrastre ? 'pointer-events-none' : ''
+                            }`.trim()}
+                            disabled={cambiandoId === medio.id || reordenando || guardandoEdicion}
+                            onClick={() =>
+                              editandoId === medio.id
+                                ? setEditandoId(null)
+                                : abrirEdicion(medio)
+                            }
+                          >
+                            {editandoId === medio.id ? 'Cerrar' : 'Editar'}
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          className={`${claseBotonPequenoSecundario} ${
+                            arrastre ? 'pointer-events-none' : ''
+                          }`.trim()}
+                          disabled={cambiandoId === medio.id || reordenando || guardandoEdicion}
+                          onClick={() => void alternarActivo(medio)}
+                        >
+                          {cambiandoId === medio.id ? '…' : 'Archivar'}
+                        </button>
+                      </div>
+                    ) : null}
+                    {editandoId === medio.id ? (
+                      <form
+                        onSubmit={(e) => void guardarEdicion(e, medio)}
+                        className="mt-2 flex w-full flex-col gap-2 border-t border-hogar-borde pt-2"
                       >
-                        {cambiandoId === medio.id ? '…' : 'Archivar'}
-                      </button>
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          <div className="flex flex-col gap-1">
+                            <label
+                              htmlFor={`editar-medio-nombre-${medio.id}`}
+                              className={claseEtiquetaCampo}
+                            >
+                              Nombre
+                            </label>
+                            <input
+                              id={`editar-medio-nombre-${medio.id}`}
+                              type="text"
+                              className={claseCampoTexto}
+                              value={editNombre}
+                              onChange={(e) => setEditNombre(e.target.value)}
+                              disabled={guardandoEdicion}
+                              required
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label
+                              htmlFor={`editar-medio-dueno-${medio.id}`}
+                              className={claseEtiquetaCampo}
+                            >
+                              ¿De quién es?
+                            </label>
+                            <select
+                              id={`editar-medio-dueno-${medio.id}`}
+                              className={claseCampoTexto}
+                              value={editDueno}
+                              onChange={(e) => setEditDueno(e.target.value)}
+                              disabled={guardandoEdicion}
+                            >
+                              {miembrosActivos.map((m) => (
+                                <option key={m.id} value={m.id}>
+                                  {m.id === hogar.miembroActual.id
+                                    ? `Mío (${m.nombre})`
+                                    : m.nombre}
+                                </option>
+                              ))}
+                              <option value="hogar">Del hogar (fondo común)</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-1.5">
+                          <button
+                            type="button"
+                            className={claseBotonPequenoSecundario}
+                            disabled={guardandoEdicion}
+                            onClick={() => setEditandoId(null)}
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="submit"
+                            className={claseBotonPequenoPrimario}
+                            disabled={guardandoEdicion}
+                          >
+                            {guardandoEdicion ? 'Guardando…' : 'Guardar'}
+                          </button>
+                        </div>
+                      </form>
                     ) : null}
                   </Tarjeta>
                 </li>

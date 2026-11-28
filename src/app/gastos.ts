@@ -20,6 +20,10 @@ export type {
   ResumenGastosMes,
 }
 
+import type { EditarPagoEntrada } from './obligaciones'
+
+export type { EditarPagoEntrada }
+
 export type EditarCompraEntrada = {
   compraId: string
   descripcion: string
@@ -39,4 +43,6 @@ export interface ControladorGastos {
   cargarMes(periodo: string, ambito: FiltroAmbitoGastos): Promise<VistaGastosMes>
   editarCompra(entrada: EditarCompraEntrada): Promise<void>
   anularCompra(compraId: string): Promise<void>
+  editarAbono?(entrada: EditarPagoEntrada): Promise<void>
+  eliminarAbono?(pagoId: string): Promise<void>
 }

@@ -52,8 +52,8 @@ function crearControladorReal(hogar: Hogar) {
   return { controlador, port }
 }
 
-async function montarApp(opts?: { rutaInicial?: string; controlador?: ControladorCompraRapida }) {
-  const hogar = hogarDePrueba()
+async function montarApp(opts?: { rutaInicial?: string; controlador?: ControladorCompraRapida; hogar?: Hogar }) {
+  const hogar = opts?.hogar ?? hogarDePrueba()
   let notificar: (sesion: Sesion | null) => void = () => {}
   const servicios: Servicios = {
     auth: { observarSesion: (cb) => { notificar = cb; return () => {} }, pedirCodigo: vi.fn(async () => {}), verificarCodigo: vi.fn(async () => {}), salir: vi.fn(async () => notificar(null)) },
@@ -403,5 +403,41 @@ describe('Compra rápida UI (controlador real)', () => {
 
     await act(async () => boton(contenedor, 'Listo')?.click())
     expect(fondoInicial.className).toContain('hidden')
+  })
+
+  it('permite elegir quién pagó en hogar con varios miembros activos y enlaza a crear método si falta', async () => {
+    const santiago = { id: '018f4a1e-0000-7000-8000-0000000000a1', nombre: 'Santiago', rol: 'admin' as const, activo: true }
+    const sofia = { id: '018f4a1e-0000-7000-8000-0000000000a2', nombre: 'Sofía', rol: 'miembro' as const, activo: true }
+    const hogarDos: Hogar = { id: '018f4a1e-0000-7000-8000-000000000001', nombre: 'Casa', miembroActual: santiago, miembros: [santiago, sofia] }
+    const catalogoConSofia: CatalogoCompra = {
+      ...CATALOGO_PRUEBA,
+      medios: [
+        { tipo: 'medio', id: '018f4a1e-0000-7000-8000-000000000211', nombre: 'Nequi Santiago', ambito: null, ownerMiembroId: santiago.id },
+        { tipo: 'medio', id: '018f4a1e-0000-7000-8000-000000000212', nombre: 'Efectivo Sofía', ambito: null, ownerMiembroId: sofia.id },
+      ],
+    }
+    const port = new PuertoEnMemoria(catalogoConSofia)
+    const controlador = crearControladorCompraRapida({
+      port,
+      alcance: { hogarId: hogarDos.id, miembroId: santiago.id },
+      ahora: () => new Date('2026-11-22T15:00:00Z'),
+      nuevoId: () => '018f4a1e-0000-7000-8000-000000000991',
+      programar: () => {},
+    })
+    const { contenedor } = await montarApp({ controlador, hogar: hogarDos })
+
+    const grupoPagador = contenedor.querySelector('[role="group"][aria-label="¿Quién pagó?"]')
+    expect(grupoPagador).not.toBeNull()
+    const btnSofia = [...(grupoPagador?.querySelectorAll('button') ?? [])].find(
+      (b) => b.textContent?.trim() === 'Sofía',
+    )
+    await act(async () => btnSofia?.click())
+    expect(btnSofia?.getAttribute('aria-pressed')).toBe('true')
+
+    await act(async () => boton(contenedor, 'Mercado')?.click())
+    await act(async () => tecla(contenedor, '1')?.click())
+    await act(async () => tecla(contenedor, '000')?.click())
+    await act(async () => contenedor.querySelector<HTMLButtonElement>('button[data-sin-scroll]')?.click())
+    expect(port.registros[0]?.medioId).toBe('018f4a1e-0000-7000-8000-000000000212')
   })
 })

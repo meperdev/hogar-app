@@ -135,12 +135,14 @@ export function CarruselMedios({
   seleccionadoId,
   primerMedioRef,
   invalido = false,
+  nombresMiembro,
   onElegir,
 }: {
   medios: MedioOpcion[]
   seleccionadoId: string | null
   primerMedioRef?: Ref<HTMLButtonElement> | undefined
   invalido?: boolean | undefined
+  nombresMiembro?: Map<string, string> | undefined
   onElegir: (id: string) => void
 }) {
   return (
@@ -202,9 +204,20 @@ export function CarruselMedios({
                 </span>
               ) : null}
             </div>
-            <span className="relative z-10 block w-full truncate text-[0.8125rem] font-extrabold leading-tight tracking-tight">
-              {m.nombre}
-            </span>
+            <div className="relative z-10 w-full">
+              <span className="block w-full truncate text-[0.8125rem] font-extrabold leading-tight tracking-tight">
+                {m.nombre}
+              </span>
+              {nombresMiembro ? (
+                <span className="block w-full truncate text-[0.6875rem] font-semibold opacity-85">
+                  {m.ownerMiembroId
+                    ? (nombresMiembro.get(m.ownerMiembroId) ?? 'Miembro')
+                    : m.ambito === 'hogar'
+                      ? 'Hogar'
+                      : null}
+                </span>
+              ) : null}
+            </div>
           </button>
         )
       })}

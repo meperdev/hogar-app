@@ -30,10 +30,13 @@ import {
   SelectorAmbitoGastos,
 } from './PiezasGastos'
 
+import { EditorAbonoInline } from '../obligaciones/EditorAbonoInline'
 import { ModalEditarGasto } from './ModalEditarGasto'
 
 export function PantallaGastos() {
   const {
+    hogar,
+    controlador,
     periodo,
     ambito,
     vista,
@@ -46,11 +49,14 @@ export function PantallaGastos() {
     recargar,
     editarCompra,
     anularCompra,
+    editarAbono,
+    eliminarAbono,
   } = useGastos()
 
   const [categoriaActivaId, setCategoriaActivaId] = useState<string | null>(null)
   const [busqueda, setBusqueda] = useState('')
   const [movSeleccionadoId, setMovSeleccionadoId] = useState<string | null>(null)
+  const [abonoEditandoId, setAbonoEditandoId] = useState<string | null>(null)
   const primeraCargaRef = useRef(true)
   const yaCargadoRef = useRef(vista !== null)
   const notificaciones = useNotificacionesOpcional()
@@ -86,6 +92,24 @@ export function PantallaGastos() {
     [categorias, categoriaActivaId],
   )
 
+  const nombresMiembro = useMemo(
+    () => new Map(hogar.miembros.map((m) => [m.id, m.nombre])),
+    [hogar.miembros],
+  )
+  const mediosEditor = useMemo(
+    () =>
+      (vista?.mediosDisponibles ?? []).map((m) => ({
+        id: m.id,
+        nombre: m.nombre,
+        ownerNombre: m.ownerMiembroId ? (nombresMiembro.get(m.ownerMiembroId) ?? null) : null,
+      })),
+    [nombresMiembro, vista?.mediosDisponibles],
+  )
+  const categoriasEditor = useMemo(
+    () => (vista?.categoriasDisponibles ?? []).map((c) => ({ id: c.id, nombre: c.nombre })),
+    [vista?.categoriasDisponibles],
+  )
+
   const movimientosFiltrados = useMemo(() => {
     const query = busqueda.trim().toLowerCase()
     return movimientos.filter((m) => {
@@ -94,7 +118,9 @@ export function PantallaGastos() {
       return (
         m.descripcion.toLowerCase().includes(query) ||
         m.categoriaNombre.toLowerCase().includes(query) ||
-        m.medioNombre.toLowerCase().includes(query)
+        m.medioNombre.toLowerCase().includes(query) ||
+        (m.pagadoPorNombre ?? '').toLowerCase().includes(query) ||
+        m.registradoPorNombre.toLowerCase().includes(query)
       )
     })
   }, [movimientos, categoriaActivaId, busqueda])
@@ -306,16 +332,36 @@ export function PantallaGastos() {
               onSeleccionar={(mov) =>
                 setMovSeleccionadoId((actual) => (actual === mov.id ? null : mov.id))
               }
-              renderDetalle={(mov) => (
-                <ModalEditarGasto
-                  movimiento={mov}
-                  categorias={vista?.categoriasDisponibles ?? []}
-                  medios={vista?.mediosDisponibles ?? []}
-                  onCerrar={() => setMovSeleccionadoId(null)}
-                  onGuardar={editarCompra}
-                  onAnular={anularCompra}
-                />
-              )}
+              renderDetalle={(mov) =>
+                mov.esAbonoDeuda && controlador.editarAbono ? (
+                  <EditorAbonoInline
+                    abono={{
+                      id: mov.id,
+                      monto: mov.montoTotal,
+                      fecha: mov.fecha,
+                      medioDePagoId: mov.medioDePagoId,
+                      nota: mov.nota ?? null,
+                      incluirEnGastos: true,
+                      categoriaGastoId: mov.categoriaId,
+                    }}
+                    medios={mediosEditor}
+                    categorias={categoriasEditor}
+                    onGuardar={editarAbono}
+                    onEliminar={controlador.eliminarAbono ? eliminarAbono : undefined}
+                    onCerrar={() => setMovSeleccionadoId(null)}
+                  />
+                ) : (
+                  <ModalEditarGasto
+                    movimiento={mov}
+                    categorias={vista?.categoriasDisponibles ?? []}
+                    medios={vista?.mediosDisponibles ?? []}
+                    nombresMiembro={nombresMiembro}
+                    onCerrar={() => setMovSeleccionadoId(null)}
+                    onGuardar={editarCompra}
+                    onAnular={anularCompra}
+                  />
+                )
+              }
             />
           ) : (
             <p className={claseAyudaCampo}>
@@ -354,32 +400,71 @@ export function PantallaGastos() {
                 abono.medioTipo === 'efectivo' ? 'efectivo' : 'cuenta',
               )
               const { Logo } = identidad
+              const editando = abonoEditandoId === abono.id
+              const puedeEditar = Boolean(controlador.editarAbono)
               return (
                 <li
                   key={abono.id}
-                  className="flex items-center justify-between gap-3 rounded-2xl border border-hogar-borde bg-hogar-superficie p-3 shadow-[var(--hogar-shadow-card)]"
+                  className="flex flex-col gap-2 rounded-2xl border border-hogar-borde bg-hogar-superficie p-3 shadow-[var(--hogar-shadow-card)]"
                 >
-                  <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                    <span
-                      className="grid size-10 shrink-0 place-items-center rounded-2xl shadow-[0_3px_8px_-2px_rgba(16,24,20,0.22)]"
-                      style={{ background: identidad.gradiente, color: identidad.texto }}
-                      aria-hidden="true"
-                    >
-                      <Logo className="size-5" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="m-0 truncate text-sm font-extrabold text-hogar-tinta">
-                        Abono · {abono.pasivoNombre}
-                      </p>
-                      <p className="m-0 mt-0.5 truncate text-xs text-hogar-tinta-suave">
-                        {formatearFechaCortaEs(abono.fecha)} · {abono.medioNombre} · {abono.registradoPorNombre}
-                        {abono.nota ? ` · ${abono.nota}` : ''}
-                      </p>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                      <span
+                        className="grid size-10 shrink-0 place-items-center rounded-2xl shadow-[0_3px_8px_-2px_rgba(16,24,20,0.22)]"
+                        style={{ background: identidad.gradiente, color: identidad.texto }}
+                        aria-hidden="true"
+                      >
+                        <Logo className="size-5" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="m-0 truncate text-sm font-extrabold text-hogar-tinta">
+                          Abono · {abono.pasivoNombre}
+                        </p>
+                        <p className="m-0 mt-0.5 truncate text-xs text-hogar-tinta-suave">
+                          {formatearFechaCortaEs(abono.fecha)} · {abono.medioNombre} ·{' '}
+                          {abono.pagadoPorNombre ?? abono.registradoPorNombre}
+                          {abono.nota ? ` · ${abono.nota}` : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <span className="hogar-cop text-sm font-extrabold text-hogar-indigo">
+                        {formatearPesos(abono.monto)}
+                      </span>
+                      {puedeEditar ? (
+                        <button
+                          type="button"
+                          aria-label={
+                            editando
+                              ? `Cerrar edición de abono de ${abono.pasivoNombre}`
+                              : `Editar abono de ${abono.pasivoNombre}`
+                          }
+                          className={claseBotonPequenoSecundario}
+                          onClick={() => setAbonoEditandoId(editando ? null : abono.id)}
+                        >
+                          {editando ? 'Cerrar' : 'Editar'}
+                        </button>
+                      ) : null}
                     </div>
                   </div>
-                  <span className="hogar-cop shrink-0 text-sm font-extrabold text-hogar-indigo">
-                    {formatearPesos(abono.monto)}
-                  </span>
+                  {editando ? (
+                    <EditorAbonoInline
+                      abono={{
+                        id: abono.id,
+                        monto: abono.monto,
+                        fecha: abono.fecha,
+                        medioDePagoId: abono.medioDePagoId ?? null,
+                        nota: abono.nota,
+                        incluirEnGastos: Boolean(abono.incluirEnGastos),
+                        categoriaGastoId: abono.categoriaGastoId ?? null,
+                      }}
+                      medios={mediosEditor}
+                      categorias={categoriasEditor}
+                      onGuardar={editarAbono}
+                      onEliminar={controlador.eliminarAbono ? eliminarAbono : undefined}
+                      onCerrar={() => setAbonoEditandoId(null)}
+                    />
+                  ) : null}
                 </li>
               )
             })}

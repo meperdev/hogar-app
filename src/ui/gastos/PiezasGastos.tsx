@@ -299,10 +299,17 @@ export function ListaMovimientosGasto({
                 </p>
                 <p className="m-0 mt-0.5 truncate text-xs text-hogar-tinta-suave">
                   {formatearFechaCortaEs(mov.fecha)} · {mov.categoriaNombre} · {mov.medioNombre}
-                  {mov.ambito === 'hogar' ? ` · ${mov.registradoPorNombre}` : ''}
+                  {mov.ambito === 'hogar'
+                    ? ` · ${mov.pagadoPorNombre ?? mov.registradoPorNombre}`
+                    : ''}
                 </p>
-                {mov.ambito === 'personal' || (mov.cuotas !== null && mov.cuotas > 1) ? (
+                {mov.ambito === 'personal' ||
+                (mov.cuotas !== null && mov.cuotas > 1) ||
+                mov.esAbonoDeuda ? (
                   <div className="mt-1 flex flex-wrap gap-1">
+                    {mov.esAbonoDeuda ? (
+                      <Insignia variante="indigo">Abono</Insignia>
+                    ) : null}
                     {mov.ambito === 'personal' ? (
                       <Insignia variante="indigo">Personal</Insignia>
                     ) : null}

@@ -44,6 +44,7 @@ export function PantallaCompraRapida() {
   const navigate = useNavigate()
   const location = useLocation()
   const {
+    hogar,
     catalogo,
     cargando,
     errorCarga,
@@ -70,6 +71,7 @@ export function PantallaCompraRapida() {
   const [panelNotaAbierto, setPanelNotaAbierto] = useState(false)
   const [errorValidacion, setErrorValidacion] = useState<ErrorBorrador | null>(null)
   const [avisoCuotas, setAvisoCuotas] = useState('')
+  const [pagadorSinMedioNombre, setPagadorSinMedioNombre] = useState<string | null>(null)
   const montoRef = useRef<HTMLInputElement>(null)
   const montoBoxRef = useRef<HTMLDivElement>(null)
   const primerChipRef = useRef<HTMLButtonElement>(null)
@@ -141,6 +143,23 @@ export function PantallaCompraRapida() {
     () => mediosDisponibles.filter((m) => m.tipo !== 'prestamo'),
     [mediosDisponibles],
   )
+  const miembrosActivos = useMemo(
+    () => hogar.miembros.filter((m) => m.activo),
+    [hogar.miembros],
+  )
+  const nombresMiembro = useMemo(
+    () => new Map(hogar.miembros.map((m) => [m.id, m.nombre])),
+    [hogar.miembros],
+  )
+  const mediosFondoComun = useMemo(
+    () => mediosSinPrestamo.filter((m) => !m.ownerMiembroId && m.ambito === 'hogar'),
+    [mediosSinPrestamo],
+  )
+  const mostrarQuienPago = borrador.ambito === 'hogar' && miembrosActivos.length > 1
+  const pagadorActivoId = medioSeleccionado
+    ? (medioSeleccionado.ownerMiembroId ??
+      (medioSeleccionado.ambito === 'hogar' ? 'hogar' : hogar.miembroActual.id))
+    : null
   const prestamos = useMemo(
     () => mediosDisponibles.filter((m) => m.tipo === 'prestamo'),
     [mediosDisponibles],
@@ -163,6 +182,7 @@ export function PantallaCompraRapida() {
     const prev = medioSeleccionado
     const next = mediosDisponibles.find((m) => m.id === id)
     setErrorValidacion(null)
+    setPagadorSinMedioNombre(null)
     seleccionarMedio(id)
     if (prev?.tipo === 'tarjeta' && next?.tipo !== 'tarjeta') {
       const msg = 'Cuotas disponibles solo con tarjeta de crédito.'
@@ -171,6 +191,18 @@ export function PantallaCompraRapida() {
     } else {
       setAvisoCuotas('')
     }
+  }
+
+  function elegirPagador(objetivoId: string, nombreEtiqueta: string) {
+    const candidato =
+      objetivoId === 'hogar'
+        ? (mediosFondoComun[0] ?? null)
+        : (mediosSinPrestamo.find((m) => m.ownerMiembroId === objetivoId) ?? null)
+    if (!candidato) {
+      setPagadorSinMedioNombre(nombreEtiqueta)
+      return
+    }
+    cambiarMedio(candidato.id)
   }
 
   const comentariosRapidosCategoria = useMemo(() => {
@@ -533,10 +565,69 @@ export function PantallaCompraRapida() {
           </h2>
           {medioSeleccionado ? (
             <span className="truncate text-xs font-semibold text-hogar-tinta-suave">
-              {medioSeleccionado.nombre}
+              {medioSeleccionado.ownerMiembroId && nombresMiembro.get(medioSeleccionado.ownerMiembroId)
+                ? `${medioSeleccionado.nombre} · ${nombresMiembro.get(medioSeleccionado.ownerMiembroId)}`
+                : medioSeleccionado.nombre}
             </span>
           ) : null}
         </div>
+
+        {mostrarQuienPago ? (
+          <div className="flex flex-col gap-1">
+            <div
+              role="group"
+              aria-label="¿Quién pagó?"
+              className="flex flex-wrap items-center gap-1.5"
+            >
+              <span className="mr-0.5 text-xs font-bold text-hogar-tinta-suave">
+                ¿Quién pagó?
+              </span>
+              {miembrosActivos.map((miembro) => {
+                const activo = pagadorActivoId === miembro.id && !pagadorSinMedioNombre
+                return (
+                  <button
+                    key={miembro.id}
+                    type="button"
+                    aria-pressed={activo}
+                    onClick={() => elegirPagador(miembro.id, miembro.nombre)}
+                    className={`inline-flex min-h-9 cursor-pointer items-center rounded-full border px-3 text-xs font-bold transition ${
+                      activo
+                        ? 'border-hogar-primario bg-hogar-primario text-white'
+                        : 'border-hogar-borde-fuerte bg-hogar-superficie text-hogar-tinta hover:bg-hogar-superficie-suave'
+                    }`}
+                  >
+                    {miembro.nombre}
+                  </button>
+                )
+              })}
+              {mediosFondoComun.length > 0 ? (
+                <button
+                  type="button"
+                  aria-pressed={pagadorActivoId === 'hogar' && !pagadorSinMedioNombre}
+                  onClick={() => elegirPagador('hogar', 'Fondo común')}
+                  className={`inline-flex min-h-9 cursor-pointer items-center rounded-full border px-3 text-xs font-bold transition ${
+                    pagadorActivoId === 'hogar' && !pagadorSinMedioNombre
+                      ? 'border-hogar-primario bg-hogar-primario text-white'
+                      : 'border-hogar-borde-fuerte bg-hogar-superficie text-hogar-tinta hover:bg-hogar-superficie-suave'
+                  }`}
+                >
+                  Fondo común
+                </button>
+              ) : null}
+            </div>
+            {pagadorSinMedioNombre ? (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-hogar-borde bg-hogar-fondo px-3 py-1.5 text-xs text-hogar-tinta-suave">
+                <span>{pagadorSinMedioNombre} aún no tiene un método de pago asignado.</span>
+                <Link
+                  to="/hogar#medios-de-pago"
+                  className="font-bold text-hogar-primario no-underline hover:underline"
+                >
+                  Crear método
+                </Link>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         {mediosSinPrestamo.length > 0 ? (
           <CarruselMedios
@@ -544,6 +635,7 @@ export function PantallaCompraRapida() {
             seleccionadoId={borrador.medioId}
             primerMedioRef={primerMedioRef}
             invalido={errorValidacion?.campo === 'medio'}
+            nombresMiembro={mostrarQuienPago ? nombresMiembro : undefined}
             onElegir={cambiarMedio}
           />
         ) : !cargando ? (

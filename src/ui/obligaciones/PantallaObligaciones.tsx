@@ -10,6 +10,7 @@ import {
 import { ShellApp } from '../ShellApp'
 import { formatearFechaCortaEs } from '../compraRapida/formatoCop'
 import { useObligaciones } from './ContextoObligaciones'
+import { EditorAbonoInline } from './EditorAbonoInline'
 import {
   TarjetaItemAgenda,
   etiquetaAmbitoTitular,
@@ -22,12 +23,20 @@ const claveItem = (item: ItemAgenda) => (item.tipo === 'cuota' ? `c-${item.cuota
 
 export function PantallaObligaciones() {
   const {
-    controlador, periodo, agenda, incluirPersonales, cargando, errorCarga,
-    cambiarPeriodo, alternarIncluirPersonales, recargar, mostrarToast,
+    hogar, controlador, periodo, agenda, medios, incluirPersonales, cargando, errorCarga,
+    cambiarPeriodo, alternarIncluirPersonales, recargar, mostrarToast, editarPago, eliminarPago,
   } = useObligaciones()
 
   const [confirmarEliminarId, setConfirmarEliminarId] = useState<string | null>(null)
   const [eliminandoId, setEliminandoId] = useState<string | null>(null)
+  const [abonoEditandoId, setAbonoEditandoId] = useState<string | null>(null)
+  const nombresMiembro = new Map(hogar.miembros.map((m) => [m.id, m.nombre]))
+  const mediosEditor = medios.map((m) => ({
+    id: m.id,
+    nombre: m.nombre,
+    ownerNombre: m.duenoMiembroId ? (nombresMiembro.get(m.duenoMiembroId) ?? null) : null,
+  }))
+  const categoriasEditor = agenda?.categorias ?? []
 
   const hoy = hoyCivil(new Date())
   const vencidas = agenda?.vencidas ?? []
@@ -222,34 +231,85 @@ export function PantallaObligaciones() {
                           <span className="hogar-chevron inline-block" aria-hidden="true">▾</span>
                         </summary>
                         <ul className="m-0 mt-1.5 flex list-none flex-col divide-y divide-hogar-borde/70 border-t border-hogar-borde/70 p-0 pt-1.5">
-                          {p.abonos!.map((abono) => (
-                            <li
-                              key={abono.id}
-                              className="flex items-start justify-between gap-2 py-1.5 text-xs first:pt-0 last:pb-0"
-                            >
-                              <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-1.5">
-                                  <span className="font-bold text-hogar-tinta">
-                                    {formatearFechaCortaEs(abono.fecha)}
-                                  </span>
-                                  <span className="text-hogar-tinta-suave">
-                                    {abono.registradoPor} · {abono.medioNombre}
-                                  </span>
-                                  {abono.tipo === 'saldo_a_favor' ? (
-                                    <Insignia variante="neutral">Saldo a favor</Insignia>
-                                  ) : null}
+                          {p.abonos!.map((abono) => {
+                            const editando = abonoEditandoId === abono.id
+                            const puedeEditarAbono =
+                              abono.tipo === 'abono' && Boolean(controlador.editarPago)
+                            return (
+                              <li
+                                key={abono.id}
+                                className="flex flex-col gap-1.5 py-1.5 text-xs first:pt-0 last:pb-0"
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                      <span className="font-bold text-hogar-tinta">
+                                        {formatearFechaCortaEs(abono.fecha)}
+                                      </span>
+                                      <span className="text-hogar-tinta-suave">
+                                        {abono.registradoPor} · {abono.medioNombre}
+                                      </span>
+                                      {abono.tipo === 'saldo_a_favor' ? (
+                                        <Insignia variante="neutral">Saldo a favor</Insignia>
+                                      ) : null}
+                                      {abono.incluirEnGastos ? (
+                                        <Insignia variante="primario">
+                                          En gastos
+                                          {abono.categoriaGastoNombre
+                                            ? ` · ${abono.categoriaGastoNombre}`
+                                            : ''}
+                                        </Insignia>
+                                      ) : null}
+                                    </div>
+                                    {abono.nota ? (
+                                      <p className="m-0 mt-0.5 text-[0.7rem] text-hogar-tinta-suave break-words">
+                                        {abono.nota}
+                                      </p>
+                                    ) : null}
+                                  </div>
+                                  <div className="flex shrink-0 items-center gap-1.5">
+                                    <span className="hogar-cop font-extrabold text-hogar-tinta">
+                                      {formatearPesos(abono.monto)}
+                                    </span>
+                                    {puedeEditarAbono ? (
+                                      <button
+                                        type="button"
+                                        aria-label={
+                                          editando
+                                            ? `Cerrar edición de abono de ${formatearPesos(abono.monto)}`
+                                            : `Editar abono de ${formatearPesos(abono.monto)}`
+                                        }
+                                        className={claseBotonPequenoSecundario}
+                                        onClick={() =>
+                                          setAbonoEditandoId(editando ? null : abono.id)
+                                        }
+                                      >
+                                        {editando ? 'Cerrar' : 'Editar'}
+                                      </button>
+                                    ) : null}
+                                  </div>
                                 </div>
-                                {abono.nota ? (
-                                  <p className="m-0 mt-0.5 text-[0.7rem] text-hogar-tinta-suave break-words">
-                                    {abono.nota}
-                                  </p>
+                                {editando ? (
+                                  <EditorAbonoInline
+                                    abono={{
+                                      id: abono.id,
+                                      monto: abono.monto,
+                                      fecha: abono.fecha,
+                                      medioDePagoId: abono.medioDePagoId ?? null,
+                                      nota: abono.nota,
+                                      incluirEnGastos: Boolean(abono.incluirEnGastos),
+                                      categoriaGastoId: abono.categoriaGastoId ?? null,
+                                    }}
+                                    medios={mediosEditor}
+                                    categorias={categoriasEditor}
+                                    onGuardar={editarPago}
+                                    onEliminar={controlador.eliminarPago ? eliminarPago : undefined}
+                                    onCerrar={() => setAbonoEditandoId(null)}
+                                  />
                                 ) : null}
-                              </div>
-                              <span className="hogar-cop shrink-0 font-extrabold text-hogar-tinta">
-                                {formatearPesos(abono.monto)}
-                              </span>
-                            </li>
-                          ))}
+                              </li>
+                            )
+                          })}
                         </ul>
                       </details>
                     ) : null}

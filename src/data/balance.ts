@@ -10,7 +10,7 @@ import type {
 import type { AlcanceCompra } from '../app/compraRapida'
 import type { PaqueteExportacion } from '../domain/exportacion'
 import type { LoteBalance } from '../domain/loteBalance'
-import type { BaseActorDexie } from './db'
+import type { BaseActorDexie, EntradaOutbox } from './db'
 
 export interface RemotoBalance {
   leer(hogarId: string): Promise<DatosBalance>
@@ -339,6 +339,56 @@ export type DependenciasPuertoBalance = {
   ahora?: () => Date
 }
 
+/**
+ * Fusiona compras y planes pendientes del outbox local sobre los datos de
+ * Balance (online o caché offline) para actualizar aportes al instante.
+ */
+export function combinarPendientesBalance(
+  datos: DatosBalance,
+  pendientes: readonly EntradaOutbox[],
+  hogarId: string,
+): DatosBalance {
+  const comprasExistentes = new Set(datos.compras.map((c) => c.id))
+  const planesExistentes = new Set(datos.planes.map((p) => p.id))
+  const comprasExtra: DatosBalance['compras'] = []
+  const planesExtra: DatosBalance['planes'] = []
+
+  for (const entrada of pendientes) {
+    if (entrada.estado !== 'pendiente' || entrada.lote.hogar_id !== hogarId) continue
+    for (const c of entrada.lote.filas.compra) {
+      if (comprasExistentes.has(c.id)) continue
+      comprasExistentes.add(c.id)
+      comprasExtra.push({
+        id: c.id,
+        fecha: c.fecha,
+        monto_total: c.monto_total,
+        ambito: c.ambito,
+        miembro_id: c.miembro_id,
+        pago_tipo: c.pago_tipo,
+        medio_de_pago_id: c.medio_de_pago_id,
+        financiada_por_pasivo_id: c.financiada_por_pasivo_id,
+      })
+    }
+    for (const pl of entrada.lote.filas.plan_de_cuotas) {
+      if (planesExistentes.has(pl.id)) continue
+      planesExistentes.add(pl.id)
+      planesExtra.push({
+        id: pl.id,
+        pasivo_id: pl.pasivo_id,
+        fecha_inicio: pl.fecha_inicio,
+        capital: pl.capital,
+      })
+    }
+  }
+
+  if (comprasExtra.length === 0 && planesExtra.length === 0) return datos
+  return {
+    ...datos,
+    compras: [...datos.compras, ...comprasExtra],
+    planes: [...datos.planes, ...planesExtra],
+  }
+}
+
 export function crearPuertoBalance(d: DependenciasPuertoBalance): BalancePort {
   const ahora = d.ahora ?? (() => new Date())
 
@@ -352,11 +402,19 @@ export function crearPuertoBalance(d: DependenciasPuertoBalance): BalancePort {
           valor: datos,
           actualizadoEn: ahora().toISOString(),
         })
-        return datos
+        const pendientes = await base.outbox.where('estado').equals('pendiente').toArray()
+        return combinarPendientesBalance(datos, pendientes, d.alcance.hogarId)
       } catch {
-        const cache = await base.instantaneas.get(CLAVE_INSTANTANEA)
+        const [cache, pendientes] = await Promise.all([
+          base.instantaneas.get(CLAVE_INSTANTANEA),
+          base.outbox.where('estado').equals('pendiente').toArray(),
+        ])
         if (!cache) throw new Error(SIN_INSTANTANEA)
-        return cache.valor as DatosBalance
+        return combinarPendientesBalance(
+          cache.valor as DatosBalance,
+          pendientes,
+          d.alcance.hogarId,
+        )
       }
     },
 

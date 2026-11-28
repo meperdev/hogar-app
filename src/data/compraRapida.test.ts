@@ -146,12 +146,13 @@ describe('armarCatalogo', () => {
     })
 
     expect(catalogo.medios).toEqual([
-      { tipo: 'medio', id: 'efectivo', nombre: 'Efectivo', ambito: null },
+      { tipo: 'medio', id: 'efectivo', nombre: 'Efectivo', ambito: null, ownerMiembroId: null },
       {
         tipo: 'tarjeta',
         id: 'mc',
         nombre: 'Mastercard',
         ambito: 'personal',
+        ownerMiembroId: null,
         ultimos4: null,
         diaCorte: 5,
         diaPago: 10,
@@ -162,6 +163,7 @@ describe('armarCatalogo', () => {
         id: 'visa',
         nombre: 'Visa ••4521',
         ambito: 'hogar',
+        ownerMiembroId: null,
         ultimos4: '4521',
         diaCorte: 15,
         diaPago: 25,
@@ -195,6 +197,7 @@ describe('armarCatalogo', () => {
         id: 'credito',
         nombre: 'Crédito cocina',
         ambito: 'hogar',
+        ownerMiembroId: null,
         disponible: 200_000,
         fechaGiro: '2026-10-01',
       },
@@ -203,6 +206,7 @@ describe('armarCatalogo', () => {
         id: 'deuda',
         nombre: 'Deuda mamá',
         ambito: 'personal',
+        ownerMiembroId: null,
         disponible: 40_000,
         fechaGiro: '2026-11-05',
       },
