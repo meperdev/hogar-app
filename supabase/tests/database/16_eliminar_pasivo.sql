@@ -2,7 +2,7 @@
 -- SECURITY DEFINER (evita `permission denied` para `authenticated` en COMMIT).
 begin;
 set search_path = public, extensions;
-select plan(10);
+select plan(11);
 
 create function pg_temp.como(p_usuario uuid) returns void language plpgsql as $$
 begin
@@ -174,10 +174,10 @@ begin
   insert into public.cuota (
     id, hogar_id, plan_id, numero, fecha_vencimiento, capital, actualizado_por
   ) values
-    ('aaaaaaaa-aaaa-4aaa-8aaa-00000000f002', 'aaaaaaaa-aaaa-4aaa-8aaa-00000000e003', 1, '2026-12-25', 50000, v_ana),
-    ('aaaaaaaa-aaaa-4aaa-8aaa-00000000f003', 'aaaaaaaa-aaaa-4aaa-8aaa-00000000e003', 2, '2027-01-25', 50000, v_ana),
-    ('aaaaaaaa-aaaa-4aaa-8aaa-00000000f004', 'aaaaaaaa-aaaa-4aaa-8aaa-00000000e004', 1, '2026-12-20', 100000, v_ana),
-    ('aaaaaaaa-aaaa-4aaa-8aaa-00000000f005', 'aaaaaaaa-aaaa-4aaa-8aaa-00000000e004', 2, '2027-01-20', 100000, v_ana);
+    ('aaaaaaaa-aaaa-4aaa-8aaa-00000000f002', v_hogar, 'aaaaaaaa-aaaa-4aaa-8aaa-00000000e003', 1, '2026-12-25', 50000, v_ana),
+    ('aaaaaaaa-aaaa-4aaa-8aaa-00000000f003', v_hogar, 'aaaaaaaa-aaaa-4aaa-8aaa-00000000e003', 2, '2027-01-25', 50000, v_ana),
+    ('aaaaaaaa-aaaa-4aaa-8aaa-00000000f004', v_hogar, 'aaaaaaaa-aaaa-4aaa-8aaa-00000000e004', 1, '2026-12-20', 100000, v_ana),
+    ('aaaaaaaa-aaaa-4aaa-8aaa-00000000f005', v_hogar, 'aaaaaaaa-aaaa-4aaa-8aaa-00000000e004', 2, '2027-01-20', 100000, v_ana);
 
   set constraints all immediate;
   set constraints all deferred;
