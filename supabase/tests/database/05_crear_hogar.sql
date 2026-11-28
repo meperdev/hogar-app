@@ -92,7 +92,7 @@ select is((select count(*)::int from public.categoria where activa), 9, 'todas l
 select results_eq(
   $$ select nombre from public.categoria order by orden $$,
   $$ values ('Mercado'::text), ('Servicios'), ('Arriendo'), ('Transporte'), ('Salud'),
-            ('Mascotas'), ('Hogar y electrodomésticos'), ('Entretenimiento'), ('Otros') $$,
+            ('Mascotas'), ('Hogar'), ('Entretenimiento'), ('Otros') $$,
   'las categorías por defecto son las canónicas y van en orden');
 
 select is((select count(*)::int from public.medio_de_pago), 2, 'el alta siembra dos medios de pago');

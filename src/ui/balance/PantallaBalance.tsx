@@ -115,7 +115,7 @@ export function PantallaBalance() {
             checked={vista?.incluirPersonales ?? false}
             disabled={cargando}
             onChange={(v) => void alternarIncluirPersonales(v)}
-            ayuda="Apagado por defecto. Lo personal se excluye del balance y nunca suma como aporte al hogar."
+            ayuda="Tus personales no cuentan como aporte al hogar."
             etiquetaAyuda="Información sobre gastos personales en balance"
           />
         }
@@ -124,12 +124,11 @@ export function PantallaBalance() {
       {vista?.incluirPersonales ? (
         <Aviso variante="ambar" icono="ℹ">
           <p>
-            <strong className="text-hogar-tinta">Vista con gastos personales propios:</strong>{' '}
-            solo ves tus gastos personales de {mes} (
-            <span className="hogar-cop font-bold">
+            Personales de {mes}:{' '}
+            <span className="hogar-cop font-bold text-hogar-tinta">
               {formatearPesos(vista.gastosPersonalesPropios)}
-            </span>
-            ). Siguen sin contarse como aporte al hogar.
+            </span>{' '}
+            (fuera del balance).
           </p>
         </Aviso>
       ) : null}
@@ -141,7 +140,7 @@ export function PantallaBalance() {
               id="aportes-heading"
               className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta"
             >
-              Aportes del mes al hogar
+              Aportes del mes
             </h2>
             <span className="hogar-cop text-base font-extrabold text-hogar-tinta">
               {formatearPesos(vista?.totalAportes ?? 0)}
@@ -167,11 +166,10 @@ export function PantallaBalance() {
               </ul>
               {vista.salidasFondoComun > 0 ? (
                 <p className={claseAyudaCampo}>
-                  Salidas desde medios del fondo común en {mes}:{' '}
+                  Fondo común usado en {mes}:{' '}
                   <span className="hogar-cop font-bold text-hogar-tinta">
                     {formatearPesos(vista.salidasFondoComun)}
-                  </span>{' '}
-                  (informativo, no suma como aporte de nadie).
+                  </span>
                 </p>
               ) : null}
             </>
@@ -195,7 +193,7 @@ export function PantallaBalance() {
               id="ingresos-heading"
               className="m-0 text-[0.9375rem] font-extrabold text-hogar-tinta"
             >
-              Ingresos: fijos vs variables
+              Ingresos del mes
             </h2>
             <span className="hogar-cop text-base font-extrabold text-hogar-tinta">
               {formatearPesos(vista?.ingresos.total ?? 0)}
@@ -207,11 +205,11 @@ export function PantallaBalance() {
               <ListaDesglose
                 filas={[
                   {
-                    etiqueta: 'Total ingresos fijos del hogar',
+                    etiqueta: 'Fijos',
                     valor: `${formatearPesos(vista.ingresos.totalFijos)} (${vista.ingresos.pctFijos})`,
                   },
                   {
-                    etiqueta: 'Total ingresos variables recibidos',
+                    etiqueta: 'Variables',
                     valor: `${formatearPesos(vista.ingresos.totalVariables)} (${vista.ingresos.pctVariables})`,
                   },
                 ]}
@@ -219,7 +217,7 @@ export function PantallaBalance() {
 
               {vista.ingresos.fijos.length === 0 && vista.ingresos.variables.length === 0 ? (
                 <p className={claseAyudaCampo}>
-                  Todavía no hay ingresos registrados para este mes.
+                  Sin ingresos registrados este mes.
                 </p>
               ) : (
                 <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
@@ -239,7 +237,7 @@ export function PantallaBalance() {
                             {v.descripcion} · {v.miembroNombre}
                           </h3>
                           <p className="m-0 mt-0.5 text-[0.8125rem] text-hogar-tinta-suave">
-                            Variable · Registrado el {formatearFechaCortaEs(v.fecha)}
+                            Variable · {formatearFechaCortaEs(v.fecha)}
                           </p>
                         </div>
                         <div className="shrink-0 text-right">

@@ -49,7 +49,7 @@ begin
   perform set_config('prueba.hogar_id', v_alta ->> 'hogar_id', true);
 
   select id into v_cat_hogar from public.categoria
-   where hogar_id = current_setting('prueba.hogar_id')::uuid and nombre = 'Hogar y electrodomésticos' limit 1;
+   where hogar_id = current_setting('prueba.hogar_id')::uuid and nombre = 'Hogar' limit 1;
   select id into v_cat_transp from public.categoria
    where hogar_id = current_setting('prueba.hogar_id')::uuid and nombre = 'Transporte' limit 1;
   select id into v_d1 from public.comercio_frecuente

@@ -304,6 +304,17 @@ describe('Obligaciones del mes UI', () => {
           saldoPendiente: 1_426_000,
           tieneSinCalendario: true,
           cuotasAbiertasMes: 0,
+          abonos: [
+            {
+              id: 'abono-1',
+              fecha: '2026-11-18',
+              monto: 300_000,
+              medioNombre: 'Nequi · Camila',
+              registradoPor: 'Camila',
+              nota: 'Abono quincena',
+              tipo: 'abono',
+            },
+          ],
         },
         {
           pasivoId: 'pas-visa',
@@ -328,6 +339,10 @@ describe('Obligaciones del mes UI', () => {
     expect(contenedor.textContent).toContain('Tarjeta de crédito')
     expect(contenedor.textContent).toContain('Abonos libres')
     expect(contenedor.textContent).toContain('$1.426.000')
+    expect(contenedor.textContent).toContain('Abonos registrados (1)')
+    expect(contenedor.textContent).toContain('Camila · Nequi · Camila')
+    expect(contenedor.textContent).toContain('Abono quincena')
+    expect(contenedor.textContent).toContain('$300.000')
     expect(contenedor.querySelector('a[href="/obligaciones/pagar/pasivo/pas-kiroi"]')).not.toBeNull()
     expect(contenedor.querySelector('a[href="/obligaciones/pagar/pasivo/pas-visa"]')).toBeNull()
 

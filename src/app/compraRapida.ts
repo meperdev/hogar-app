@@ -27,6 +27,12 @@ export type ComercioOpcion = {
   categoriaSugeridaId: string | null
 }
 
+export type ComentarioRapidoOpcion = {
+  id: string
+  categoriaId: string
+  texto: string
+}
+
 export type TasaPasivo = { tipo: 'EA' | 'MV'; ppm: number }
 
 /**
@@ -68,6 +74,7 @@ export type CatalogoCompra = {
   categorias: CategoriaOpcion[]
   medios: MedioOpcion[]
   comercios?: ComercioOpcion[] | undefined
+  comentariosRapidos?: ComentarioRapidoOpcion[] | undefined
 }
 
 /** Datos leídos de una factura electrónica (QR DIAN, OCR o manual). */

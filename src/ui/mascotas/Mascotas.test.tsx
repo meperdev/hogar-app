@@ -2,7 +2,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { MemoryRouter } from 'react-router-dom'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { crearControladorMascotas, type DatosDespensa, type MascotasPort } from '../../app/controladorMascotas'
 import type { Hogar, Servicios, Sesion } from '../../app/fundacion'
 import type { LoteMascotas } from '../../domain/loteMascotas'
@@ -330,7 +330,21 @@ describe('UI Despensa de mascotas (Núcleo 4)', () => {
       chipTodas!.click()
     })
 
+    // Barra inferior solo tiene "+ Agregar insumo" y detalle muestra totales por mascota
+    const barra = contenedor.querySelector('[aria-label="Agregar insumo de mascotas"]')
+    expect(barra?.textContent).toContain('+ Agregar insumo')
+    expect(barra?.textContent).not.toContain('Recomprar')
+    expect(contenedor.textContent).toContain('Ver detalle (4)')
+    expect(contenedor.textContent).toContain('Milo')
+
     // Ajustar nivel de Concentrado de 50 % a 20 % -> dispara ▲ Por acabarse
+    const btnAbrirAjuste = contenedor.querySelector<HTMLButtonElement>(
+      'button[aria-label="Ajustar nivel de Concentrado adulto 12 kg"]',
+    )!
+    expect(btnAbrirAjuste).toBeTruthy()
+    act(() => {
+      btnAbrirAjuste.click()
+    })
     const inputNivel = contenedor.querySelector('#nivel-it-conc') as HTMLInputElement
     expect(inputNivel).toBeTruthy()
     escribir(inputNivel, '20')
@@ -348,24 +362,42 @@ describe('UI Despensa de mascotas (Núcleo 4)', () => {
 
   it('crea nuevo insumo en /mascotas/nuevo-insumo y vuelve a la despensa', async () => {
     const { port } = crearPuertoEnMemoria()
-    const { contenedor } = montarApp('/mascotas/nuevo-insumo', port)
-    await esperar()
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      vi.setSystemTime(new Date('2024-02-10T15:00:00-05:00'))
+      const { contenedor: contFeb } = montarApp('/mascotas/nuevo-insumo', port)
+      await esperar()
+      expect((contFeb.querySelector('#duracion-dias') as HTMLInputElement).value).toBe('29')
 
-    escribir(contenedor.querySelector('#nombre-insumo') as HTMLInputElement, 'Antipulgas mensual')
-    escribir(contenedor.querySelector('#duracion-dias') as HTMLInputElement, '30')
-    escribir(contenedor.querySelector('#umbral-alerta') as HTMLInputElement, '20')
-    const inputPrecio = contenedor.querySelector('#precio-insumo') as HTMLInputElement
-    escribir(inputPrecio, '95000')
-    expect(inputPrecio.value).toBe('$95.000')
+      vi.setSystemTime(new Date('2026-10-15T15:00:00-05:00'))
+      const { contenedor: contOct } = montarApp('/mascotas/nuevo-insumo', port)
+      await esperar()
+      expect((contOct.querySelector('#duracion-dias') as HTMLInputElement).value).toBe('31')
 
-    const form = contenedor.querySelector('form')!
-    await act(async () => {
-      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-    })
-    await esperar()
+      vi.setSystemTime(new Date('2026-11-26T15:00:00-05:00'))
+      const { contenedor } = montarApp('/mascotas/nuevo-insumo', port)
+      await esperar()
 
-    expect(contenedor.textContent).toContain('Antipulgas mensual')
-    expect(contenedor.textContent).toContain('Sin registros aún')
+      expect((contenedor.querySelector('#duracion-dias') as HTMLInputElement).value).toBe('30')
+
+      escribir(contenedor.querySelector('#nombre-insumo') as HTMLInputElement, 'Antipulgas mensual')
+      escribir(contenedor.querySelector('#duracion-dias') as HTMLInputElement, '30')
+      escribir(contenedor.querySelector('#umbral-alerta') as HTMLInputElement, '20')
+      const inputPrecio = contenedor.querySelector('#precio-insumo') as HTMLInputElement
+      escribir(inputPrecio, '95000')
+      expect(inputPrecio.value).toBe('$95.000')
+
+      const form = contenedor.querySelector('form')!
+      await act(async () => {
+        form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      })
+      await esperar()
+
+      expect(contenedor.textContent).toContain('Antipulgas mensual')
+      expect(contenedor.textContent).toContain('Sin registros aún')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('permite escoger varias mascotas al agregar un insumo y filtra por cualquiera de ellas', async () => {

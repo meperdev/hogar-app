@@ -101,9 +101,10 @@ export function TarjetaInsumo({
   mascotas: Mascota[]
   onAjustarNivel: (itemId: string, nivelPct: number) => Promise<void>
 }) {
-  const { item, ultimaObservacion, nivelActual, vidaUtilDias, proximaCompraEstimada, diasRestantes, estado } =
+  const { item, ultimaObservacion, nivelActual, proximaCompraEstimada, diasRestantes, estado } =
     estadoItem
   const metaEstado = INSIGNIA_ESTADO[estado]
+  const [ajustando, setAjustando] = useState(false)
   const [valorNivel, setValorNivel] = useState(() => String(nivelActual ?? 50))
   const [guardando, setGuardando] = useState(false)
   const [errorAjuste, setErrorAjuste] = useState('')
@@ -124,6 +125,7 @@ export function TarjetaInsumo({
     setErrorAjuste('')
     try {
       await onAjustarNivel(item.id, numero)
+      setAjustando(false)
     } catch (err) {
       setErrorAjuste(err instanceof ErrorMascotas ? err.message : 'No se pudo guardar el ajuste.')
     } finally {
@@ -170,32 +172,61 @@ export function TarjetaInsumo({
             </div>
             <p className={claseAyudaCampo}>
               Obs. {formatearFechaCortaEs(ultimaObservacion.fecha)}
-              {vidaUtilDias !== null && item.frecuenciaDias !== null
-                ? ` · Vida útil: ${vidaUtilDias} días · Frec.: ${item.frecuenciaDias} días · Umbral: ${item.umbralAlertaPct} %`
-                : ` · Umbral: ${item.umbralAlertaPct} %`}
+              {item.frecuenciaDias !== null ? ` · Cada ${item.frecuenciaDias} d` : ''}
             </p>
           </div>
         ) : (
           <p className={claseAyudaCampo}>
-            Sin registros aún. Registra una compra o ajusta el nivel observado.
+            Sin registros aún. Registra una compra o ajusta el nivel.
           </p>
         )}
 
-        <Link
-          to={`/mascotas/recomprar/${encodeURIComponent(item.id)}`}
-          className={`${claseBotonPequenoSecundario} w-full no-underline`}
-        >
-          {item.montoHabitual !== null
-            ? `Recomprar ${formatearPesos(item.montoHabitual)}`
-            : 'Recomprar'}
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            to={`/mascotas/recomprar/${encodeURIComponent(item.id)}`}
+            className={`${claseBotonPequenoSecundario} flex-1 no-underline`}
+          >
+            {item.montoHabitual !== null
+              ? `Recomprar ${formatearPesos(item.montoHabitual)}`
+              : 'Recomprar'}
+          </Link>
+          <button
+            type="button"
+            aria-label={`Ajustar nivel de ${item.nombre}`}
+            aria-expanded={ajustando}
+            onClick={() => {
+              setErrorAjuste('')
+              setValorNivel(String(nivelActual ?? 50))
+              setAjustando((v) => !v)
+            }}
+            className={`inline-flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border transition-colors ${
+              ajustando
+                ? 'border-hogar-primario bg-hogar-primario-suave text-hogar-primario'
+                : 'border-hogar-borde-fuerte bg-hogar-superficie text-hogar-tinta hover:bg-hogar-superficie-suave'
+            }`}
+          >
+            <svg
+              className="size-[18px]"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" />
+            </svg>
+          </button>
+        </div>
 
-        <details className="hogar-details rounded-2xl border border-hogar-borde bg-hogar-superficie-suave px-3 py-2">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 text-xs font-bold text-hogar-tinta">
-            <span>Ajustar nivel observado</span>
-            <span className="hogar-chevron inline-block" aria-hidden="true">▾</span>
-          </summary>
-          <form className="mt-2.5 flex flex-col gap-2" onSubmit={enviarAjuste} noValidate>
+        {ajustando ? (
+          <form
+            className="flex flex-col gap-2 rounded-2xl border border-hogar-borde bg-hogar-superficie-suave p-3"
+            onSubmit={enviarAjuste}
+            noValidate
+          >
             <div className="flex flex-wrap gap-1.5">
               {[0, 20, 50, 75, 100].map((pct) => (
                 <button
@@ -236,7 +267,7 @@ export function TarjetaInsumo({
               {guardando ? 'Guardando…' : 'Guardar ajuste de nivel'}
             </button>
           </form>
-        </details>
+        ) : null}
       </Tarjeta>
     </li>
   )

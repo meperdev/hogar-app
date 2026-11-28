@@ -31,11 +31,19 @@ import { aplicarTeclaCop, formatearFechaCortaEs, parsearDigitosCop } from './for
 
 const TECLAS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0', 'borrar'] as const
 
+function combinarDescripcion(comercio: string | null, nota: string): string {
+  const comercioLimpio = comercio?.trim() ?? ''
+  const notaLimpia = nota.trim()
+  if (!comercioLimpio) return notaLimpia
+  if (!notaLimpia) return comercioLimpio
+  if (notaLimpia.toLowerCase().startsWith(comercioLimpio.toLowerCase())) return notaLimpia
+  return `${comercioLimpio} · ${notaLimpia}`
+}
+
 export function PantallaCompraRapida() {
   const navigate = useNavigate()
   const location = useLocation()
   const {
-    hogar,
     catalogo,
     cargando,
     errorCarga,
@@ -58,6 +66,7 @@ export function PantallaCompraRapida() {
   } = useCompraRapida()
 
   const [verTodas, setVerTodas] = useState(false)
+  const [comercioSeleccionado, setComercioSeleccionado] = useState<string | null>(null)
   const [panelNotaAbierto, setPanelNotaAbierto] = useState(false)
   const [errorValidacion, setErrorValidacion] = useState<ErrorBorrador | null>(null)
   const [avisoCuotas, setAvisoCuotas] = useState('')
@@ -164,12 +173,25 @@ export function PantallaCompraRapida() {
     }
   }
 
+  const comentariosRapidosCategoria = useMemo(() => {
+    if (!borrador.categoriaId) return []
+    return (catalogo?.comentariosRapidos ?? []).filter(
+      (c) => c.categoriaId === borrador.categoriaId,
+    )
+  }, [borrador.categoriaId, catalogo?.comentariosRapidos])
+
+  const descripcionCombinada = useMemo(
+    () => combinarDescripcion(comercioSeleccionado, borrador.descripcion),
+    [borrador.descripcion, comercioSeleccionado],
+  )
+
   function elegirComercio(comercio: ComercioSeleccionado) {
     setErrorValidacion(null)
-    const yaActivo = borrador.descripcion.trim().toLowerCase() === comercio.nombre.toLowerCase()
-    const nuevaDescripcion = yaActivo ? '' : comercio.nombre
-    let siguienteCategoriaId = borrador.categoriaId
+    const yaActivo = comercioSeleccionado?.trim().toLowerCase() === comercio.nombre.toLowerCase()
+    const siguienteComercio = yaActivo ? null : comercio.nombre
+    setComercioSeleccionado(siguienteComercio)
     if (!yaActivo && !borrador.categoriaId) {
+      let siguienteCategoriaId: string | null = null
       if (
         comercio.categoriaSugeridaId &&
         categorias.some((c) => c.id === comercio.categoriaSugeridaId)
@@ -186,17 +208,19 @@ export function PantallaCompraRapida() {
         )
         if (cat) siguienteCategoriaId = cat.id
       }
+      if (siguienteCategoriaId) {
+        setBorrador((p) => ({ ...p, categoriaId: siguienteCategoriaId }))
+      }
     }
-    setBorrador((p) => ({
-      ...p,
-      descripcion: nuevaDescripcion,
-      categoriaId: siguienteCategoriaId,
-    }))
   }
 
   async function intentarGuardar(ignorarDuplicado = false) {
     if (guardando) return
-    const res = await guardarBorrador(undefined, { ignorarDuplicadoInmediato: ignorarDuplicado })
+    const borradorEnvio = {
+      ...borrador,
+      descripcion: descripcionCombinada,
+    }
+    const res = await guardarBorrador(borradorEnvio, { ignorarDuplicadoInmediato: ignorarDuplicado })
     if (res.estado === 'error') {
       setErrorValidacion(res.error)
       if (res.error.campo === 'monto') montoRef.current?.focus()
@@ -214,6 +238,7 @@ export function PantallaCompraRapida() {
     if (res.estado === 'fallo') return setErrorValidacion({ campo: 'monto', mensaje: res.mensaje })
     setErrorValidacion(null)
     setAvisoCuotas('')
+    setComercioSeleccionado(null)
     cerrarPanelNota()
   }
 
@@ -253,8 +278,8 @@ export function PantallaCompraRapida() {
             type="button"
             onClick={alternarPanelNota}
             aria-label={
-              borrador.descripcion.trim()
-                ? `Editar comentario: ${borrador.descripcion.trim()}`
+              descripcionCombinada
+                ? `Editar comentario: ${descripcionCombinada}`
                 : 'Agregar comentario o fecha'
             }
             aria-expanded={panelNotaAbierto}
@@ -262,7 +287,7 @@ export function PantallaCompraRapida() {
             className="relative inline-flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center rounded-2xl border border-hogar-borde-fuerte bg-hogar-superficie px-3 text-hogar-tinta shadow-[0_2px_8px_-2px_rgba(16,24,20,0.12)] transition-transform duration-150 active:scale-95 hover:bg-hogar-superficie-suave"
           >
             <IconoComentario className="size-5" />
-            {borrador.descripcion.trim() ? (
+            {descripcionCombinada ? (
               <span
                 aria-hidden="true"
                 className="absolute top-2 right-2 size-2 rounded-full bg-hogar-primario ring-2 ring-hogar-superficie"
@@ -302,15 +327,24 @@ export function PantallaCompraRapida() {
             </div>
             <div className="flex flex-col gap-2.5">
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="nota-compra" className={claseEtiquetaCampo}>
-                  Comentario o comercio
-                </label>
+                <div className="flex items-center justify-between gap-2">
+                  <label htmlFor="nota-compra" className={claseEtiquetaCampo}>
+                    Comentario
+                  </label>
+                  <Link
+                    to="/hogar#comentarios-rapidos"
+                    className="text-xs font-bold text-hogar-primario underline"
+                    onClick={cerrarPanelNota}
+                  >
+                    Administrar
+                  </Link>
+                </div>
                 <input
                   ref={notaRef}
                   id="nota-compra"
                   className={claseCampoTexto}
                   type="text"
-                  placeholder="Ej. Almuerzo, D1 mercado semanal…"
+                  placeholder="Ej. Tanqueada moto, almuerzo…"
                   value={borrador.descripcion}
                   onChange={(e) => setBorrador((p) => ({ ...p, descripcion: e.target.value }))}
                   onKeyDown={(e) => {
@@ -320,6 +354,29 @@ export function PantallaCompraRapida() {
                     }
                   }}
                 />
+                {comentariosRapidosCategoria.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5" role="group" aria-label="Comentarios frecuentes en esta categoría">
+                    {comentariosRapidosCategoria.map((c) => {
+                      const activo = borrador.descripcion.trim().toLowerCase() === c.texto.toLowerCase()
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          aria-pressed={activo}
+                          className={activo ? claseBotonPequenoPrimario : claseBotonPequenoSecundario}
+                          onClick={() =>
+                            setBorrador((p) => ({
+                              ...p,
+                              descripcion: activo ? '' : c.texto,
+                            }))
+                          }
+                        >
+                          {c.texto}
+                        </button>
+                      )
+                    })}
+                  </div>
+                ) : null}
               </div>
               <div className="flex min-w-0 max-w-full flex-col gap-1.5 overflow-hidden">
                 <label htmlFor="fecha-compra" className={claseEtiquetaCampo}>
@@ -412,11 +469,6 @@ export function PantallaCompraRapida() {
             cambiarAmbito(s)
           }}
         />
-        {borrador.ambito === 'personal' ? (
-          <p className="m-0 mt-1 text-xs font-semibold text-hogar-indigo">
-            Solo visible para {hogar.miembroActual.nombre} · Excluida del balance del hogar
-          </p>
-        ) : null}
       </section>
 
       <section
@@ -448,9 +500,9 @@ export function PantallaCompraRapida() {
               <span>Monto</span>
             </label>
             <div className="flex min-w-0 items-center gap-1.5">
-              {borrador.descripcion.trim() ? (
+              {descripcionCombinada ? (
                 <span className="max-w-[140px] truncate rounded-full border border-hogar-borde bg-hogar-fondo px-2 py-0.5 text-[0.6875rem] font-semibold text-hogar-tinta-suave">
-                  {borrador.descripcion.trim()}
+                  {descripcionCombinada}
                 </span>
               ) : null}
               <Insignia variante="neutral">{badgeMonto}</Insignia>
@@ -578,10 +630,40 @@ export function PantallaCompraRapida() {
             invalida={errorValidacion?.campo === 'categoria'}
             onElegir={(categoriaId) => {
               setErrorValidacion(null)
-              setBorrador((p) => ({ ...p, categoriaId }))
+              setBorrador((p) => ({
+                ...p,
+                categoriaId: p.categoriaId === categoriaId ? null : categoriaId,
+              }))
             }}
           />
         )}
+        {comentariosRapidosCategoria.length > 0 ? (
+          <div className="hogar-carrusel mt-1.5" role="group" aria-label="Comentarios rápidos">
+            {comentariosRapidosCategoria.map((c) => {
+              const activo = borrador.descripcion.trim().toLowerCase() === c.texto.toLowerCase()
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  aria-pressed={activo}
+                  className={`inline-flex min-h-9 shrink-0 snap-start cursor-pointer items-center gap-1 rounded-full border px-3 py-1 text-xs font-bold transition-colors ${
+                    activo
+                      ? 'border-hogar-primario bg-hogar-primario text-white'
+                      : 'border-hogar-borde bg-hogar-superficie text-hogar-tinta-suave hover:border-hogar-primario hover:text-hogar-tinta'
+                  }`}
+                  onClick={() =>
+                    setBorrador((p) => ({
+                      ...p,
+                      descripcion: activo ? '' : c.texto,
+                    }))
+                  }
+                >
+                  {activo ? `✓ ${c.texto}` : c.texto}
+                </button>
+              )
+            })}
+          </div>
+        ) : null}
       </section>
 
       <section aria-labelledby="comercios-heading" className="flex flex-col gap-1">
@@ -590,7 +672,7 @@ export function PantallaCompraRapida() {
         </h2>
         <CarruselComercios
           comercios={catalogo?.comercios}
-          descripcionActual={borrador.descripcion}
+          seleccionadoNombre={comercioSeleccionado}
           onElegir={elegirComercio}
         />
       </section>

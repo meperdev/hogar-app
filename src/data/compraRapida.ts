@@ -5,6 +5,7 @@ import type {
   Ambito,
   CatalogoCompra,
   CategoriaOpcion,
+  ComentarioRapidoOpcion,
   ComercioOpcion,
   MedioOpcion,
   TasaPasivo,
@@ -49,6 +50,14 @@ export type FilaComercio = {
   orden?: number | undefined
 }
 
+export type FilaComentarioRapido = {
+  id: string
+  categoria_id: string
+  texto: string
+  activo: boolean
+  orden?: number | undefined
+}
+
 export type FilaPasivo = {
   id: string
   tipo: 'tarjeta' | 'credito' | 'deuda'
@@ -87,6 +96,7 @@ export type FilasCatalogo = {
   desembolsos: FilaDesembolso[]
   comprasVinculadas: FilaCompraVinculada[]
   comercios?: FilaComercio[] | undefined
+  comentariosRapidos?: FilaComentarioRapido[] | undefined
 }
 
 export type ResultadoPush =
@@ -206,10 +216,23 @@ export function armarCatalogo(f: FilasCatalogo): CatalogoCompra {
         }))
     : undefined
 
+  const comentariosRapidos: ComentarioRapidoOpcion[] | undefined = f.comentariosRapidos
+    ? f.comentariosRapidos
+        .filter((comentario) => comentario.activo)
+        .slice()
+        .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0) || a.texto.localeCompare(b.texto, 'es'))
+        .map((comentario) => ({
+          id: comentario.id,
+          categoriaId: comentario.categoria_id,
+          texto: comentario.texto,
+        }))
+    : undefined
+
   return {
     categorias,
     medios: [...medios, ...tarjetas.sort(porNombre), ...prestamos.sort(porNombre)],
     ...(comercios !== undefined ? { comercios } : {}),
+    ...(comentariosRapidos !== undefined ? { comentariosRapidos } : {}),
   }
 }
 
@@ -457,6 +480,18 @@ const esquemaComercio = z.object({
   orden: z.number().int().optional(),
 })
 
+const esquemaComentarioRapido = z.object({
+  id: z.uuid(),
+  categoria_id: z.uuid(),
+  texto: z.string(),
+  activo: z.boolean(),
+  orden: z.number().int().optional(),
+})
+
+function esTablaInexistente(error: { code?: string } | null | undefined): boolean {
+  return error?.code === '42P01' || error?.code === 'PGRST205'
+}
+
 const esquemaResultadoPush = z.discriminatedUnion('estado', [
   z.object({
     estado: z.literal('aplicado'),
@@ -474,7 +509,7 @@ const esquemaResultadoPush = z.discriminatedUnion('estado', [
 export function crearRemotoSupabase(cliente: SupabaseClient): RemotoCompraRapida {
   return {
     async leerCatalogo(hogarId) {
-      const [categorias, medios, pasivos, tarjetas, desembolsos, compras, comercios] =
+      const [categorias, medios, pasivos, tarjetas, desembolsos, compras, comercios, comentarios] =
         await Promise.all([
           cliente.from('categoria').select('id,nombre,icono,orden,activa')
             .eq('hogar_id', hogarId).is('eliminado_en', null),
@@ -491,10 +526,15 @@ export function crearRemotoSupabase(cliente: SupabaseClient): RemotoCompraRapida
             .is('eliminado_en', null),
           cliente.from('comercio_frecuente').select('id,nombre,categoria_sugerida_id,activo,orden')
             .eq('hogar_id', hogarId).is('eliminado_en', null),
+          cliente.from('comentario_rapido').select('id,categoria_id,texto,activo,orden')
+            .eq('hogar_id', hogarId).is('eliminado_en', null),
         ])
 
       for (const respuesta of [categorias, medios, pasivos, tarjetas, desembolsos, compras, comercios]) {
         if (respuesta.error) throw respuesta.error
+      }
+      if (comentarios.error && !esTablaInexistente(comentarios.error)) {
+        throw comentarios.error
       }
 
       return {
@@ -505,6 +545,9 @@ export function crearRemotoSupabase(cliente: SupabaseClient): RemotoCompraRapida
         desembolsos: z.array(esquemaDesembolso).parse(desembolsos.data),
         comprasVinculadas: z.array(esquemaCompraVinculada).parse(compras.data),
         comercios: z.array(esquemaComercio).parse(comercios.data),
+        comentariosRapidos: comentarios.error
+          ? []
+          : z.array(esquemaComentarioRapido).parse(comentarios.data),
       }
     },
 

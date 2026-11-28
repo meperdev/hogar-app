@@ -147,14 +147,10 @@ export function TarjetaMiembroBalance({
                 </p>
               ) : (
                 <p className="m-0 mt-0.5 text-[0.8125rem] text-hogar-tinta-suave">
-                  Sin ingresos registrados este mes
+                  Sin ingresos este mes
                 </p>
               )
-            ) : (
-              <p className="m-0 mt-0.5 text-[0.8125rem] text-hogar-tinta-suave">
-                Solo aportes al hogar (compras, pagos a pasivos Hogar y fondo común)
-              </p>
-            )}
+            ) : null}
           </div>
           <div className="shrink-0 text-right">
             <span className="hogar-cop block text-base font-extrabold text-hogar-tinta">
@@ -231,7 +227,7 @@ export function TarjetaIngresoFijo({
               {item.descripcion} · {item.miembroNombre}
             </h3>
             <p className="m-0 mt-0.5 text-[0.8125rem] text-hogar-tinta-suave">
-              Fijo · Día esperado: {formatearFechaCortaEs(item.fechaEsperada)}
+              Fijo · {formatearFechaCortaEs(item.fechaEsperada)}
               {difiere ? ` · Base: ${formatearPesos(item.montoEsperado)}` : ''}
             </p>
           </div>
@@ -251,14 +247,14 @@ export function TarjetaIngresoFijo({
 
         {difiere ? (
           <p className={claseAyudaCampo}>
-            Recibido con monto distinto al esperado. El balance usa {formatearPesos(item.montoEfectivo)} sin cambiar la base.
+            Monto ajustado (base: {formatearPesos(item.montoEsperado)}).
           </p>
         ) : null}
 
         {!esRecibido ? (
           <details className="hogar-details overflow-hidden rounded-2xl border border-hogar-borde bg-hogar-superficie">
             <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-sm font-bold text-hogar-tinta">
-              <span>Marcar recibido (puede variar el monto)</span>
+              <span>Marcar recibido</span>
               <span className="hogar-chevron inline-block" aria-hidden="true">▾</span>
             </summary>
             <div className="flex flex-col gap-2.5 border-t border-hogar-borde bg-hogar-fondo p-3">

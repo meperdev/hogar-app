@@ -243,4 +243,46 @@ describe('dominio gastos generales', () => {
       },
     ])
   })
+
+  it('ordena compras del mismo día dejando arriba la registrada más recientemente (creadoEn desc)', () => {
+    const res = calcularResumenGastos({
+      ...baseEntrada({ ambito: 'hogar' }),
+      compras: [
+        {
+          id: 'c-arriendo',
+          fecha: '2026-11-27',
+          creadoEn: '2026-11-27T08:00:00.000Z',
+          descripcion: 'Arriendo noviembre',
+          montoTotal: 2_400_000,
+          categoriaId: 'cat-hogar',
+          ambito: 'hogar',
+          miembroId: null,
+          pagoTipo: 'contado',
+          medioDePagoId: 'mp-bancolombia',
+          financiadaPorPasivoId: null,
+          obligacionId: null,
+          registradoPor: 'santiago',
+          origen: 'manual',
+        },
+        {
+          id: 'c-uber',
+          fecha: '2026-11-27',
+          creadoEn: '2026-11-27T19:15:00.000Z',
+          descripcion: 'Uber regreso',
+          montoTotal: 18_500,
+          categoriaId: 'cat-mercado',
+          ambito: 'hogar',
+          miembroId: null,
+          pagoTipo: 'contado',
+          medioDePagoId: 'mp-nequi',
+          financiadaPorPasivoId: null,
+          obligacionId: null,
+          registradoPor: 'laura',
+          origen: 'manual',
+        },
+      ],
+    })
+
+    expect(res.movimientos.map((m) => m.id)).toEqual(['c-uber', 'c-arriendo'])
+  })
 })

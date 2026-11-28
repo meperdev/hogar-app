@@ -8,6 +8,7 @@ import {
   claseBotonPequenoPrimario, claseBotonPequenoSecundario, claseBotonPrimario,
 } from '../ComponentesBase'
 import { ShellApp } from '../ShellApp'
+import { formatearFechaCortaEs } from '../compraRapida/formatoCop'
 import { useObligaciones } from './ContextoObligaciones'
 import {
   TarjetaItemAgenda,
@@ -91,7 +92,7 @@ export function PantallaObligaciones() {
                 <span className="min-w-0 break-words">{incluirPersonales ? 'Consumo real (+ pers.)' : 'Consumo real (hogar)'}</span>
               </span>
               <span className="text-[0.7rem] leading-snug text-hogar-tinta-suave">
-                {incluirPersonales ? 'Hogar + tus personales' : 'Solo hogar · 1 vez por compra'}
+                {incluirPersonales ? 'Hogar + personales' : 'Solo hogar'}
               </span>
             </div>
             <span className="hogar-cop shrink-0 text-xl font-extrabold leading-tight tracking-tight text-hogar-tinta">
@@ -116,7 +117,7 @@ export function PantallaObligaciones() {
               </span>
               <div className="mt-auto flex min-w-0 flex-col gap-0.5">
                 <span className="hogar-cop text-base font-extrabold leading-tight tracking-tight text-hogar-tinta break-words">{formatearPesos(resumen.costoFinanciero)}</span>
-                <span className="hogar-cop text-[0.7rem] leading-[1.2] text-hogar-tinta-suave break-words">{notaCosto}</span>
+                <span className="hogar-cop text-[0.7rem] leading-[1.2] text-hogar-tinta-suave break-words">{interesPag > 0 || interesPend > 0 ? notaCosto : 'Intereses y comisiones'}</span>
               </div>
             </article>
           </div>
@@ -213,6 +214,45 @@ export function PantallaObligaciones() {
                         </span>
                       </div>
                     </div>
+
+                    {(p.abonos?.length ?? 0) > 0 ? (
+                      <details className="hogar-details rounded-xl border border-hogar-borde bg-hogar-fondo px-3 py-1.5">
+                        <summary className="flex min-h-9 cursor-pointer list-none items-center justify-between gap-2 text-xs font-bold text-hogar-tinta-suave">
+                          <span>Abonos registrados ({p.abonos!.length})</span>
+                          <span className="hogar-chevron inline-block" aria-hidden="true">▾</span>
+                        </summary>
+                        <ul className="m-0 mt-1.5 flex list-none flex-col divide-y divide-hogar-borde/70 border-t border-hogar-borde/70 p-0 pt-1.5">
+                          {p.abonos!.map((abono) => (
+                            <li
+                              key={abono.id}
+                              className="flex items-start justify-between gap-2 py-1.5 text-xs first:pt-0 last:pb-0"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span className="font-bold text-hogar-tinta">
+                                    {formatearFechaCortaEs(abono.fecha)}
+                                  </span>
+                                  <span className="text-hogar-tinta-suave">
+                                    {abono.registradoPor} · {abono.medioNombre}
+                                  </span>
+                                  {abono.tipo === 'saldo_a_favor' ? (
+                                    <Insignia variante="neutral">Saldo a favor</Insignia>
+                                  ) : null}
+                                </div>
+                                {abono.nota ? (
+                                  <p className="m-0 mt-0.5 text-[0.7rem] text-hogar-tinta-suave break-words">
+                                    {abono.nota}
+                                  </p>
+                                ) : null}
+                              </div>
+                              <span className="hogar-cop shrink-0 font-extrabold text-hogar-tinta">
+                                {formatearPesos(abono.monto)}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    ) : null}
 
                     {confirmando ? (
                       <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-hogar-peligro/25 bg-hogar-peligro-suave px-3 py-2">
