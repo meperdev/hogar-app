@@ -12,6 +12,7 @@ import {
   type MedioOpcion,
 } from '../../app/compraRapida'
 import type { Hogar } from '../../app/fundacion'
+import { EVENTO_CATALOGO_ACTUALIZADO, notificarComprasActualizadas } from '../eventosDatos'
 import { useNotificacionesOpcional } from '../Notificaciones'
 
 export type ToastGuardado = { loteId: string; resumen: string; conCuotas: boolean }
@@ -94,13 +95,9 @@ export function ProveedorCompraRapida({
   const [sync, setSync] = useState<EstadoSincronizacion | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendientesPreviosRef = useRef(0)
+  const catalogoRef = useRef<CatalogoCompra | null>(null)
+  catalogoRef.current = catalogo
   const notificaciones = useNotificacionesOpcional()
-
-  const notificarComprasActualizadas = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('hogar:compras-actualizadas'))
-    }
-  }, [])
 
   const limpiarTimer = useCallback(() => {
     if (timerRef.current !== null) {
@@ -122,20 +119,42 @@ export function ProveedorCompraRapida({
     } catch {
       // informativo
     }
-  }, [controlador, notificarComprasActualizadas])
+  }, [controlador])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const recargarPorCatalogo = () => setRevision((n) => n + 1)
+    window.addEventListener(EVENTO_CATALOGO_ACTUALIZADO, recargarPorCatalogo)
+    return () => window.removeEventListener(EVENTO_CATALOGO_ACTUALIZADO, recargarPorCatalogo)
+  }, [])
 
   useEffect(() => {
     let vigente = true
-    setCargando(true)
+    if (!catalogoRef.current) {
+      setCargando(true)
+    }
     setErrorCarga('')
     void controlador
       .cargar()
       .then(async ({ catalogo: cat, ultimoMedioId: med }) => {
         if (!vigente) return
+        const esRecargaSilenciosa = catalogoRef.current !== null
         setCatalogo(cat)
         setUltimoMedioId(med)
-        const ini = controlador.borradorInicial(med)
-        setBorrador({ ...ini, medioId: medioCompatible(controlador, cat, ini.ambito, ini.medioId) })
+        if (esRecargaSilenciosa) {
+          setBorrador((prev) => {
+            const compatibles = controlador.mediosPara(cat, prev.ambito)
+            const medioId =
+              prev.medioId && compatibles.some((m) => m.id === prev.medioId)
+                ? prev.medioId
+                : medioCompatible(controlador, cat, prev.ambito, prev.medioId ?? med)
+            const elegido = compatibles.find((m) => m.id === medioId)
+            return { ...prev, medioId, cuotas: elegido?.tipo === 'tarjeta' ? prev.cuotas : 1 }
+          })
+        } else {
+          const ini = controlador.borradorInicial(med)
+          setBorrador({ ...ini, medioId: medioCompatible(controlador, cat, ini.ambito, ini.medioId) })
+        }
         setCargando(false)
         await refrescarSync()
       })
@@ -316,7 +335,6 @@ export function ProveedorCompraRapida({
       controlador,
       deshacerPorLote,
       limpiarTimer,
-      notificarComprasActualizadas,
       notificaciones,
       refrescarSync,
     ],

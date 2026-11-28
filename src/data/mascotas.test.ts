@@ -3,8 +3,10 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { DatosDespensa, ResultadoEnvioMascotas } from '../app/controladorMascotas'
 import type { LoteMascotas } from '../domain/loteMascotas'
+import { construirLoteCompra } from '../domain/loteCompra'
 import { crearBaseActor, type AlcanceActor, type BaseActorDexie } from './db'
 import {
+  combinarPendientesMascotas,
   crearPuertoMascotas,
   crearRemotoMascotas,
   type RemotoMascotas,
@@ -184,5 +186,54 @@ describe('crearRemotoMascotas', () => {
       },
     })
     expect(cliente.rpc).toHaveBeenCalledWith('sync_push_mascotas', expect.anything())
+  })
+})
+
+describe('combinarPendientesMascotas', () => {
+  it('fusiona compras pendientes del outbox local sin duplicar las ya leídas del remoto', async () => {
+    const alcance = nuevoAlcance()
+    const base = await abrirBase(alcance)
+    const datos = datosBase()
+    let seq = 1
+    const lote = construirLoteCompra(
+      {
+        hogarId: alcance.hogarId,
+        actorId: alcance.miembroId,
+        fecha: '2026-11-24',
+        descripcion: 'Concentrado Luna',
+        monto: 95_000,
+        categoriaId: '01950000-0000-7000-8000-000000000201',
+        ambito: 'hogar',
+        pago: { tipo: 'medio', medioDePagoId: '01950000-0000-7000-8000-000000000011' },
+        factura: null,
+        alias: null,
+      },
+      () => `01950000-0000-7000-8000-${String(seq++).padStart(12, '0')}`,
+    )
+    const entrada = {
+      loteId: lote.lote_id,
+      creadoEn: '2026-11-24T12:00:00Z',
+      lote,
+      estado: 'pendiente' as const,
+      motivo: null,
+    }
+    await base.outbox.put(entrada)
+
+    const remoto: RemotoMascotas = {
+      leer: vi.fn(async () => datos),
+      enviarLote: vi.fn(async (): Promise<ResultadoEnvioMascotas> => ({ estado: 'aplicado' })),
+    }
+    const puerto = crearPuertoMascotas({
+      base: async () => base,
+      remoto,
+      hogarId: alcance.hogarId,
+    })
+
+    const leido = await puerto.leer()
+    expect(leido.compras).toHaveLength(1)
+    expect(leido.compras[0]?.montoTotal).toBe(95_000)
+
+    const sinDuplicar = combinarPendientesMascotas(leido, [entrada], alcance.hogarId)
+    expect(sinDuplicar.compras).toHaveLength(1)
   })
 })

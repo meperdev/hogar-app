@@ -8,6 +8,7 @@ import type {
   AgendaMes, BorradorPago, BorradorPasivo, ControladorObligaciones, EvaluacionPago, MedioPagoOpcion,
 } from '../../app/obligaciones'
 import { RutasFundacion } from '../RutasFundacion'
+import { notificarCatalogoActualizado } from '../eventosDatos'
 
 const raices: Root[] = []
 const MEDIOS: MedioPagoOpcion[] = [
@@ -469,5 +470,45 @@ describe('Obligaciones del mes UI', () => {
     await act(async () => botonPorTexto(contLista, 'Eliminar abono')?.click())
     await act(async () => botonPorTexto(contLista, 'Sí, eliminar')?.click())
     expect(eliminarPago).toHaveBeenCalledWith('ab-edit-1')
+  })
+
+  it('recarga medios secuencialmente tras cargarMes cuando se actualiza el catálogo', async () => {
+    let versionCatalogo = 1
+    let cargadoEnMemoria = 1
+    const medioNuevo = {
+      id: 'med-sofia-nuevo',
+      nombre: 'Efectivo Sofía',
+      duenoMiembroId: 'm-camila',
+    }
+    const { controlador } = crearControladorMock({
+      cargarMes: vi.fn(async (periodo: string) => {
+        cargadoEnMemoria = versionCatalogo
+        return agendaBase(periodo)
+      }),
+      medios: vi.fn(async () =>
+        cargadoEnMemoria >= 2 ? [...MEDIOS, medioNuevo] : MEDIOS,
+      ),
+    })
+
+    const { contenedor } = await montar({
+      rutaInicial: '/obligaciones/pagar/cuota/cuota-1',
+      controlador,
+    })
+
+    const selectInicial = contenedor.querySelector<HTMLSelectElement>('#cuenta-origen')!
+    expect([...selectInicial.options].some((o) => o.value === 'med-sofia-nuevo')).toBe(false)
+
+    versionCatalogo = 2
+    await act(async () => {
+      notificarCatalogoActualizado()
+    })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    const selectActualizado = contenedor.querySelector<HTMLSelectElement>('#cuenta-origen')!
+    expect([...selectActualizado.options].some((o) => o.value === 'med-sofia-nuevo')).toBe(true)
   })
 })

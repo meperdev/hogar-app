@@ -8,6 +8,7 @@ import {
 } from '../ComponentesBase'
 import { ShellApp } from '../ShellApp'
 import { formatearPorcentajeEs } from '../compraRapida/formatoCop'
+import { notificarCatalogoActualizado } from '../eventosDatos'
 import { useObligaciones } from './ContextoObligaciones'
 import { ATAJOS_ENTIDADES_FINANCIERAS, identidadMedio } from '../marcas'
 import { TarjetaRadio, parsearPorcentajeEs } from './PiezasObligaciones'
@@ -119,6 +120,7 @@ export function PantallaNuevoPasivo() {
     try {
       const res = await controlador.crearPasivo(borrador)
       mostrarToast(res.resumen)
+      notificarCatalogoActualizado()
       recargar()
       navigate('/obligaciones')
     } catch (causa) {

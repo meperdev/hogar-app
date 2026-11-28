@@ -7,6 +7,7 @@ import { crearControladorMascotas, type DatosDespensa, type MascotasPort } from 
 import type { Hogar, Servicios, Sesion } from '../../app/fundacion'
 import type { LoteMascotas } from '../../domain/loteMascotas'
 import { RutasFundacion } from '../RutasFundacion'
+import { EVENTO_COMPRAS_ACTUALIZADAS, notificarComprasActualizadas } from '../eventosDatos'
 
 const raices: Root[] = []
 
@@ -475,5 +476,48 @@ describe('UI Despensa de mascotas (Núcleo 4)', () => {
     })
     await esperar()
     expect(lotesEnviados.at(-1)).toMatchObject({ tipo: 'recompra', actualizar_monto_habitual: false })
+  })
+
+  it('recarga Mascotas ante evento hogar:compras-actualizadas y emite evento al recomprar', async () => {
+    const { port, estado } = crearPuertoEnMemoria()
+    const leerEspia = vi.spyOn(port, 'leer')
+    const { contenedor } = montarApp('/mascotas', port)
+    await esperar()
+
+    expect(contenedor.textContent).toContain('$245.000')
+    expect(leerEspia).toHaveBeenCalledTimes(1)
+
+    estado.compras.push({
+      id: 'c-premio',
+      fecha: '2026-11-23',
+      descripcion: 'Galletas',
+      montoTotal: 30_000,
+      categoriaId: 'cat-mascotas',
+      ambito: 'hogar',
+      mascotaId: 'mas-luna',
+      itemDespensaId: null,
+    })
+
+    await act(async () => {
+      notificarComprasActualizadas()
+    })
+    await esperar()
+
+    expect(leerEspia).toHaveBeenCalledTimes(2)
+    expect(contenedor.textContent).toContain('$275.000')
+
+    let eventoRecibido = false
+    const handler = () => {
+      eventoRecibido = true
+    }
+    window.addEventListener(EVENTO_COMPRAS_ACTUALIZADAS, handler)
+    const { contenedor: contRecompra } = montarApp('/mascotas/recomprar/it-conc', port)
+    await esperar()
+    await act(async () => {
+      contRecompra.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+    await esperar()
+    window.removeEventListener(EVENTO_COMPRAS_ACTUALIZADAS, handler)
+    expect(eventoRecibido).toBe(true)
   })
 })

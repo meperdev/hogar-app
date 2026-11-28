@@ -37,7 +37,7 @@ import {
   PantallaObligacionesVacia,
 } from './PantallasNucleos'
 import { ShellApp } from './ShellApp'
-import { ProveedorCompraRapida, useRecargarCatalogoCompraOpcional } from './compraRapida/ContextoCompraRapida'
+import { ProveedorCompraRapida } from './compraRapida/ContextoCompraRapida'
 import { PantallaCompraCuotas } from './compraRapida/PantallaCompraCuotas'
 import { PantallaCompraRapida } from './compraRapida/PantallaCompraRapida'
 import { PantallaEscanearFactura } from './compraRapida/PantallaEscanearFactura'
@@ -390,34 +390,21 @@ function ResumenHogar({
   mediosDePago,
   comercios,
   comentariosRapidos,
-  onSalir,
-  saliendo,
-  errorSalir,
 }: {
   hogar: Hogar
   invitaciones?: Servicios['invitaciones']
   mediosDePago?: Servicios['mediosDePago']
   comercios?: Servicios['comercios']
   comentariosRapidos?: Servicios['comentariosRapidos']
-  onSalir: () => void
-  saliendo: boolean
-  errorSalir: string
 }) {
   const rolActual = hogar.miembroActual.rol === 'admin' ? 'Administrador' : 'Miembro'
-  const recargarCompra = useRecargarCatalogoCompraOpcional()
 
   return (
     <ShellApp
       titulo={hogar.nombre}
       subtitulo={`${hogar.miembroActual.nombre} · ${rolActual}`}
-      accionDerecha={<BotonSalir ocupado={saliendo} onSalir={onSalir} />}
       mostrarNavegacion
     >
-      {errorSalir ? (
-        <Aviso variante="peligro" icono="▲" role="alert">
-          <p>{errorSalir}</p>
-        </Aviso>
-      ) : null}
 
       <Tarjeta acento="primario">
         <div className="grid grid-cols-2 gap-2">
@@ -483,7 +470,6 @@ function ResumenHogar({
         <TarjetaMediosDePago
           hogar={hogar}
           mediosDePago={mediosDePago}
-          {...(recargarCompra ? { onCambio: recargarCompra } : {})}
         />
       ) : null}
 
@@ -491,7 +477,6 @@ function ResumenHogar({
         <TarjetaComercios
           hogar={hogar}
           comercios={comercios}
-          {...(recargarCompra ? { onCambio: recargarCompra } : {})}
         />
       ) : null}
 
@@ -499,7 +484,6 @@ function ResumenHogar({
         <TarjetaComentariosRapidos
           hogar={hogar}
           comentariosRapidos={comentariosRapidos}
-          {...(recargarCompra ? { onCambio: recargarCompra } : {})}
         />
       ) : null}
 
@@ -684,9 +668,6 @@ function HogarConSesion({ servicios, sesion }: { servicios: Servicios; sesion: S
             mediosDePago={servicios.mediosDePago}
             comercios={servicios.comercios}
             comentariosRapidos={servicios.comentariosRapidos}
-            onSalir={salir}
-            saliendo={ocupado}
-            errorSalir={error}
           />
         }
       />

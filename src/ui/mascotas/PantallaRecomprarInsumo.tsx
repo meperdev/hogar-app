@@ -17,6 +17,7 @@ import {
 } from '../ComponentesBase'
 import { ShellApp } from '../ShellApp'
 import { parsearDigitosCop } from '../compraRapida/formatoCop'
+import { notificarComprasActualizadas } from '../eventosDatos'
 import { useMascotas } from './ContextoMascotas'
 import { nombreMascotaOCompartido } from './PiezasMascotas'
 
@@ -109,6 +110,7 @@ export function PantallaRecomprarInsumo() {
         actualizarMontoHabitual: ambito === 'hogar' ? actualizarHabitual : false,
       })
       mostrarToast('Recompra guardada · Nivel en 100 %')
+      notificarComprasActualizadas()
       recargar()
       navigate('/mascotas')
     } catch (err) {

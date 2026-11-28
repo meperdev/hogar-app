@@ -15,6 +15,7 @@ import {
 } from '../ComponentesBase'
 import { ShellApp } from '../ShellApp'
 import { parsearDigitosCop } from '../compraRapida/formatoCop'
+import { EVENTO_CATALOGO_ACTUALIZADO } from '../eventosDatos'
 import { ListaDesglose, nombreMesPeriodoEs } from '../obligaciones/PiezasObligaciones'
 import { useBalance } from './ContextoBalance'
 
@@ -32,6 +33,14 @@ export function PantallaTransferirFondo() {
   const [cargando, setCargando] = useState(true)
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState('')
+  const [revisionMedios, setRevisionMedios] = useState(0)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const refrescar = () => setRevisionMedios((n) => n + 1)
+    window.addEventListener(EVENTO_CATALOGO_ACTUALIZADO, refrescar)
+    return () => window.removeEventListener(EVENTO_CATALOGO_ACTUALIZADO, refrescar)
+  }, [])
 
   useEffect(() => {
     let vigente = true
@@ -40,8 +49,12 @@ export function PantallaTransferirFondo() {
         if (!vigente) return
         setOrigenes(res.origenes)
         setDestinos(res.destinos)
-        setMedioOrigenId(res.origenes[0]?.id ?? '')
-        setMedioDestinoId(res.destinos[0]?.id ?? '')
+        setMedioOrigenId((actual) =>
+          actual && res.origenes.some((m) => m.id === actual) ? actual : (res.origenes[0]?.id ?? ''),
+        )
+        setMedioDestinoId((actual) =>
+          actual && res.destinos.some((m) => m.id === actual) ? actual : (res.destinos[0]?.id ?? ''),
+        )
         setCargando(false)
       },
       (causa: unknown) => {
@@ -53,7 +66,7 @@ export function PantallaTransferirFondo() {
     return () => {
       vigente = false
     }
-  }, [controlador])
+  }, [controlador, revisionMedios])
 
   const monto = parsearDigitosCop(montoTexto)
   const origenSel = origenes.find((m) => m.id === medioOrigenId) ?? null

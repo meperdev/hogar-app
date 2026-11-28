@@ -25,6 +25,7 @@ import {
   claseEtiquetaCampo,
 } from '../ComponentesBase'
 import { ATAJOS_COMERCIOS_SUGERIDOS, identidadComercio } from '../marcas'
+import { EVENTO_CATALOGO_ACTUALIZADO } from '../eventosDatos'
 import { useNotificacionesOpcional } from '../Notificaciones'
 import {
   calcularDesplazamientoHermano,
@@ -143,6 +144,7 @@ export function TarjetaComercios({
     try {
       await comercios.reordenar(idsOrdenados)
       mostrarExito('Orden de comercios actualizado.')
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event(EVENTO_CATALOGO_ACTUALIZADO))
       onCambio?.()
     } catch (causa) {
       setLista(snapshotPrevio)
@@ -172,6 +174,7 @@ export function TarjetaComercios({
       setCategoriaId('')
       setAbierto(false)
       mostrarExito(`Agregamos "${creado.nombre}" a comercios frecuentes.`)
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event(EVENTO_CATALOGO_ACTUALIZADO))
       onCambio?.()
     } catch (causa) {
       setError(
@@ -197,6 +200,7 @@ export function TarjetaComercios({
       setLista((prev) => prev.map((c) => (c.id === comercioId ? actualizado : c)))
       setEditandoId(null)
       mostrarExito(`Actualizamos "${actualizado.nombre}".`)
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event(EVENTO_CATALOGO_ACTUALIZADO))
       onCambio?.()
     } catch (causa) {
       setError(
@@ -218,6 +222,7 @@ export function TarjetaComercios({
         prev.map((c) => (c.id === comercio.id ? { ...c, activo: res.activo } : c)),
       )
       if (editandoId === comercio.id) setEditandoId(null)
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event(EVENTO_CATALOGO_ACTUALIZADO))
       onCambio?.()
     } catch (causa) {
       setError(

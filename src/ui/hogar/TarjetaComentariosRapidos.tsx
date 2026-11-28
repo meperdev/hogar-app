@@ -15,6 +15,7 @@ import {
   claseCampoTexto,
   claseEtiquetaCampo,
 } from '../ComponentesBase'
+import { EVENTO_CATALOGO_ACTUALIZADO } from '../eventosDatos'
 import { useNotificacionesOpcional } from '../Notificaciones'
 
 export function TarjetaComentariosRapidos({
@@ -93,6 +94,7 @@ export function TarjetaComentariosRapidos({
       setTexto('')
       setAbierto(false)
       mostrarExito(`Agregamos «${creado.texto}».`)
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event(EVENTO_CATALOGO_ACTUALIZADO))
       onCambio?.()
     } catch (causa) {
       setError(
@@ -114,6 +116,7 @@ export function TarjetaComentariosRapidos({
       await comentariosRapidos.eliminar(item.id)
       setLista((prev) => prev.filter((c) => c.id !== item.id))
       mostrarExito(`Eliminamos «${item.texto}».`)
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event(EVENTO_CATALOGO_ACTUALIZADO))
       onCambio?.()
     } catch (causa) {
       setError(

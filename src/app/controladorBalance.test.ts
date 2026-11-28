@@ -234,4 +234,22 @@ describe('controlador de balance de pareja', () => {
     expect(medios.origenes.some((m) => m.id === CUENTA_ANA)).toBe(false)
     expect(medios.origenes.some((m) => m.id === CUENTA_BETO)).toBe(true)
   })
+
+  it('obtiene medios recién agregados en mediosParaAporte sin depender de caché previa', async () => {
+    const port = crearPuertoMemoria()
+    const ctrl = crearControlador(port)
+
+    await ctrl.cargarMes('2026-11')
+    port.datos.medios.push({
+      id: '01950000-0000-7000-8000-000000000099',
+      nombre: 'Nequi Sofía',
+      tipo: 'cuenta',
+      owner_tipo: 'miembro',
+      owner_miembro_id: BETO,
+      activo: true,
+    })
+
+    const medios = await ctrl.mediosParaAporte()
+    expect(medios.origenes.some((m) => m.id === '01950000-0000-7000-8000-000000000099')).toBe(true)
+  })
 })
