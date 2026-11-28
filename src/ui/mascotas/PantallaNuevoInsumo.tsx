@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ErrorMascotas } from '../../app/controladorMascotas'
+import { hoyCivil, partesFecha, ultimoDiaDelMes } from '../../domain/fechas'
 import type { TipoInsumo } from '../../domain/mascotas'
 import { formatearPesos } from '../../domain/pesos'
 import {
@@ -36,7 +37,10 @@ export function PantallaNuevoInsumo() {
   const [mascotaIds, setMascotaIds] = useState<string[]>([])
   const [tipo, setTipo] = useState<TipoInsumo>('comida')
   const [categoriaId, setCategoriaId] = useState('')
-  const [frecuenciaTexto, setFrecuenciaTexto] = useState('30')
+  const [frecuenciaTexto, setFrecuenciaTexto] = useState(() => {
+    const { anio, mes } = partesFecha(vista?.hoy ?? hoyCivil(new Date()))
+    return String(ultimoDiaDelMes(anio, mes))
+  })
   const [umbralTexto, setUmbralTexto] = useState('20')
   const [montoTexto, setMontoTexto] = useState('')
   const [guardando, setGuardando] = useState(false)
@@ -246,7 +250,7 @@ export function PantallaNuevoInsumo() {
             </div>
           </div>
           <p id="ayuda-umbral" className={claseAyudaCampo}>
-            Por defecto 20 %. La alerta se activa cuando el último nivel observado es menor o igual al umbral.
+            Alerta cuando baje de este %.
           </p>
 
           <div className="flex flex-col gap-1.5">
@@ -268,7 +272,7 @@ export function PantallaNuevoInsumo() {
               disabled={guardando}
             />
             <p id="ayuda-precio-insumo" className={claseAyudaCampo}>
-              Referencia para prellenar al tocar Recomprar. No suma al gasto hasta que registres una compra.
+              Se precarga al recomprar.
             </p>
           </div>
 

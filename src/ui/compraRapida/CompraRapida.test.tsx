@@ -144,8 +144,9 @@ describe('Compra rápida UI (controlador real)', () => {
     const { controlador, port } = crearControladorReal(hogarDePrueba())
     const { contenedor } = await montarApp({ controlador })
 
-    await act(async () => boton(contenedor, 'Personal (solo yo)')?.click())
-    expect(contenedor.textContent).toContain('Solo visible para Santiago · Excluida del balance del hogar')
+    await act(async () => boton(contenedor, 'Personal')?.click())
+    expect(boton(contenedor, '✓ Personal')?.getAttribute('aria-pressed')).toBe('true')
+    expect(contenedor.textContent).not.toContain('Solo visible para Santiago')
 
     await act(async () => boton(contenedor, 'Hogar')?.click())
     await act(async () => boton(contenedor, 'Visa ••4521 (Santiago)')?.click())
@@ -306,15 +307,57 @@ describe('Compra rápida UI (controlador real)', () => {
     expect(carruselComercios?.className).toContain('hogar-carrusel')
     await act(async () => boton(contenedor, 'D1')?.click())
     expect(boton(contenedor, 'D1')?.getAttribute('aria-pressed')).toBe('true')
-    expect(contenedor.querySelector<HTMLInputElement>('#nota-compra')?.value).toBe('D1')
+    expect(contenedor.querySelector<HTMLInputElement>('#nota-compra')?.value).toBe('')
     expect(boton(contenedor, '✓ Mercado')?.getAttribute('aria-pressed')).toBe('true')
+
+    // Permite desmarcar la categoría seleccionada tocándola de nuevo
+    await act(async () => boton(contenedor, '✓ Mercado')?.click())
+    expect(boton(contenedor, 'Mercado')?.getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('combina comercio con comentario opcional y muestra comentarios rápidos por categoría', async () => {
+    const port = new PuertoEnMemoria({
+      ...CATALOGO_PRUEBA,
+      comentariosRapidos: [
+        {
+          id: '018f4a1e-0000-7000-8000-000000000501',
+          categoriaId: '018f4a1e-0000-7000-8000-000000000103',
+          texto: 'Tanqueada moto',
+        },
+      ],
+    })
+    const controlador = crearControladorCompraRapida({
+      port,
+      alcance: { hogarId: hogarDePrueba().id, miembroId: hogarDePrueba().miembroActual.id },
+      ahora: () => new Date('2026-11-22T15:00:00Z'),
+      nuevoId: () => '018f4a1e-0000-7000-8000-000000000905',
+      programar: () => {},
+    })
+    const { contenedor } = await montarApp({ controlador })
+
+    await act(async () => boton(contenedor, 'Uber')?.click())
+    expect(contenedor.querySelector<HTMLInputElement>('#nota-compra')?.value).toBe('')
+    expect(boton(contenedor, '✓ Transporte')?.getAttribute('aria-pressed')).toBe('true')
+
+    const chipComentario = boton(contenedor, 'Tanqueada moto')
+    expect(chipComentario).toBeDefined()
+    await act(async () => chipComentario?.click())
+    expect(contenedor.querySelector<HTMLInputElement>('#nota-compra')?.value).toBe('Tanqueada moto')
+
+    await act(async () => tecla(contenedor, '2')?.click())
+    await act(async () => tecla(contenedor, '0')?.click())
+    await act(async () => tecla(contenedor, '000')?.click())
+    await act(async () => contenedor.querySelector<HTMLButtonElement>('button[data-sin-scroll]')?.click())
+
+    const compra = port.registros[0]!
+    expect(compra.descripcion).toBe('Uber · Tanqueada moto')
   })
 
   it('contiene nombres largos de categorías y selector de ámbito sin desbordar las celdas', async () => {
     const port = new PuertoEnMemoria({
       ...CATALOGO_PRUEBA,
       categorias: [
-        { id: '018f4a1e-0000-7000-8000-000000000101', nombre: 'Hogar y electrodomésticos', icono: 'hogar', orden: 1 },
+        { id: '018f4a1e-0000-7000-8000-000000000101', nombre: 'Hogar', icono: 'hogar', orden: 1 },
         { id: '018f4a1e-0000-7000-8000-000000000102', nombre: 'Entretenimiento', icono: 'entretenimiento', orden: 2 },
       ],
     })
@@ -327,13 +370,13 @@ describe('Compra rápida UI (controlador real)', () => {
     })
     const { contenedor } = await montarApp({ controlador })
 
-    const btnLargo = boton(contenedor, 'Hogar y electrodomésticos')
+    const btnLargo = boton(contenedor, 'Entretenimiento')
     expect(btnLargo).toBeDefined()
     expect(btnLargo?.className).toContain('flex-col')
     expect(btnLargo?.className).toContain('min-w-0')
     expect(btnLargo?.className).toContain('overflow-hidden')
 
-    const btnAmbito = boton(contenedor, 'Personal (solo yo)')
+    const btnAmbito = boton(contenedor, 'Personal')
     expect(btnAmbito?.className).toContain('min-w-0')
     expect(btnAmbito?.className).toContain('overflow-hidden')
   })

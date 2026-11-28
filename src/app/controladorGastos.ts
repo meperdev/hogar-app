@@ -13,6 +13,7 @@ export type DatosGastos = {
   compras: Array<{
     id: string
     fecha: string
+    creado_en?: string | undefined
     descripcion: string
     monto_total: number
     categoria_id: string
@@ -106,6 +107,7 @@ export function crearControladorGastos(d: {
         compras: datos.compras.map((c) => ({
           id: c.id,
           fecha: c.fecha,
+          creadoEn: c.creado_en,
           descripcion: c.descripcion,
           montoTotal: c.monto_total,
           categoriaId: c.categoria_id,

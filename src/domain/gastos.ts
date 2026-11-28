@@ -8,6 +8,7 @@ export type TipoMedioGasto = 'efectivo' | 'cuenta' | 'tarjeta' | 'prestamo' | 'o
 export type CompraGasto = {
   id: string
   fecha: string
+  creadoEn?: string | undefined
   descripcion: string
   montoTotal: number
   categoriaId: string
@@ -108,6 +109,7 @@ export type CategoriaResumenGasto = {
 export type MovimientoGasto = {
   id: string
   fecha: string
+  creadoEn?: string | undefined
   descripcion: string
   montoTotal: number
   categoriaId: string
@@ -267,6 +269,7 @@ export function calcularResumenGastos(entrada: EntradaResumenGastos): ResumenGas
     movimientos.push({
       id: compra.id,
       fecha: compra.fecha,
+      creadoEn: compra.creadoEn,
       descripcion: compra.descripcion,
       montoTotal: monto,
       categoriaId: compra.categoriaId,
@@ -306,8 +309,8 @@ export function calcularResumenGastos(entrada: EntradaResumenGastos): ResumenGas
   movimientos.sort(
     (a, b) =>
       b.fecha.localeCompare(a.fecha) ||
-      b.montoTotal - a.montoTotal ||
-      a.id.localeCompare(b.id),
+      (b.creadoEn ?? '').localeCompare(a.creadoEn ?? '') ||
+      b.id.localeCompare(a.id),
   )
 
   const comparativaAnterior: ComparativaMesAnterior | null =

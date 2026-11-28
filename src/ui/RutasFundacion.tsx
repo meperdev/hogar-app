@@ -59,6 +59,7 @@ import { PantallaNuevoInsumo } from './mascotas/PantallaNuevoInsumo'
 import { PantallaRecomprarInsumo } from './mascotas/PantallaRecomprarInsumo'
 import { PantallaUnirmeHogar } from './invitaciones/PantallaUnirmeHogar'
 import { TarjetaInvitacionHogar } from './invitaciones/TarjetaInvitacionHogar'
+import { TarjetaComentariosRapidos } from './hogar/TarjetaComentariosRapidos'
 import { TarjetaComercios } from './hogar/TarjetaComercios'
 import { TarjetaMediosDePago } from './hogar/TarjetaMediosDePago'
 
@@ -388,6 +389,7 @@ function ResumenHogar({
   invitaciones,
   mediosDePago,
   comercios,
+  comentariosRapidos,
   onSalir,
   saliendo,
   errorSalir,
@@ -396,6 +398,7 @@ function ResumenHogar({
   invitaciones?: Servicios['invitaciones']
   mediosDePago?: Servicios['mediosDePago']
   comercios?: Servicios['comercios']
+  comentariosRapidos?: Servicios['comentariosRapidos']
   onSalir: () => void
   saliendo: boolean
   errorSalir: string
@@ -488,6 +491,14 @@ function ResumenHogar({
         <TarjetaComercios
           hogar={hogar}
           comercios={comercios}
+          {...(recargarCompra ? { onCambio: recargarCompra } : {})}
+        />
+      ) : null}
+
+      {comentariosRapidos ? (
+        <TarjetaComentariosRapidos
+          hogar={hogar}
+          comentariosRapidos={comentariosRapidos}
           {...(recargarCompra ? { onCambio: recargarCompra } : {})}
         />
       ) : null}
@@ -672,6 +683,7 @@ function HogarConSesion({ servicios, sesion }: { servicios: Servicios; sesion: S
             invitaciones={servicios.invitaciones}
             mediosDePago={servicios.mediosDePago}
             comercios={servicios.comercios}
+            comentariosRapidos={servicios.comentariosRapidos}
             onSalir={salir}
             saliendo={ocupado}
             errorSalir={error}

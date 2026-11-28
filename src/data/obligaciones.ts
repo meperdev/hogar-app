@@ -98,7 +98,9 @@ const esquemaPago = z.object({
   cuota_id: z.uuid().nullable(),
   monto: z.number().int(),
   fecha: z.string(),
+  medio_de_pago_id: z.uuid().nullable().optional(),
   registrado_por: z.uuid(),
+  nota: z.string().nullable().optional(),
 })
 
 const esquemaObligacion = z.object({
@@ -164,7 +166,7 @@ export function crearRemotoObligaciones(cliente: SupabaseClient): RemotoObligaci
             .eq('hogar_id', hogarId).is('eliminado_en', null),
           cliente.from('costo_financiero').select('id,pasivo_id,cuota_id,monto,fecha_causacion,origen,seq')
             .eq('hogar_id', hogarId).is('eliminado_en', null),
-          cliente.from('pago_de_deuda').select('id,pasivo_id,tipo,cuota_id,monto,fecha,registrado_por')
+          cliente.from('pago_de_deuda').select('id,pasivo_id,tipo,cuota_id,monto,fecha,medio_de_pago_id,registrado_por,nota')
             .eq('hogar_id', hogarId).is('eliminado_en', null),
           cliente.from('obligacion').select('id,nombre,categoria_id,monto_estimado,dia_vencimiento,periodicidad,mes_inicio,activa')
             .eq('hogar_id', hogarId).is('eliminado_en', null),

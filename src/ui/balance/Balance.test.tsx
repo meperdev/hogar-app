@@ -249,7 +249,7 @@ describe('UI del Núcleo 3 (Balance de pareja y exportación)', () => {
 
     await clic(contenedor.querySelector('#toggle-personales'))
     expect(contenedor.textContent).toContain('$140.000')
-    expect(contenedor.textContent).toContain('sin contarse como aporte')
+    expect(contenedor.textContent).toContain('fuera del balance')
     expect(contenedor.textContent).toContain('$3.000.000')
 
     const { contenedor: contAjustes } = await montar('/ajustes', port)
@@ -257,7 +257,7 @@ describe('UI del Núcleo 3 (Balance de pareja y exportación)', () => {
 
     const { contenedor: contConPct } = await montar('/balance', port)
     expect(contConPct.textContent).toContain('37,8 %')
-    expect(contConPct.textContent).toContain('Sin ingresos registrados este mes')
+    expect(contConPct.textContent).toContain('Sin ingresos este mes')
   })
 
   it('permite marcar recibido un ingreso fijo con monto distinto al esperado', async () => {

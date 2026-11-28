@@ -155,10 +155,69 @@ export function PantallaNuevoPasivo() {
               texto="Deuda externa puede quedar a nombre del Hogar o de un miembro. Tarjeta y Crédito libre van a nombre de un miembro."
             />
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            <TarjetaRadio id="tipo-tc" name="tipo-instrumento" value="tarjeta" checked={tipo === 'tarjeta'} onChange={() => cambiarTipo('tarjeta')}>Tarjeta de crédito</TarjetaRadio>
-            <TarjetaRadio id="tipo-credito" name="tipo-instrumento" value="credito" checked={tipo === 'credito'} onChange={() => cambiarTipo('credito')}>Crédito libre</TarjetaRadio>
-            <TarjetaRadio id="tipo-deuda" name="tipo-instrumento" value="deuda" checked={tipo === 'deuda'} onChange={() => cambiarTipo('deuda')}>Deuda externa</TarjetaRadio>
+          <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Tipo de deuda">
+            {[
+              {
+                id: 'tipo-tc',
+                valor: 'tarjeta' as const,
+                etiqueta: 'Tarjeta de crédito',
+                icono: (
+                  <svg className="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+                    <rect x="2.5" y="5" width="19" height="14" rx="2.5" />
+                    <path d="M2.5 10h19" />
+                    <path d="M6.5 15h4" />
+                  </svg>
+                ),
+              },
+              {
+                id: 'tipo-credito',
+                valor: 'credito' as const,
+                etiqueta: 'Crédito libre',
+                icono: (
+                  <svg className="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+                    <path d="M3 10h18L12 4 3 10Z" />
+                    <path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 18h18" />
+                  </svg>
+                ),
+              },
+              {
+                id: 'tipo-deuda',
+                valor: 'deuda' as const,
+                etiqueta: 'Deuda externa',
+                icono: (
+                  <svg className="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+                    <circle cx="9" cy="8" r="3" />
+                    <path d="M3.5 19a5.5 5.5 0 0 1 11 0" />
+                    <path d="M16 11h5M18.5 8.5v5" />
+                  </svg>
+                ),
+              },
+            ].map((opcion) => {
+              const marcado = tipo === opcion.valor
+              return (
+                <label
+                  key={opcion.id}
+                  htmlFor={opcion.id}
+                  className={`flex min-h-[76px] min-w-0 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border px-2 py-2.5 text-center text-xs font-bold leading-tight transition-all duration-150 ${
+                    marcado
+                      ? 'border-hogar-primario bg-hogar-primario-suave text-hogar-primario shadow-[0_3px_10px_-3px_rgba(15,92,72,0.28)]'
+                      : 'border-hogar-borde bg-hogar-superficie text-hogar-tinta hover:bg-hogar-superficie-suave'
+                  }`}
+                >
+                  <input
+                    id={opcion.id}
+                    type="radio"
+                    name="tipo-instrumento"
+                    value={opcion.valor}
+                    checked={marcado}
+                    onChange={() => cambiarTipo(opcion.valor)}
+                    className="sr-only"
+                  />
+                  {opcion.icono}
+                  <span className="break-words">{opcion.etiqueta}</span>
+                </label>
+              )
+            })}
           </div>
         </fieldset>
 
@@ -172,7 +231,7 @@ export function PantallaNuevoPasivo() {
           </div>
           <div className="grid grid-cols-2 gap-2">
             <TarjetaRadio id="ambito-hogar" name="ambito-pasivo" value="hogar" checked={ambito === 'hogar'} onChange={() => cambiarAmbito('hogar')}>Hogar</TarjetaRadio>
-            <TarjetaRadio id="ambito-personal" name="ambito-pasivo" value="personal" checked={ambito === 'personal'} onChange={() => cambiarAmbito('personal')}>Personal (solo yo)</TarjetaRadio>
+            <TarjetaRadio id="ambito-personal" name="ambito-pasivo" value="personal" checked={ambito === 'personal'} onChange={() => cambiarAmbito('personal')}>Personal</TarjetaRadio>
           </div>
         </fieldset>
 

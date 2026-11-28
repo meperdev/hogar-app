@@ -14,6 +14,7 @@ export interface RemotoGastos {
 const esquemaCompra = z.object({
   id: z.uuid(),
   fecha: z.string(),
+  creado_en: z.string().optional(),
   descripcion: z.string(),
   monto_total: z.number().int(),
   categoria_id: z.uuid(),
@@ -100,7 +101,7 @@ export function crearRemotoGastos(cliente: SupabaseClient): RemotoGastos {
         cliente
           .from('compra')
           .select(
-            'id,fecha,descripcion,monto_total,categoria_id,ambito,miembro_id,pago_tipo,medio_de_pago_id,financiada_por_pasivo_id,obligacion_id,registrado_por,origen',
+            'id,fecha,creado_en,descripcion,monto_total,categoria_id,ambito,miembro_id,pago_tipo,medio_de_pago_id,financiada_por_pasivo_id,obligacion_id,registrado_por,origen',
           )
           .eq('hogar_id', hogarId)
           .is('eliminado_en', null),
@@ -205,6 +206,7 @@ export function combinarPendientesGastos(
       comprasExtra.push({
         id: c.id,
         fecha: c.fecha,
+        creado_en: entrada.creadoEn,
         descripcion: c.descripcion,
         monto_total: c.monto_total,
         categoria_id: c.categoria_id,

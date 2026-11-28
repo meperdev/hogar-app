@@ -6,6 +6,7 @@ import { formatearPesos } from '../../domain/pesos'
 import {
   Aviso,
   AyudaInfo,
+  Insignia,
   SelectorMes,
   Tarjeta,
   claseAyudaCampo,
@@ -51,20 +52,6 @@ export function PantallaMascotas() {
     return ids.length === 0 || ids.includes(filtroMascota)
   })
 
-  const primerInsumo = itemsFiltrados[0]?.item ?? items[0]?.item ?? null
-  const ctaPrincipal = primerInsumo
-    ? {
-        to: `/mascotas/recomprar/${encodeURIComponent(primerInsumo.id)}`,
-        etiqueta:
-          primerInsumo.montoHabitual !== null
-            ? `Recomprar ${primerInsumo.nombre} (${formatearPesos(primerInsumo.montoHabitual)})`
-            : `Recomprar ${primerInsumo.nombre}`,
-      }
-    : {
-        to: '/mascotas/nuevo-insumo',
-        etiqueta: '+ Agregar insumo o gasto recurrente',
-      }
-
   const nombresMascotas = mascotasActivas.map((m) => m.nombre).join(' y ')
   const subtitulo =
     (nombresMascotas ? `${nombresMascotas} · ` : `${hogar.nombre} · `)
@@ -103,22 +90,11 @@ export function PantallaMascotas() {
       titulo="Despensa de mascotas"
       subtitulo={subtitulo}
       mostrarNavegacion
-      etiquetaBarraAccion="Acción principal de despensa de mascotas"
+      etiquetaBarraAccion="Agregar insumo de mascotas"
       barraAccion={
-        primerInsumo ? (
-          <div className="flex items-center gap-2">
-            <Link to={ctaPrincipal.to} className={`${claseBotonPrimario} flex-1 no-underline`} data-sin-scroll>
-              {ctaPrincipal.etiqueta}
-            </Link>
-            <Link to="/mascotas/nuevo-insumo" className={`${claseBotonPequenoSecundario} shrink-0 no-underline`}>
-              + Insumo
-            </Link>
-          </div>
-        ) : (
-          <Link to="/mascotas/nuevo-insumo" className={`${claseBotonPrimario} w-full no-underline`} data-sin-scroll>
-            + Agregar insumo o gasto recurrente
-          </Link>
-        )
+        <Link to="/mascotas/nuevo-insumo" className={`${claseBotonPrimario} w-full no-underline`} data-sin-scroll>
+          + Agregar insumo
+        </Link>
       }
     >
       {vista?.sinConexion ? (
@@ -156,48 +132,68 @@ export function PantallaMascotas() {
 
         <details className="hogar-details rounded-2xl border border-hogar-borde bg-hogar-superficie-suave px-3 py-2">
           <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 text-xs font-bold text-hogar-tinta">
-            <span>Ver desglose reconciliable ({gastoMes?.compras.length ?? 0} compras)</span>
+            <span>Ver detalle ({gastoMes?.compras.length ?? 0})</span>
             <span className="hogar-chevron inline-block" aria-hidden="true">▾</span>
           </summary>
-          <div className="mt-2.5 flex flex-col gap-2">
-            {gastoMes && gastoMes.compras.length > 0 ? (
-              <dl className="m-0 flex flex-col gap-1.5 text-xs">
-                {gastoMes.compras.map((c) => {
-                  const mascotaNombre =
-                    c.mascotaId === null
-                      ? 'sin mascota · compartida'
-                      : (vista?.mascotas.find((m) => m.id === c.mascotaId)?.nombre ?? 'Mascota')
-                  return (
-                    <div key={c.id} className="flex items-baseline justify-between gap-2">
-                      <dt className="min-w-0 flex-1 text-hogar-tinta-suave break-words">
-                        {formatearFechaCortaEs(c.fecha)} · {c.descripcion || 'Compra Mascotas'} ({mascotaNombre})
-                      </dt>
-                      <dd className="hogar-cop m-0 shrink-0 font-bold text-hogar-tinta">
-                        {formatearPesos(c.montoTotal)}
-                      </dd>
-                    </div>
-                  )
-                })}
-                <div className="mt-1 flex items-baseline justify-between gap-2 border-t border-hogar-borde pt-1.5 font-bold">
-                  <dt>Total hogar · categoría Mascotas</dt>
-                  <dd className="hogar-cop m-0">{formatearPesos(gastoMes.total)}</dd>
-                </div>
-              </dl>
-            ) : (
-              <p className={claseAyudaCampo}>Sin compras del hogar en categoría Mascotas este mes.</p>
-            )}
-
+          <div className="mt-2.5 flex flex-col gap-2.5 border-t border-hogar-borde pt-2.5">
             {gastoMes && (gastoMes.porMascota.length > 0 || gastoMes.sinEtiqueta > 0) ? (
-              <p className={claseAyudaCampo}>
-                <strong className="text-hogar-tinta">Desglose por mascota:</strong>{' '}
-                {[
-                  ...gastoMes.porMascota.map((d) => `${d.nombre} ${formatearPesos(d.monto)}`),
-                  ...(gastoMes.sinEtiqueta > 0
-                    ? [`Sin etiqueta ${formatearPesos(gastoMes.sinEtiqueta)}`]
-                    : []),
-                ].join(' · ')}
-              </p>
+              <div className="flex flex-wrap gap-1.5" aria-label="Totales por mascota">
+                {gastoMes.porMascota.map((d) => (
+                  <span
+                    key={d.mascotaId}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-hogar-borde bg-hogar-superficie px-2.5 py-1 text-xs"
+                  >
+                    <span className="font-semibold text-hogar-tinta-suave">{d.nombre}</span>
+                    <strong className="hogar-cop font-extrabold text-hogar-tinta">
+                      {formatearPesos(d.monto)}
+                    </strong>
+                  </span>
+                ))}
+                {gastoMes.sinEtiqueta > 0 ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-hogar-borde bg-hogar-superficie px-2.5 py-1 text-xs">
+                    <span className="font-semibold text-hogar-tinta-suave">Compartido</span>
+                    <strong className="hogar-cop font-extrabold text-hogar-tinta">
+                      {formatearPesos(gastoMes.sinEtiqueta)}
+                    </strong>
+                  </span>
+                ) : null}
+              </div>
             ) : null}
+
+            {gastoMes && gastoMes.compras.length > 0 ? (
+              <>
+                <ul className="m-0 flex list-none flex-col divide-y divide-hogar-borde/70 p-0">
+                  {gastoMes.compras.map((c) => {
+                    const mascotaNombre =
+                      c.mascotaId === null
+                        ? 'Compartido'
+                        : (vista?.mascotas.find((m) => m.id === c.mascotaId)?.nombre ?? 'Mascota')
+                    return (
+                      <li key={c.id} className="flex items-start justify-between gap-2.5 py-2 first:pt-0 last:pb-0">
+                        <div className="min-w-0 flex-1">
+                          <p className="m-0 text-xs font-bold text-hogar-tinta break-words">
+                            {c.descripcion || 'Compra Mascotas'}
+                          </p>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[0.7rem] text-hogar-tinta-suave">
+                            <span>{formatearFechaCortaEs(c.fecha)}</span>
+                            <Insignia variante="neutral">{mascotaNombre}</Insignia>
+                          </div>
+                        </div>
+                        <span className="hogar-cop shrink-0 text-xs font-extrabold text-hogar-tinta">
+                          {formatearPesos(c.montoTotal)}
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ul>
+                <div className="flex items-baseline justify-between gap-2 border-t border-hogar-borde pt-2 text-xs font-extrabold text-hogar-tinta">
+                  <span>Total</span>
+                  <span className="hogar-cop">{formatearPesos(gastoMes.total)}</span>
+                </div>
+              </>
+            ) : (
+              <p className={claseAyudaCampo}>Sin compras en Mascotas este mes.</p>
+            )}
           </div>
         </details>
       </Tarjeta>
@@ -296,7 +292,7 @@ export function PantallaMascotas() {
           </h2>
           {vista ? (
             <span className="text-xs text-hogar-tinta-suave">
-              Hoy: {formatearFechaCortaEs(vista.hoy)} · Derivado
+              Hoy: {formatearFechaCortaEs(vista.hoy)}
             </span>
           ) : null}
         </div>

@@ -67,7 +67,9 @@ export type DatosObligaciones = {
     cuota_id: string | null
     monto: number
     fecha: string
+    medio_de_pago_id?: string | null | undefined
     registrado_por: string
+    nota?: string | null | undefined
   }[]
   obligaciones: {
     id: string
@@ -240,6 +242,22 @@ export function crearControladorObligaciones(dep: DependenciasObligaciones): Con
           : { tipo: 'miembro', miembroId: pasivo.owner_miembro_id, nombre: nombreMiembro(d, pasivo.owner_miembro_id) }
         const nombrePasivo = pasivo.ultimos_4 ? `${pasivo.nombre} ••${pasivo.ultimos_4}` : pasivo.nombre
         const saldoPendiente = Math.max(0, recorrerLibro(libro, null).saldo)
+        const abonosPasivo = d.pagos
+          .filter((g) => g.pasivo_id === pasivo.id)
+          .slice()
+          .sort((a, b) => b.fecha.localeCompare(a.fecha) || b.id.localeCompare(a.id))
+          .map((g) => ({
+            id: g.id,
+            fecha: g.fecha,
+            monto: g.monto,
+            medioNombre:
+              (g.medio_de_pago_id
+                ? d.medios.find((m) => m.id === g.medio_de_pago_id)?.nombre
+                : undefined) ?? 'Medio de pago',
+            registradoPor: nombreMiembro(d, g.registrado_por),
+            nota: g.nota ?? null,
+            tipo: g.tipo,
+          }))
         pasivosSaldo.push({
           pasivoId: pasivo.id,
           nombre: nombrePasivo,
@@ -248,6 +266,7 @@ export function crearControladorObligaciones(dep: DependenciasObligaciones): Con
           titular,
           saldoPendiente,
           tieneSinCalendario: libro.planes.some((p) => p.sistema === 'sin_calendario'),
+          abonos: abonosPasivo,
         })
         for (const cuota of libro.cuotas) {
           if (periodoDe(cuota.fechaVencimiento) !== periodo) continue

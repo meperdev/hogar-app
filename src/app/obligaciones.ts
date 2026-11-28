@@ -58,6 +58,16 @@ export type ItemObligacion = {
 
 export type ItemAgenda = ItemCuota | ItemObligacion
 
+export type AbonoPasivoItem = {
+  id: string
+  fecha: string
+  monto: number
+  medioNombre: string
+  registradoPor: string
+  nota: string | null
+  tipo: 'abono' | 'saldo_a_favor'
+}
+
 export type ItemPasivoSaldo = {
   pasivoId: string
   nombre: string
@@ -67,6 +77,7 @@ export type ItemPasivoSaldo = {
   saldoPendiente: number
   tieneSinCalendario: boolean
   cuotasAbiertasMes?: number | undefined
+  abonos?: AbonoPasivoItem[] | undefined
 }
 
 /** Las tres tarjetas: derivadas, nunca guardadas ni sumadas entre sí. */

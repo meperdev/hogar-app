@@ -69,7 +69,7 @@ export function SelectorAmbito({
         }}
       >
         <span className="block w-full truncate">
-          {ambito === 'personal' ? '✓ Personal (solo yo)' : 'Personal (solo yo)'}
+          {ambito === 'personal' ? '✓ Personal' : 'Personal'}
         </span>
       </button>
     </div>
@@ -239,14 +239,14 @@ export type ComercioSeleccionado = {
 
 export function CarruselComercios({
   comercios,
-  descripcionActual,
+  seleccionadoNombre,
   onElegir,
 }: {
   comercios?: ComercioOpcion[] | undefined
-  descripcionActual: string
+  seleccionadoNombre: string | null
   onElegir: (comercio: ComercioSeleccionado) => void
 }) {
-  const actual = descripcionActual.trim().toLowerCase()
+  const actual = (seleccionadoNombre ?? '').trim().toLowerCase()
   const items: Array<{
     id: string
     nombre: string
