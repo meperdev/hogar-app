@@ -9,6 +9,7 @@ import {
 } from '../ComponentesBase'
 import { ShellApp } from '../ShellApp'
 import { formatearFechaCortaEs } from '../compraRapida/formatoCop'
+import { notificarComprasActualizadas } from '../eventosDatos'
 import { useObligaciones } from './ContextoObligaciones'
 import { TarjetaRadio, etiquetaAmbitoTitular, nombreMesPeriodoEs } from './PiezasObligaciones'
 
@@ -32,6 +33,8 @@ function PagoCuota({ cuotaId, pasivoId }: { cuotaId?: string; pasivoId?: string 
   const capitalRef = useRef<HTMLInputElement>(null)
   const sobrepagoRef = useRef<HTMLButtonElement>(null)
   const evalSeqRef = useRef(0)
+  const mediosRef = useRef(medios)
+  mediosRef.current = medios
 
   useEffect(() => {
     let vigente = true
@@ -43,8 +46,12 @@ function PagoCuota({ cuotaId, pasivoId }: { cuotaId?: string; pasivoId?: string 
     void promesa
       .then((inicial) => {
         if (!vigente) return
+        const listaMedios = mediosRef.current
         const medioPorDefecto =
-          inicial.medioId ?? medios.find((m) => m.duenoMiembroId === hogar.miembroActual.id)?.id ?? medios[0]?.id ?? null
+          inicial.medioId ??
+          listaMedios.find((m) => m.duenoMiembroId === hogar.miembroActual.id)?.id ??
+          listaMedios[0]?.id ??
+          null
         setBorrador({ ...inicial, medioId: medioPorDefecto })
         setCuotaIdInicial(inicial.cuotaId)
         setCapitalInicial(inicial.capital)
@@ -62,7 +69,19 @@ function PagoCuota({ cuotaId, pasivoId }: { cuotaId?: string; pasivoId?: string 
         setCargando(false)
       })
     return () => { vigente = false }
-  }, [controlador, cuotaId, pasivoId, hogar.miembroActual.id, medios])
+  }, [controlador, cuotaId, pasivoId, hogar.miembroActual.id])
+
+  useEffect(() => {
+    if (medios.length === 0) return
+    const defecto =
+      medios.find((m) => m.duenoMiembroId === hogar.miembroActual.id)?.id ?? medios[0]?.id ?? null
+    setBorrador((prev) => {
+      if (!prev) return prev
+      const actualValido = prev.medioId !== null && medios.some((m) => m.id === prev.medioId)
+      if (actualValido) return prev
+      return { ...prev, medioId: defecto }
+    })
+  }, [medios, hogar.miembroActual.id])
 
   const borradorEfectivo = useMemo<BorradorPago | null>(() => {
     if (!borrador) return null
@@ -98,9 +117,7 @@ function PagoCuota({ cuotaId, pasivoId }: { cuotaId?: string; pasivoId?: string 
     try {
       const res = await controlador.registrarPago(borradorEfectivo, { dividirSobrepago })
       mostrarToast(res.resumen)
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('hogar:compras-actualizadas'))
-      }
+      notificarComprasActualizadas()
       recargar()
       navigate('/obligaciones')
     } catch (causa) {
@@ -413,9 +430,7 @@ function PagoObligacionRecurrente({ obligacionId }: { obligacionId: string }) {
     try {
       const res = await controlador.registrarPagoObligacion({ obligacionId, periodo: item?.periodo ?? periodo, medioId, fecha, monto })
       mostrarToast(res.resumen)
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('hogar:compras-actualizadas'))
-      }
+      notificarComprasActualizadas()
       recargar()
       navigate('/obligaciones')
     } catch (causa) {

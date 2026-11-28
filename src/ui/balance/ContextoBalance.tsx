@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import type { ControladorBalance, VistaBalanceMes } from '../../app/balance'
 import type { Hogar } from '../../app/fundacion'
 import { hoyCivil } from '../../domain/fechas'
+import { EVENTO_COMPRAS_ACTUALIZADAS } from '../eventosDatos'
 import { useNotificacionesOpcional } from '../Notificaciones'
 
 type ValorContextoBalance = {
@@ -48,8 +49,8 @@ export function ProveedorBalance({
     function recargarPorCompras() {
       setRevision((r) => r + 1)
     }
-    window.addEventListener('hogar:compras-actualizadas', recargarPorCompras)
-    return () => window.removeEventListener('hogar:compras-actualizadas', recargarPorCompras)
+    window.addEventListener(EVENTO_COMPRAS_ACTUALIZADAS, recargarPorCompras)
+    return () => window.removeEventListener(EVENTO_COMPRAS_ACTUALIZADAS, recargarPorCompras)
   }, [])
 
   const recargar = useCallback(() => setRevision((r) => r + 1), [])

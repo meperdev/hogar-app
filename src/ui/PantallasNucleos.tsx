@@ -367,6 +367,9 @@ export function PantallaAjustesFundacion({
           {hogar.miembroActual.rol === 'admin' ? 'Administrador' : 'Miembro'}).
         </p>
         <div className="flex flex-col gap-2">
+          <Link to="/hogar" className={`${claseBotonPequenoSecundario} w-full no-underline`}>
+            Volver a {hogar.nombre}
+          </Link>
           <button
             type="button"
             className={`${claseBotonSecundario} w-full`}
@@ -375,9 +378,6 @@ export function PantallaAjustesFundacion({
           >
             Cerrar sesión
           </button>
-          <Link to="/hogar" className={`${claseBotonPequenoSecundario} w-full no-underline`}>
-            Volver a {hogar.nombre}
-          </Link>
         </div>
       </Tarjeta>
     </ShellApp>

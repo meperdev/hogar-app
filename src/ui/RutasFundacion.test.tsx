@@ -128,10 +128,20 @@ it('espera la sesión antes de mostrar contenido y limpia el hogar al salir', as
       await act(async () => notificar({ usuarioId: 'ana' }))
       expect(servicios.hogares.cargar).toHaveBeenCalledExactlyOnceWith({ usuarioId: 'ana' })
       expect(contenedor.querySelector('h1')?.textContent).toBe('Casa de Ana')
-      const salir = [...contenedor.querySelectorAll('button')].find(
-        (boton) => boton.textContent === 'Cerrar sesión',
-      )
+      expect(
+        [...contenedor.querySelectorAll('button')].some((b) => b.textContent === 'Cerrar sesión'),
+      ).toBe(false)
+
+      const linkAjustes = contenedor.querySelector<HTMLAnchorElement>('a[href="/ajustes"]')
+      expect(linkAjustes).not.toBeNull()
+      await act(async () => linkAjustes?.click())
+      expect(contenedor.querySelector('h1')?.textContent).toBe('Ajustes y exportación')
+
+      const botonesAjustes = [...contenedor.querySelectorAll('button')]
+      const salir = botonesAjustes.find((boton) => boton.textContent === 'Cerrar sesión')
       expect(salir).toBeDefined()
+      expect(botonesAjustes.at(-1)).toBe(salir)
+
       await act(async () => salir?.click())
       expect(servicios.auth.salir).toHaveBeenCalledOnce()
       expect(contenedor.textContent).not.toContain('Casa de Ana')
@@ -312,7 +322,7 @@ describe('Shell autenticado, navegación e invitaciones', () => {
     expect(linkAjustesEnBalance).toBeUndefined()
 
     const linkHogar = contenedor.querySelector<HTMLAnchorElement>(
-      'a[aria-label="Mi perfil, hogar y cerrar sesión"]',
+      'a[aria-label="Mi perfil y hogar"]',
     )
     await act(async () => {
       linkHogar?.click()
@@ -390,7 +400,7 @@ describe('Shell autenticado, navegación e invitaciones', () => {
     await act(async () => notificar({ usuarioId: 'ana' }))
 
     const linkPerfil = contenedor.querySelector<HTMLAnchorElement>(
-      'a[aria-label="Mi perfil, hogar y cerrar sesión"]',
+      'a[aria-label="Mi perfil y hogar"]',
     )
     expect(linkPerfil).not.toBeNull()
     await act(async () => {
@@ -480,7 +490,7 @@ describe('Shell autenticado, navegación e invitaciones', () => {
 
     await act(async () => {
       contenedor
-        .querySelector<HTMLAnchorElement>('a[aria-label="Mi perfil, hogar y cerrar sesión"]')
+        .querySelector<HTMLAnchorElement>('a[aria-label="Mi perfil y hogar"]')
         ?.click()
     })
     expect(contenedor.textContent).toContain('Comercios frecuentes')
@@ -556,7 +566,7 @@ describe('Shell autenticado, navegación e invitaciones', () => {
     const { contenedor } = await montar(servicios)
     await act(async () => notificar({ usuarioId: 'ana' }))
     await act(async () => {
-      contenedor.querySelector<HTMLAnchorElement>('a[aria-label="Mi perfil, hogar y cerrar sesión"]')?.click()
+      contenedor.querySelector<HTMLAnchorElement>('a[aria-label="Mi perfil y hogar"]')?.click()
     })
 
     const botonAgregar = [...contenedor.querySelectorAll('button')].find(

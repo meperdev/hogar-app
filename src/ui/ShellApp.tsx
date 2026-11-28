@@ -125,7 +125,7 @@ export function ShellApp({
             <Link
               to="/hogar"
               className={claseBotonIcono}
-              aria-label="Mi perfil, hogar y cerrar sesión"
+              aria-label="Mi perfil y hogar"
               title="Mi perfil y hogar"
             >
               <IconoHogar className="size-5 text-hogar-primario" />

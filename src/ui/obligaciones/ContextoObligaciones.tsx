@@ -11,6 +11,11 @@ import type {
   MedioPagoOpcion,
 } from '../../app/obligaciones'
 import { hoyCivil } from '../../domain/fechas'
+import {
+  EVENTO_CATALOGO_ACTUALIZADO,
+  EVENTO_COMPRAS_ACTUALIZADAS,
+  notificarComprasActualizadas,
+} from '../eventosDatos'
 import { useNotificacionesOpcional } from '../Notificaciones'
 
 type ValorContextoObligaciones = {
@@ -71,8 +76,12 @@ export function ProveedorObligaciones({
   useEffect(() => {
     if (typeof window === 'undefined') return
     const recargarPorActualizacion = () => setRevision((actual) => actual + 1)
-    window.addEventListener('hogar:compras-actualizadas', recargarPorActualizacion)
-    return () => window.removeEventListener('hogar:compras-actualizadas', recargarPorActualizacion)
+    window.addEventListener(EVENTO_COMPRAS_ACTUALIZADAS, recargarPorActualizacion)
+    window.addEventListener(EVENTO_CATALOGO_ACTUALIZADO, recargarPorActualizacion)
+    return () => {
+      window.removeEventListener(EVENTO_COMPRAS_ACTUALIZADAS, recargarPorActualizacion)
+      window.removeEventListener(EVENTO_CATALOGO_ACTUALIZADO, recargarPorActualizacion)
+    }
   }, [])
 
   useEffect(() => {
@@ -81,7 +90,15 @@ export function ProveedorObligaciones({
       setCargando(true)
     }
     setErrorCarga('')
-    void Promise.all([controlador.cargarMes(periodo), controlador.leerIncluirPersonales(), controlador.medios()])
+    void (async () => {
+      const [agendaCargada, prefPersonales] = await Promise.all([
+        controlador.cargarMes(periodo),
+        controlador.leerIncluirPersonales(),
+      ])
+      // `medios()` lee el estado cargado por `cargarMes`, por eso debe ejecutarse después.
+      const mediosCargados = await controlador.medios()
+      return [agendaCargada, prefPersonales, mediosCargados] as const
+    })()
       .then(([agendaCargada, prefPersonales, mediosCargados]) => {
         if (!vigente) return
         setAgenda(agendaCargada)
@@ -131,9 +148,7 @@ export function ProveedorObligaciones({
       }
       await controlador.editarPago(entrada)
       mostrarToast('Abono actualizado')
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('hogar:compras-actualizadas'))
-      }
+      notificarComprasActualizadas()
       recargar()
     },
     [controlador, mostrarToast, recargar],
@@ -146,9 +161,7 @@ export function ProveedorObligaciones({
       }
       await controlador.eliminarPago(pagoId)
       mostrarToast('Abono eliminado')
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('hogar:compras-actualizadas'))
-      }
+      notificarComprasActualizadas()
       recargar()
     },
     [controlador, mostrarToast, recargar],

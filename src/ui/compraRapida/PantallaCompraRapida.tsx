@@ -27,7 +27,7 @@ import {
   SelectorAmbito,
   type ComercioSeleccionado,
 } from './PiezasCompra'
-import { aplicarTeclaCop, formatearFechaCortaEs, parsearDigitosCop } from './formatoCop'
+import { aplicarTeclaCop, formatearFechaCortaEs } from './formatoCop'
 
 const TECLAS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0', 'borrar'] as const
 
@@ -512,7 +512,11 @@ export function PantallaCompraRapida() {
         </h2>
         <div className="pointer-events-auto rounded-[22px] border border-hogar-borde-fuerte/75 bg-hogar-superficie/96 px-3.5 py-2 text-right shadow-[0_14px_32px_-8px_rgba(16,24,20,0.24),0_2px_8px_rgba(16,24,20,0.08)] backdrop-blur-md">
           <div className="mb-0.5 flex items-center justify-between gap-2 text-[0.8125rem] text-hogar-tinta-suave">
-            <label htmlFor="monto-input" className="inline-flex items-center gap-1.5 font-bold text-hogar-tinta-suave">
+            <label
+              htmlFor="monto-input"
+              onClick={(e) => e.preventDefault()}
+              className="pointer-events-none inline-flex select-none items-center gap-1.5 font-bold text-hogar-tinta-suave"
+            >
               {medioSeleccionado ? (
                 <span
                   className="inline-block size-2 rounded-full"
@@ -544,15 +548,14 @@ export function PantallaCompraRapida() {
             <input
               ref={montoRef}
               id="monto-input"
-              className="hogar-cop min-h-[42px] min-w-11 w-full border-0 bg-transparent py-0.5 text-right text-[2rem] font-extrabold leading-[1.1] tracking-tight text-hogar-tinta focus:outline-none"
+              readOnly
+              tabIndex={-1}
+              inputMode="none"
+              onMouseDown={(e) => e.preventDefault()}
+              className="hogar-cop pointer-events-none min-h-[42px] min-w-11 w-full select-none border-0 bg-transparent py-0.5 text-right text-[2rem] font-extrabold leading-[1.1] tracking-tight text-hogar-tinta focus:outline-none"
               type="text"
-              inputMode="numeric"
               value={formatearPesos(borrador.monto)}
               aria-invalid={errorValidacion?.campo === 'monto' ? 'true' : undefined}
-              onChange={(e) => {
-                setErrorValidacion(null)
-                setBorrador((p) => ({ ...p, monto: parsearDigitosCop(e.target.value) }))
-              }}
             />
           </div>
         </div>

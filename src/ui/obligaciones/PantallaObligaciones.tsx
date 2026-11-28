@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { ItemAgenda, ItemCuota } from '../../app/obligaciones'
 import { hoyCivil } from '../../domain/fechas'
@@ -9,6 +9,7 @@ import {
 } from '../ComponentesBase'
 import { ShellApp } from '../ShellApp'
 import { formatearFechaCortaEs } from '../compraRapida/formatoCop'
+import { notificarCatalogoActualizado } from '../eventosDatos'
 import { useObligaciones } from './ContextoObligaciones'
 import { EditorAbonoInline } from './EditorAbonoInline'
 import {
@@ -30,6 +31,13 @@ export function PantallaObligaciones() {
   const [confirmarEliminarId, setConfirmarEliminarId] = useState<string | null>(null)
   const [eliminandoId, setEliminandoId] = useState<string | null>(null)
   const [abonoEditandoId, setAbonoEditandoId] = useState<string | null>(null)
+  const teniaAgendaAlMontarRef = useRef(agenda !== null)
+
+  useEffect(() => {
+    if (teniaAgendaAlMontarRef.current) {
+      recargar()
+    }
+  }, [recargar])
   const nombresMiembro = new Map(hogar.miembros.map((m) => [m.id, m.nombre]))
   const mediosEditor = medios.map((m) => ({
     id: m.id,
@@ -64,6 +72,7 @@ export function PantallaObligaciones() {
       const res = await controlador.eliminarPasivo(pasivoId)
       setConfirmarEliminarId(null)
       mostrarToast(res.resumen)
+      notificarCatalogoActualizado()
       recargar()
     } catch (causa) {
       mostrarToast(causa instanceof Error && causa.message ? causa.message : 'No se pudo eliminar la obligación.')

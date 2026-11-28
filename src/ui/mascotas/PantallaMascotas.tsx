@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { ErrorMascotas } from '../../app/controladorMascotas'
 import { mascotasDeItem, type EspecieMascota } from '../../domain/mascotas'
@@ -40,6 +40,13 @@ export function PantallaMascotas() {
   const [especieNueva, setEspecieNueva] = useState<EspecieMascota>('perro')
   const [guardandoMascota, setGuardandoMascota] = useState(false)
   const [errorMascota, setErrorMascota] = useState('')
+  const teniaVistaAlMontarRef = useRef(vista !== null)
+
+  useEffect(() => {
+    if (teniaVistaAlMontarRef.current) {
+      recargar()
+    }
+  }, [recargar])
 
   const items = vista?.items ?? []
   const mascotasActivas = vista?.mascotasActivas ?? []

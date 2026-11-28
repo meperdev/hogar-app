@@ -25,6 +25,7 @@ import {
   claseEtiquetaCampo,
 } from '../ComponentesBase'
 import { ATAJOS_MEDIOS_SUGERIDOS, identidadMedio } from '../marcas'
+import { notificarCatalogoActualizado } from '../eventosDatos'
 import { useNotificacionesOpcional } from '../Notificaciones'
 import {
   calcularDesplazamientoHermano,
@@ -147,6 +148,7 @@ export function TarjetaMediosDePago({
       setDuenoSeleccionado(hogar.miembroActual.id)
       setAbierto(false)
       mostrarExito(`Agregamos "${creado.nombre}" a tus medios de pago.`)
+      notificarCatalogoActualizado()
       onCambio?.()
     } catch (causa) {
       setError(
@@ -189,6 +191,7 @@ export function TarjetaMediosDePago({
       )
       setEditandoId(null)
       mostrarExito(`Actualizamos "${actualizado.nombre}".`)
+      notificarCatalogoActualizado()
       onCambio?.()
     } catch (causa) {
       setError(
@@ -211,6 +214,7 @@ export function TarjetaMediosDePago({
       setMedios((prev) =>
         prev.map((m) => (m.id === medio.id ? { ...m, activo: res.activo } : m)),
       )
+      notificarCatalogoActualizado()
       onCambio?.()
     } catch (causa) {
       setError(
@@ -248,6 +252,7 @@ export function TarjetaMediosDePago({
     try {
       await mediosDePago.reordenar(idsOrdenados)
       mostrarExito('Orden de medios actualizado.')
+      notificarCatalogoActualizado()
       onCambio?.()
     } catch (causa) {
       setMedios(snapshotPrevio)

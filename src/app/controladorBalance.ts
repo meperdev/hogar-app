@@ -391,7 +391,7 @@ export function crearControladorBalance(
     },
 
     async mediosParaAporte() {
-      const d = await vigentes()
+      const d = await cargar()
       const nombres = new Map(d.miembros.map((m) => [m.id, m.nombre]))
       const opciones = d.medios
         .filter((m) => m.activo)

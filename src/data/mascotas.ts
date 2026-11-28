@@ -8,7 +8,7 @@ import type {
 import type { LoteMascotas } from '../domain/loteMascotas'
 import type { ObservacionNivel } from '../domain/mascotas'
 import { armarCatalogo } from './compraRapida'
-import type { BaseActorDexie } from './db'
+import type { BaseActorDexie, EntradaOutbox } from './db'
 
 /**
  * Adaptador de datos del núcleo 4 (Despensa de mascotas): Supabase por RLS +
@@ -270,6 +270,43 @@ export function crearRemotoMascotas(cliente: SupabaseClient): RemotoMascotas {
 
 const CLAVE_INSTANTANEA = 'mascotas'
 
+/**
+ * Fusiona compras pendientes del outbox local sobre los datos de Mascotas
+ * para reflejar al instante gastos hechos desde Compra rápida.
+ */
+export function combinarPendientesMascotas(
+  datos: DatosDespensa,
+  pendientes: readonly EntradaOutbox[],
+  hogarId: string,
+): DatosDespensa {
+  const existentes = new Set(datos.compras.map((c) => c.id))
+  const comprasExtra: DatosDespensa['compras'] = []
+
+  for (const entrada of pendientes) {
+    if (entrada.estado !== 'pendiente' || entrada.lote.hogar_id !== hogarId) continue
+    for (const c of entrada.lote.filas.compra) {
+      if (existentes.has(c.id)) continue
+      existentes.add(c.id)
+      comprasExtra.push({
+        id: c.id,
+        fecha: c.fecha,
+        descripcion: c.descripcion,
+        montoTotal: c.monto_total,
+        categoriaId: c.categoria_id,
+        ambito: c.ambito,
+        mascotaId: null,
+        itemDespensaId: null,
+      })
+    }
+  }
+
+  if (comprasExtra.length === 0) return datos
+  return {
+    ...datos,
+    compras: [...datos.compras, ...comprasExtra],
+  }
+}
+
 export function crearPuertoMascotas(d: {
   base: () => Promise<BaseActorDexie>
   remoto: RemotoMascotas
@@ -279,12 +316,18 @@ export function crearPuertoMascotas(d: {
   const ahora = d.ahora ?? (() => new Date())
   return {
     async leer() {
-      return d.remoto.leer(d.hogarId)
+      const [datos, base] = await Promise.all([d.remoto.leer(d.hogarId), d.base()])
+      const pendientes = await base.outbox.where('estado').equals('pendiente').toArray()
+      return combinarPendientesMascotas(datos, pendientes, d.hogarId)
     },
     async leerInstantanea() {
       const base = await d.base()
-      const fila = await base.instantaneas.get(CLAVE_INSTANTANEA)
-      return (fila?.valor as DatosDespensa | undefined) ?? null
+      const [fila, pendientes] = await Promise.all([
+        base.instantaneas.get(CLAVE_INSTANTANEA),
+        base.outbox.where('estado').equals('pendiente').toArray(),
+      ])
+      const datos = (fila?.valor as DatosDespensa | undefined) ?? null
+      return datos ? combinarPendientesMascotas(datos, pendientes, d.hogarId) : null
     },
     async guardarInstantanea(datos) {
       const base = await d.base()

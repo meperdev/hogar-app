@@ -13,6 +13,7 @@ import type { Hogar } from '../../app/fundacion'
 import { useNotificacionesOpcional } from '../Notificaciones'
 import type { ControladorGastos, FiltroAmbitoGastos, VistaGastosMes } from '../../app/gastos'
 import { hoyCivil } from '../../domain/fechas'
+import { EVENTO_COMPRAS_ACTUALIZADAS, notificarComprasActualizadas } from '../eventosDatos'
 
 type ValorContextoGastos = {
   hogar: Hogar
@@ -98,9 +99,9 @@ export function ProveedorGastos({
   useEffect(() => {
     if (typeof window === 'undefined') return
     const manejarActualizacion = () => recargar()
-    window.addEventListener('hogar:compras-actualizadas', manejarActualizacion)
+    window.addEventListener(EVENTO_COMPRAS_ACTUALIZADAS, manejarActualizacion)
     return () => {
-      window.removeEventListener('hogar:compras-actualizadas', manejarActualizacion)
+      window.removeEventListener(EVENTO_COMPRAS_ACTUALIZADAS, manejarActualizacion)
     }
   }, [recargar])
 
@@ -123,9 +124,7 @@ export function ProveedorGastos({
     async (entrada) => {
       await controlador.editarCompra(entrada)
       mostrarToast('Compra actualizada')
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('hogar:compras-actualizadas'))
-      }
+      notificarComprasActualizadas()
       recargar()
     },
     [controlador, mostrarToast, recargar],
@@ -135,9 +134,7 @@ export function ProveedorGastos({
     async (compraId) => {
       await controlador.anularCompra(compraId)
       mostrarToast('Compra anulada')
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('hogar:compras-actualizadas'))
-      }
+      notificarComprasActualizadas()
       recargar()
     },
     [controlador, mostrarToast, recargar],
@@ -150,9 +147,7 @@ export function ProveedorGastos({
       }
       await controlador.editarAbono(entrada)
       mostrarToast('Abono actualizado')
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('hogar:compras-actualizadas'))
-      }
+      notificarComprasActualizadas()
       recargar()
     },
     [controlador, mostrarToast, recargar],
@@ -165,9 +160,7 @@ export function ProveedorGastos({
       }
       await controlador.eliminarAbono(pagoId)
       mostrarToast('Abono eliminado')
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('hogar:compras-actualizadas'))
-      }
+      notificarComprasActualizadas()
       recargar()
     },
     [controlador, mostrarToast, recargar],

@@ -1,8 +1,9 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { AlcanceCompra } from '../../app/compraRapida'
 import type { Hogar } from '../../app/fundacion'
 import type { ControladorMascotas, VistaDespensa } from '../../app/mascotas'
 import { hoyCivil } from '../../domain/fechas'
+import { EVENTO_CATALOGO_ACTUALIZADO, EVENTO_COMPRAS_ACTUALIZADAS } from '../eventosDatos'
 import { useNotificacionesOpcional } from '../Notificaciones'
 
 type ValorContextoMascotas = {
@@ -45,6 +46,8 @@ export function ProveedorMascotas({
   const [errorCarga, setErrorCarga] = useState('')
   const [toast, setToast] = useState('')
   const [revision, setRevision] = useState(0)
+  const vistaRef = useRef<VistaDespensa | null>(null)
+  vistaRef.current = vista
   const notificaciones = useNotificacionesOpcional()
   const mostrarToast = useCallback(
     (mensaje: string) => {
@@ -55,8 +58,21 @@ export function ProveedorMascotas({
   )
 
   useEffect(() => {
+    if (typeof window === 'undefined') return
+    const recargarPorActualizacion = () => setRevision((actual) => actual + 1)
+    window.addEventListener(EVENTO_COMPRAS_ACTUALIZADAS, recargarPorActualizacion)
+    window.addEventListener(EVENTO_CATALOGO_ACTUALIZADO, recargarPorActualizacion)
+    return () => {
+      window.removeEventListener(EVENTO_COMPRAS_ACTUALIZADAS, recargarPorActualizacion)
+      window.removeEventListener(EVENTO_CATALOGO_ACTUALIZADO, recargarPorActualizacion)
+    }
+  }, [])
+
+  useEffect(() => {
     let vigente = true
-    setCargando(true)
+    if (!vistaRef.current || vistaRef.current.periodo !== periodo) {
+      setCargando(true)
+    }
     setErrorCarga('')
     void controlador
       .cargar(periodo)
@@ -75,6 +91,9 @@ export function ProveedorMascotas({
     }
   }, [controlador, periodo, revision])
 
+  const recargar = useCallback(() => setRevision((actual) => actual + 1), [])
+  const limpiarToast = useCallback(() => setToast(''), [])
+
   return (
     <ContextoMascotas.Provider
       value={{
@@ -86,9 +105,9 @@ export function ProveedorMascotas({
         errorCarga,
         toast,
         cambiarPeriodo: setPeriodo,
-        recargar: () => setRevision((actual) => actual + 1),
+        recargar,
         mostrarToast,
-        limpiarToast: () => setToast(''),
+        limpiarToast,
       }}
     >
       {children}

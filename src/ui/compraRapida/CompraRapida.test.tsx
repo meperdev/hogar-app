@@ -8,6 +8,7 @@ import { crearControladorCompraRapida } from '../../app/controladorCompraRapida'
 import type { Hogar, Servicios, Sesion } from '../../app/fundacion'
 import { PuertoEnMemoria } from '../../app/puertoEnMemoria'
 import { RutasFundacion } from '../RutasFundacion'
+import { notificarCatalogoActualizado } from '../eventosDatos'
 
 const mockJsQr = vi.hoisted(() => vi.fn())
 vi.mock('jsqr', () => ({ default: mockJsQr }))
@@ -439,5 +440,43 @@ describe('Compra rápida UI (controlador real)', () => {
     await act(async () => tecla(contenedor, '000')?.click())
     await act(async () => contenedor.querySelector<HTMLButtonElement>('button[data-sin-scroll]')?.click())
     expect(port.registros[0]?.medioId).toBe('018f4a1e-0000-7000-8000-000000000212')
+  })
+
+  it('bloquea teclado nativo en el campo monto principal y refresca catálogo silenciosamente sin borrar el borrador', async () => {
+    const { controlador, port } = crearControladorReal(hogarDePrueba())
+    const cargarEspia = vi.spyOn(controlador, 'cargar')
+    const { contenedor } = await montarApp({ controlador })
+
+    const montoInput = contenedor.querySelector<HTMLInputElement>('#monto-input')!
+    expect(montoInput.readOnly).toBe(true)
+    expect(montoInput.inputMode).toBe('none')
+    expect(montoInput.tabIndex).toBe(-1)
+    expect(montoInput.className).toContain('pointer-events-none')
+
+    await act(async () => tecla(contenedor, '4')?.click())
+    await act(async () => tecla(contenedor, '5')?.click())
+    await act(async () => tecla(contenedor, '000')?.click())
+    await act(async () => boton(contenedor, 'Mercado')?.click())
+    expect(montoInput.value).toBe('$45.000')
+
+    vi.spyOn(port, 'cargarCatalogo').mockResolvedValueOnce({
+      ...CATALOGO_PRUEBA,
+      medios: [
+        ...CATALOGO_PRUEBA.medios,
+        { tipo: 'medio', id: '018f4a1e-0000-7000-8000-000000000299', nombre: 'Efectivo Nuevo', ambito: null },
+      ],
+    })
+    await act(async () => {
+      notificarCatalogoActualizado()
+    })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(cargarEspia).toHaveBeenCalledTimes(2)
+    expect(contenedor.querySelector<HTMLInputElement>('#monto-input')?.value).toBe('$45.000')
+    expect(boton(contenedor, '✓ Mercado')?.getAttribute('aria-pressed')).toBe('true')
+    expect(contenedor.textContent).toContain('Efectivo Nuevo')
   })
 })
